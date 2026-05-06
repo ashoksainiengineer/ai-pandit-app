@@ -115,7 +115,7 @@ export function useLifeEvents({ lifeEvents, updateEvents }: Step3Props) {
                 id: `custom_${crypto.randomUUID()}`,
                 icon: '📌',
                 label: data.newCategoryName,
-                color: '#B8860B',
+                color: '#000000',
                 description: `Custom category: ${data.newCategoryName}`,
                 events: [],
                 isCustom: true

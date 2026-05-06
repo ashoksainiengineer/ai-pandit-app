@@ -7,8 +7,8 @@
 import { FormCardProps } from './types';
 
 const variants = {
-  default: 'bg-white border-[#F0E8DE]',
-  highlighted: 'bg-[#FDF8F3] border-[#78611D]/30',
+  default: 'bg-white border-[rgba(0,0,0,0.08)]',
+  highlighted: 'bg-[#ffffff] border-[#000000]/30',
   subtle: 'bg-[#FAF5EF] border-transparent',
 };
 

@@ -31,11 +31,11 @@ export const ReasoningContent = memo(function ReasoningContent({
                 <motion.div
                     animate={{ scale: [1, 1.05, 1], opacity: [0.5, 0.8, 0.5] }}
                     transition={{ duration: 3, repeat: Infinity }}
-                    className="w-16 h-16 rounded-full bg-[#B8860B]/5 flex items-center justify-center mb-4"
+                    className="w-16 h-16 rounded-full bg-[#000000]/5 flex items-center justify-center mb-4"
                 >
-                    <Brain className="w-8 h-8 text-[#B8860B]/40" />
+                    <Brain className="w-8 h-8 text-[#000000]/40" />
                 </motion.div>
-                <p className="text-sm text-[#5A554F]">
+                <p className="text-sm text-[#636363]">
                     Waiting for AI reasoning stream...
                 </p>
             </div>
@@ -45,12 +45,12 @@ export const ReasoningContent = memo(function ReasoningContent({
     return (
         <div
             ref={scrollRef}
-            className="p-5 overflow-y-auto max-h-[400px] font-mono text-sm text-[#4A453F] leading-7 style-scroll"
+            className="p-5 overflow-y-auto max-h-[400px] font-mono text-sm text-[#636363] leading-7 style-scroll"
         >
-            <pre className="whitespace-pre-wrap break-words font-mono text-sm text-[#4A453F] leading-7">
+            <pre className="whitespace-pre-wrap break-words font-mono text-sm text-[#636363] leading-7">
                 {highlightedContent}
                 {isActive && (
-                    <span className="inline-block w-1.5 h-4 bg-[#B8860B] animate-pulse ml-0.5 align-middle" />
+                    <span className="inline-block w-1.5 h-4 bg-[#000000] animate-pulse ml-0.5 align-middle" />
                 )}
             </pre>
         </div>

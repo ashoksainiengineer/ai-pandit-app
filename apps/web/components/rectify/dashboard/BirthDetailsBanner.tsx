@@ -30,7 +30,7 @@ export function BirthDetailsBanner({ birthData }: { birthData: BirthData | null 
                     </div>
                     <div>
                         <div className="text-[9px] uppercase tracking-wider" style={{ color: THEME.textMuted }}>Subject</div>
-                        <div className="text-sm font-bold" style={{ color: THEME.textPrimary }}>
+                        <div className="text-sm font-medium" style={{ color: THEME.textPrimary }}>
                             {sanitizeHtml(truncateText(birthData.fullName, 50)) || 'N/A'}
                         </div>
                     </div>
@@ -46,7 +46,7 @@ export function BirthDetailsBanner({ birthData }: { birthData: BirthData | null 
                     </div>
                     <div>
                         <div className="text-[9px] uppercase tracking-wider" style={{ color: THEME.textMuted }}>Date of Birth</div>
-                        <div className="text-sm font-bold" style={{ color: THEME.textPrimary }}>{formatDate(birthData.dateOfBirth)}</div>
+                        <div className="text-sm font-medium" style={{ color: THEME.textPrimary }}>{formatDate(birthData.dateOfBirth)}</div>
                     </div>
                 </div>
 
@@ -60,7 +60,7 @@ export function BirthDetailsBanner({ birthData }: { birthData: BirthData | null 
                     </div>
                     <div>
                         <div className="text-[9px] uppercase tracking-wider" style={{ color: THEME.textMuted }}>Tentative Time</div>
-                        <div className="text-sm font-bold" style={{ color: THEME.textPrimary }}>{birthData.tentativeTime || 'N/A'}</div>
+                        <div className="text-sm font-medium" style={{ color: THEME.textPrimary }}>{birthData.tentativeTime || 'N/A'}</div>
                     </div>
                 </div>
 
@@ -74,7 +74,7 @@ export function BirthDetailsBanner({ birthData }: { birthData: BirthData | null 
                     </div>
                     <div>
                         <div className="text-[9px] uppercase tracking-wider" style={{ color: THEME.textMuted }}>Birth Place</div>
-                        <div className="text-sm font-bold max-w-[200px] truncate" style={{ color: THEME.textPrimary }}>
+                        <div className="text-sm font-medium max-w-[200px] truncate" style={{ color: THEME.textPrimary }}>
                             {sanitizeHtml(truncateText(birthData.birthPlace, 100)) || 'N/A'}
                         </div>
                     </div>

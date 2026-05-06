@@ -47,7 +47,7 @@ export const LoadingOverlay = memo(function LoadingOverlay({ isVisible, message 
                             </div>
 
                             <div className="space-y-2">
-                                <h3 className="text-xl font-semibold text-prism-ink font-prism flex items-center justify-center gap-2">
+                                <h3 className="text-xl font-medium text-prism-ink font-prism flex items-center justify-center gap-2">
                                     <Sparkles className="w-5 h-5 text-prism-graphite" />
                                     {message}
                                 </h3>

@@ -60,7 +60,7 @@ export const pipelineSteps: PipelineStep[] = [
     technologies: ['Batch Splitter', 'Parallel Executor', 'Scoring Engine'],
     metrics: { label: 'Survivors', value: '~435' },
     icon: Workflow,
-    color: '#B8860B',
+    color: '#000000',
   },
   {
     number: '04',
@@ -110,17 +110,17 @@ export const pipelineSteps: PipelineStep[] = [
     technologies: ['Session Manager', 'Event Emitter', 'Database'],
     metrics: { label: 'Report', value: '23 pages' },
     icon: Zap,
-    color: '#78611D',
+    color: '#000000',
   },
 ];
 
 export const architectureLayers: ArchitectureLayer[] = [
   { name: 'Frontend', tech: 'Next.js + React', status: 'Streaming UI', color: '#6B1F7A' },
   { name: 'API Gateway', tech: 'Express + TypeScript', status: 'Rate Limited', color: '#8B4A9C' },
-  { name: 'Event Stream', tech: 'Session Manager', status: 'SSE Active', color: '#B8860B' },
+  { name: 'Event Stream', tech: 'Session Manager', status: 'SSE Active', color: '#000000' },
   { name: 'BTR Engine', tech: 'Pipeline Processor', status: '6 Stages', color: '#4A7C6F' },
   { name: 'Ephemeris', tech: 'Skyfield', status: 'High Precision', color: '#C65D3B' },
   { name: 'AI Service', tech: 'DeepSeek R1', status: 'Connected', color: '#4A7C6F' },
-  { name: 'Database', tech: 'Neon Postgres', status: 'Synced', color: '#78611D' },
+  { name: 'Database', tech: 'Neon Postgres', status: 'Synced', color: '#000000' },
   { name: 'Progress', tech: 'Progress Tracker', status: 'Active', color: '#B8A1C9' },
 ];

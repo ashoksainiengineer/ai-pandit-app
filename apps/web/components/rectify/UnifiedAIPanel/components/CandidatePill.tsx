@@ -24,11 +24,11 @@ export const CandidatePill = memo(function CandidatePill({
         <button
             onClick={onClick}
             className={`
-        relative px-2.5 py-1.5 rounded-lg text-[10px] font-mono font-bold
+        relative px-2.5 py-1.5 rounded-lg text-[10px] font-mono font-medium
         transition-all duration-200 border
         ${isSelected
                     ? `${config.bgColor} ${config.color} ${config.borderColor} ring-2 ring-offset-1 ring-current/20 shadow-sm`
-                    : 'bg-white text-[#5A554F] border-[#F0E8DE] hover:border-[#B8860B]/30 hover:text-[#4A453F]'
+                    : 'bg-white text-[#636363] border-[rgba(0,0,0,0.08)] hover:border-[#000000]/30 hover:text-[#636363]'
                 }
       `}
         >
@@ -42,7 +42,7 @@ export const CandidatePill = memo(function CandidatePill({
                 {isLive && <Radio className="w-2.5 h-2.5 animate-pulse" />}
                 {time}
                 {score > 0 && (
-                    <span className={`text-[8px] opacity-70 ${isSelected ? config.color : 'text-[#8A857F]'}`}>
+                    <span className={`text-[8px] opacity-70 ${isSelected ? config.color : 'text-[#959595]'}`}>
                         {score.toFixed(0)}
                     </span>
                 )}

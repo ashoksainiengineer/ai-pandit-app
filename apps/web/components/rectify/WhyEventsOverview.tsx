@@ -24,7 +24,7 @@ export default function WhyEventsOverview({
     >
       {/* Accuracy Levels */}
       <div className="space-y-3">
-        <h4 className="font-semibold text-content-primary text-sm flex items-center gap-2">
+        <h4 className="font-medium text-content-primary text-sm flex items-center gap-2">
           <TrendingUp className="w-4 h-4 text-primary" />
           Accuracy Progression
         </h4>
@@ -50,12 +50,12 @@ export default function WhyEventsOverview({
                       <level.icon className={`w-4 h-4 ${level.color}`} />
                     </div>
                     <div>
-                      <div className="font-semibold text-sm text-content-primary">{level.label}</div>
+                      <div className="font-medium text-sm text-content-primary">{level.label}</div>
                       <div className="text-xs text-content-secondary">{level.range}</div>
                     </div>
                   </div>
                   <div className="text-right">
-                    <div className={`font-bold text-lg ${level.color}`}>{level.accuracy}</div>
+                    <div className={`font-medium text-lg ${level.color}`}>{level.accuracy}</div>
                     <div className="text-xs text-content-secondary">{level.precision}</div>
                   </div>
                 </div>
@@ -73,15 +73,15 @@ export default function WhyEventsOverview({
       {/* Quick Stats */}
       <div className="grid grid-cols-3 gap-3">
         <div className="p-3 bg-white rounded-xl border border-surface-muted text-center">
-          <div className="text-2xl font-bold text-primary">{currentEventCount}</div>
+          <div className="text-2xl font-medium text-primary">{currentEventCount}</div>
           <div className="text-[10px] text-content-secondary uppercase tracking-wider">Events Added</div>
         </div>
         <div className="p-3 bg-white rounded-xl border border-surface-muted text-center">
-          <div className="text-2xl font-bold text-primary-dark">{categoriesCovered}</div>
+          <div className="text-2xl font-medium text-primary-dark">{categoriesCovered}</div>
           <div className="text-[10px] text-content-secondary uppercase tracking-wider">Categories</div>
         </div>
         <div className="p-3 bg-white rounded-xl border border-surface-muted text-center">
-          <div className="text-2xl font-bold text-trust">{Math.max(0, 25 - currentEventCount)}</div>
+          <div className="text-2xl font-medium text-trust">{Math.max(0, 25 - currentEventCount)}</div>
           <div className="text-[10px] text-content-secondary uppercase tracking-wider">To Optimal</div>
         </div>
       </div>

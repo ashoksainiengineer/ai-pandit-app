@@ -32,7 +32,7 @@ export function StageJourneyFunnel({ stageHistory }: { stageHistory?: StageHisto
 
     return (
         <div className="rounded-xl p-6 shadow-sm" style={{ backgroundColor: THEME.surface, border: `1px solid ${THEME.border}` }}>
-            <h4 className="font-bold mb-4 flex items-center gap-2" style={{ color: THEME.textPrimary }}>
+            <h4 className="font-medium mb-4 flex items-center gap-2" style={{ color: THEME.textPrimary }}>
                 <Filter className="w-4 h-4" style={{ color: THEME.gold }} aria-hidden="true" />
                 Stage Journey Funnel
             </h4>
@@ -49,7 +49,7 @@ export function StageJourneyFunnel({ stageHistory }: { stageHistory?: StageHisto
                             role="listitem"
                         >
                             <div
-                                className="w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold transition-all group-hover:bg-gold-50"
+                                className="w-8 h-8 rounded-lg flex items-center justify-center text-xs font-medium transition-all group-hover:bg-gold-50"
                                 style={{ backgroundColor: THEME.bg, border: `1px solid ${THEME.border}`, color: THEME.textMuted }}
                                 aria-label={`Stage ${stage.id}`}
                             >
@@ -58,7 +58,7 @@ export function StageJourneyFunnel({ stageHistory }: { stageHistory?: StageHisto
                             <div className="flex-1">
                                 <div className="flex justify-between text-[10px] mb-1">
                                     <span style={{ color: THEME.textMuted }} className="uppercase tracking-wider font-medium">{stage.name}</span>
-                                    <span className="font-bold" style={{ color: THEME.gold }}>{stage.candidates} candidates</span>
+                                    <span className="font-medium" style={{ color: THEME.gold }}>{stage.candidates} candidates</span>
                                 </div>
                                 <div className="h-2 rounded-full overflow-hidden shadow-inner" style={{ backgroundColor: THEME.bg }}>
                                     <motion.div

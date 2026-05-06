@@ -1,7 +1,7 @@
 /**
  * Not Found Page (404)
  * Custom error page for unmatched routes
- * Follows Sacred Ivory design system
+ * Follows Dia Browser design system
  */
 
 import Link from 'next/link';
@@ -57,7 +57,7 @@ function NotFoundIllustration() {
       {/* Outer ring */}
       <svg 
         viewBox="0 0 200 200" 
-        className="w-full h-full animate-spin"
+        className="w-full h-full animate-spin text-black/8"
         style={{ animationDuration: '20s' }}
       >
         <circle
@@ -65,7 +65,7 @@ function NotFoundIllustration() {
           cy="100"
           r="90"
           fill="none"
-          stroke="#F0E8DE"
+          stroke="currentColor"
           strokeWidth="1"
           strokeDasharray="4 4"
         />
@@ -73,15 +73,15 @@ function NotFoundIllustration() {
       
       {/* Inner compass */}
       <div className="absolute inset-0 flex items-center justify-center">
-        <div className="w-32 h-32 rounded-full bg-gradient-to-br from-[#FDF8F3] to-white border-2 border-[#F0E8DE] flex items-center justify-center shadow-lg">
-          <Compass className="w-16 h-16 text-[#B8860B]" strokeWidth={1.5} />
+        <div className="w-32 h-32 rounded-full bg-white border-2 border-black/8 flex items-center justify-center shadow-lg">
+          <Compass className="w-16 h-16 text-black" strokeWidth={1.5} />
         </div>
       </div>
       
       {/* Decorative dots */}
-      <div className="absolute top-4 right-4 w-3 h-3 rounded-full bg-[#78611D]/30" />
-      <div className="absolute bottom-8 left-6 w-2 h-2 rounded-full bg-[#6B1F7A]/20" />
-      <div className="absolute top-1/2 -right-2 w-2 h-2 rounded-full bg-[#184131]/20" />
+      <div className="absolute top-4 right-4 w-3 h-3 rounded-full bg-black/10" />
+      <div className="absolute bottom-8 left-6 w-2 h-2 rounded-full bg-black/5" />
+      <div className="absolute top-1/2 -right-2 w-2 h-2 rounded-full bg-black/5" />
     </div>
   );
 }
@@ -106,30 +106,30 @@ function CTALink({ href, label, description, icon: Icon, variant }: CTALinkProps
       className={`
         group flex items-center gap-4 p-4 rounded-xl border transition-all duration-300
         ${isPrimary 
-          ? 'bg-gradient-to-r from-[#B8860B] to-[#78611D] text-white border-transparent shadow-lg shadow-[#B8860B]/20 hover:shadow-xl hover:shadow-[#B8860B]/30 hover:-translate-y-0.5' 
-          : 'bg-white border-[#F0E8DE] hover:border-[#78611D]/50 hover:bg-[#FDF8F3]'
+          ? 'bg-black text-white border-transparent shadow-lg shadow-black/10 hover:shadow-xl hover:shadow-black/15 hover:-translate-y-0.5' 
+          : 'bg-white border-black/8 hover:border-black/20 hover:bg-[#f8f8f8]'
         }
       `}
     >
       <div className={`
         w-12 h-12 rounded-xl flex items-center justify-center transition-colors
-        ${isPrimary ? 'bg-white/20' : 'bg-[#FDF8F3] group-hover:bg-white'}
+        ${isPrimary ? 'bg-white/20' : 'bg-[#f8f8f8] group-hover:bg-white'}
       `}>
-        <Icon className={`w-6 h-6 ${isPrimary ? 'text-white' : 'text-[#B8860B]'}`} />
+        <Icon className={`w-6 h-6 ${isPrimary ? 'text-white' : 'text-black'}`} />
       </div>
       
       <div className="flex-1">
-        <div className={`font-semibold ${isPrimary ? 'text-white' : 'text-[#1A1612]'}`}>
+        <div className={`font-medium ${isPrimary ? 'text-white' : 'text-black'}`}>
           {label}
         </div>
-        <div className={`text-sm ${isPrimary ? 'text-white/80' : 'text-[#5A554F]'}`}>
+        <div className={`text-sm ${isPrimary ? 'text-white/80' : 'text-black/60'}`}>
           {description}
         </div>
       </div>
       
       <ArrowRight className={`
         w-5 h-5 transition-transform group-hover:translate-x-1
-        ${isPrimary ? 'text-white/80' : 'text-[#B8860B]'}
+        ${isPrimary ? 'text-white/80' : 'text-black'}
       `} />
     </Link>
   );
@@ -148,8 +148,8 @@ function SearchSuggestions() {
   ];
 
   return (
-    <div className="mt-8 pt-8 border-t border-[#F0E8DE]">
-      <div className="flex items-center gap-2 text-[#5A554F] mb-4">
+    <div className="mt-8 pt-8 border-t border-black/8">
+      <div className="flex items-center gap-2 text-black/60 mb-4">
         <Search className="w-4 h-4" />
         <span className="text-sm">Popular pages</span>
       </div>
@@ -159,7 +159,7 @@ function SearchSuggestions() {
           <Link
             key={suggestion.href}
             href={suggestion.href}
-            className="px-4 py-2 text-sm text-[#4A453F] bg-white border border-[#F0E8DE] rounded-full hover:border-[#78611D]/50 hover:text-[#B8860B] transition-colors"
+            className="px-4 py-2 text-sm text-black/60 bg-white border border-black/8 rounded-full hover:border-black/20 hover:text-black transition-colors"
           >
             {suggestion.label}
           </Link>
@@ -174,24 +174,24 @@ function SearchSuggestions() {
  */
 export default function NotFoundPage() {
   return (
-    <main className="min-h-screen bg-[#FFFCF8] flex items-center justify-center px-6 py-16">
+    <main className="min-h-screen bg-[#f8f8f8] flex items-center justify-center px-6 py-16">
       <div className="max-w-lg w-full">
         {/* Illustration */}
         <NotFoundIllustration />
         
         {/* Error Code */}
         <div className="text-center mb-2">
-          <span className="text-8xl font-bold text-[#F0E8DE] font-[family-name:var(--font-cormorant)] select-none">
+          <span className="text-8xl font-light text-black/8 select-none">
             404
           </span>
         </div>
         
         {/* Message */}
         <div className="text-center mb-8">
-          <h1 className="text-2xl font-bold text-[#1A1612] font-[family-name:var(--font-cormorant)] mb-2">
+          <h1 className="text-2xl font-light text-black mb-2">
             Page Not Found
           </h1>
-          <p className="text-[#5A554F]">
+          <p className="text-black/60">
             The page you are looking for seems to have wandered into another constellation.
           </p>
         </div>
@@ -208,11 +208,11 @@ export default function NotFoundPage() {
         
         {/* Footer */}
         <div className="mt-8 text-center">
-          <p className="text-xs text-[#8A857F]">
+          <p className="text-xs text-black/40">
             If you believe this is an error, please contact{' '}
             <a 
               href="mailto:support@aipandit.app" 
-              className="text-[#B8860B] hover:underline"
+              className="text-black hover:underline"
             >
               support@aipandit.app
             </a>

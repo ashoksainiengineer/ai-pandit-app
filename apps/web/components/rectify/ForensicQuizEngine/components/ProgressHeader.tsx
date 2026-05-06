@@ -27,7 +27,7 @@ export function ProgressHeader({
                     <span className="text-2xl">
                         {currentCategoryData?.icon}
                     </span>
-                    <span className="text-sm font-medium text-[#5A554F]">
+                    <span className="text-sm font-medium text-[#636363]">
                         {currentCategoryData?.name}
                     </span>
                 </div>
@@ -36,8 +36,8 @@ export function ProgressHeader({
                     <div className="flex items-center gap-1.5 text-xs">
                         {saveStatus === 'saving' && (
                             <>
-                                <div className="w-3 h-3 border-2 border-[#B8860B]/30 border-t-[#B8860B] rounded-full animate-spin" />
-                                <span className="text-[#B8860B]">Saving...</span>
+                                <div className="w-3 h-3 border-2 border-[#000000]/30 border-t-[#000000] rounded-full animate-spin" />
+                                <span className="text-[#000000]">Saving...</span>
                             </>
                         )}
                         {saveStatus === 'saved' && (
@@ -47,16 +47,16 @@ export function ProgressHeader({
                             </>
                         )}
                     </div>
-                    <span className="text-sm font-semibold text-[#B8860B]">
+                    <span className="text-sm font-medium text-[#000000]">
                         {currentQuestionIndex + 1} of {FORENSIC_QUIZ_QUESTIONS.length}
                     </span>
                 </div>
             </div>
 
             {/* Progress Bar */}
-            <div className="h-2 bg-[#F0E8DE] rounded-full overflow-hidden">
+            <div className="h-2 bg-[rgba(0,0,0,0.08)] rounded-full overflow-hidden">
                 <motion.div
-                    className="h-full bg-gradient-to-r from-[#B8860B] to-[#78611D] rounded-full"
+                    className="h-full bg-gradient-to-r from-[#000000] to-[#000000] rounded-full"
                     initial={{ width: 0 }}
                     animate={{ width: `${((currentQuestionIndex + 1) / FORENSIC_QUIZ_QUESTIONS.length) * 100}%` }}
                     transition={{ duration: 0.3 }}
@@ -81,10 +81,10 @@ export function ProgressHeader({
                             }}
                             disabled={catProg.answered === 0}
                             className={`text-[10px] px-2 py-1 rounded-full transition-colors disabled:opacity-50 ${isActive
-                                ? 'bg-[#B8860B] text-white'
+                                ? 'bg-[#000000] text-white'
                                 : isComplete
                                     ? 'bg-[#184131]/20 text-[#184131]'
-                                    : 'bg-[#F5EFE7] text-[#5A554F]'
+                                    : 'bg-[#f8f8f8] text-[#636363]'
                                 }`}
                         >
                             {cat.icon} {catProg.answered}/{catProg.total}

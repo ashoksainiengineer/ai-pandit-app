@@ -28,7 +28,7 @@ export default function GlobalError({ error, reset }: GlobalErrorProps) {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          backgroundColor: '#FFFCF8',
+          backgroundColor: '#f8f8f8',
           fontFamily: 'system-ui, -apple-system, sans-serif',
           padding: '20px'
         }}>
@@ -36,7 +36,7 @@ export default function GlobalError({ error, reset }: GlobalErrorProps) {
             maxWidth: '500px',
             width: '100%',
             backgroundColor: 'white',
-            border: '1px solid #F0E8DE',
+            border: '1px solid rgba(0,0,0,0.08)',
             borderRadius: '16px',
             padding: '32px',
             textAlign: 'center'
@@ -57,14 +57,14 @@ export default function GlobalError({ error, reset }: GlobalErrorProps) {
             <h1 style={{
               fontSize: '24px',
               fontWeight: 600,
-              color: '#1A1612',
+              color: '#000000',
               marginBottom: '8px'
             }}>
               Critical Error
             </h1>
             
             <p style={{
-              color: '#5A554F',
+              color: '#636363',
               marginBottom: '24px',
               lineHeight: 1.5
             }}>
@@ -74,7 +74,7 @@ export default function GlobalError({ error, reset }: GlobalErrorProps) {
             <button
               onClick={reset}
               style={{
-                backgroundColor: '#B8860B',
+                backgroundColor: '#000000',
                 color: 'white',
                 border: 'none',
                 padding: '12px 24px',
@@ -93,7 +93,7 @@ export default function GlobalError({ error, reset }: GlobalErrorProps) {
               style={{
                 display: 'block',
                 marginTop: '16px',
-                color: '#5A554F',
+                color: '#636363',
                 textDecoration: 'none',
                 fontSize: '14px'
               }}

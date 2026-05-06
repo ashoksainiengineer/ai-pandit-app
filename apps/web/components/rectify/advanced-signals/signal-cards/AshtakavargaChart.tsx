@@ -20,7 +20,7 @@ interface AshtakavargaChartProps {
 // ============================================================================
 
 const getScoreColor = (score: number): string => {
-  if (score >= 6) return '#78611D'; // accent-gold
+  if (score >= 6) return '#000000'; // accent-gold
   if (score === 5) return '#C9A961'; // accent-gold-muted
   if (score === 4) return '#8C7F72'; // text-muted
   if (score >= 2) return '#5A6475'; // text-disabled
@@ -68,15 +68,15 @@ const AshtakavargaChart: React.FC<AshtakavargaChartProps> = ({ scores }) => {
           animate="visible"
         >
           {/* Header Row */}
-          <div className="font-bold text-text-muted"></div>
+          <div className="font-medium text-black/60"></div>
           {houseLabels.map(label => (
-            <div key={`header-${label}`} className="text-center font-bold text-text-muted">{label}</div>
+            <div key={`header-${label}`} className="text-center font-medium text-black/60">{label}</div>
           ))}
 
           {/* Planet Rows */}
           {planetOrder.map(planet => (
             <React.Fragment key={planet}>
-              <div className="font-bold text-text-secondary pr-2 text-right self-center">{planet.slice(0, 3)}</div>
+              <div className="font-medium text-text-secondary pr-2 text-right self-center">{planet.slice(0, 3)}</div>
               {scores[planet]?.map((score, houseIndex) => (
                 <motion.div
                   key={`${planet}-${houseIndex}`}
@@ -85,7 +85,7 @@ const AshtakavargaChart: React.FC<AshtakavargaChartProps> = ({ scores }) => {
                   style={{ backgroundColor: getScoreColor(score) }}
                   title={`Score: ${score}`}
                 >
-                  <span className="font-bold text-white mix-blend-overlay">{score}</span>
+                  <span className="font-medium text-white mix-blend-overlay">{score}</span>
                 </motion.div>
               )) || Array(12).fill(null).map((_, i) => <div key={`empty-${planet}-${i}`} className="w-full h-8 rounded-fib-1 bg-bg-input"></div>)
               }

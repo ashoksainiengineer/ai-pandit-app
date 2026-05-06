@@ -45,17 +45,17 @@ export const DeleteConfirmModal = memo(function DeleteConfirmModal({
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 10 }}
           transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
-          className="relative w-full max-w-lg bg-white rounded-2xl shadow-2xl border border-[#F0E8DE] overflow-hidden"
+          className="relative w-full max-w-lg bg-white rounded-2xl shadow-2xl border border-[rgba(0,0,0,0.08)] overflow-hidden"
           onClick={(e) => e.stopPropagation()}
         >
           {/* Decorative Top Border */}
-          <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-[#B8860B] via-[#78611D] to-[#B8860B]" />
+          <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-[#000000] via-[#000000] to-[#000000]" />
 
           {/* Close Button */}
           <button
             onClick={onClose}
             disabled={isDeleting}
-            className="absolute top-4 right-4 p-2 rounded-full text-[#8A857F] hover:text-[#5A554F] hover:bg-[#F5EFE7] transition-all duration-200"
+            className="absolute top-4 right-4 p-2 rounded-full text-[#959595] hover:text-[#636363] hover:bg-[#f8f8f8] transition-all duration-200"
           >
             <X className="w-5 h-5" />
           </button>
@@ -73,26 +73,26 @@ export const DeleteConfirmModal = memo(function DeleteConfirmModal({
             </div>
 
             {/* Title */}
-            <h3 className="text-xl font-semibold text-[#1A1612] text-center font-[family-name:var(--font-cormorant)] mb-1">
+            <h3 className="text-xl font-medium text-[#000000] text-center  mb-1">
               Delete {isCompleted ? 'Analysis' : 'Draft'}?
             </h3>
 
             {/* Subtitle */}
-            <p className="text-[#5A554F] text-center text-sm mb-6">
-              This will permanently remove <span className="font-medium text-[#1A1612]">{session.fullName}&apos;s</span> data
+            <p className="text-[#636363] text-center text-sm mb-6">
+              This will permanently remove <span className="font-medium text-[#000000]">{session.fullName}&apos;s</span> data
             </p>
 
             {/* Data Categories Grid */}
             <div className="grid grid-cols-2 gap-3 mb-6">
               {/* Personal Data */}
-              <div className="p-3 bg-[#FDF8F3] border border-[#F0E8DE] rounded-xl">
+              <div className="p-3 bg-[#ffffff] border border-[rgba(0,0,0,0.08)] rounded-xl">
                 <div className="flex items-center gap-2 mb-2">
                   <div className="w-8 h-8 rounded-lg bg-amber-100 flex items-center justify-center">
                     <User className="w-4 h-4 text-amber-600" />
                   </div>
-                  <span className="font-semibold text-[#1A1612] text-sm">Birth Details</span>
+                  <span className="font-medium text-[#000000] text-sm">Birth Details</span>
                 </div>
-                <ul className="text-xs text-[#5A554F] space-y-1 ml-10">
+                <ul className="text-xs text-[#636363] space-y-1 ml-10">
                   <li>• {session.fullName}</li>
                   <li>• {session.dateOfBirth}</li>
                   <li>• {session.tentativeTime || 'Not set'}</li>
@@ -101,14 +101,14 @@ export const DeleteConfirmModal = memo(function DeleteConfirmModal({
               </div>
 
               {/* Form Progress */}
-              <div className="p-3 bg-[#FDF8F3] border border-[#F0E8DE] rounded-xl">
+              <div className="p-3 bg-[#ffffff] border border-[rgba(0,0,0,0.08)] rounded-xl">
                 <div className="flex items-center gap-2 mb-2">
                   <div className="w-8 h-8 rounded-lg bg-purple-100 flex items-center justify-center">
                     <FileText className="w-4 h-4 text-purple-600" />
                   </div>
-                  <span className="font-semibold text-[#1A1612] text-sm">Form Data</span>
+                  <span className="font-medium text-[#000000] text-sm">Form Data</span>
                 </div>
-                <ul className="text-xs text-[#5A554F] space-y-1 ml-10">
+                <ul className="text-xs text-[#636363] space-y-1 ml-10">
                   <li>• Physical Traits</li>
                   <li>• Forensic Data</li>
                   <li>• Life Events</li>
@@ -119,14 +119,14 @@ export const DeleteConfirmModal = memo(function DeleteConfirmModal({
               {/* Analysis Results (only for completed) */}
               {isCompleted && (
                 <>
-                  <div className="p-3 bg-[#FDF8F3] border border-[#F0E8DE] rounded-xl">
+                  <div className="p-3 bg-[#ffffff] border border-[rgba(0,0,0,0.08)] rounded-xl">
                     <div className="flex items-center gap-2 mb-2">
                       <div className="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center">
                         <Sparkles className="w-4 h-4 text-blue-600" />
                       </div>
-                      <span className="font-semibold text-[#1A1612] text-sm">Results</span>
+                      <span className="font-medium text-[#000000] text-sm">Results</span>
                     </div>
-                    <ul className="text-xs text-[#5A554F] space-y-1 ml-10">
+                    <ul className="text-xs text-[#636363] space-y-1 ml-10">
                       <li>• Rectified Time</li>
                       <li>• {session.accuracy}% Accuracy</li>
                       <li>• Full Report</li>
@@ -134,14 +134,14 @@ export const DeleteConfirmModal = memo(function DeleteConfirmModal({
                     </ul>
                   </div>
 
-                  <div className="p-3 bg-[#FDF8F3] border border-[#F0E8DE] rounded-xl">
+                  <div className="p-3 bg-[#ffffff] border border-[rgba(0,0,0,0.08)] rounded-xl">
                     <div className="flex items-center gap-2 mb-2">
                       <div className="w-8 h-8 rounded-lg bg-green-100 flex items-center justify-center">
                         <Database className="w-4 h-4 text-green-600" />
                       </div>
-                      <span className="font-semibold text-[#1A1612] text-sm">Technical</span>
+                      <span className="font-medium text-[#000000] text-sm">Technical</span>
                     </div>
-                    <ul className="text-xs text-[#5A554F] space-y-1 ml-10">
+                    <ul className="text-xs text-[#636363] space-y-1 ml-10">
                       <li>• Calculations</li>
                       <li>• Ephemeris Data</li>
                       <li>• Planet Positions</li>
@@ -164,8 +164,8 @@ export const DeleteConfirmModal = memo(function DeleteConfirmModal({
             </div>
 
             {/* Security Badge */}
-            <div className="flex items-center justify-center gap-2 mb-6 text-xs text-[#5A554F]">
-              <Shield className="w-4 h-4 text-[#B8860B]" />
+            <div className="flex items-center justify-center gap-2 mb-6 text-xs text-[#636363]">
+              <Shield className="w-4 h-4 text-[#000000]" />
               <span>Your data is end-to-end encrypted</span>
             </div>
 
@@ -186,7 +186,7 @@ export const DeleteConfirmModal = memo(function DeleteConfirmModal({
               <button
                 onClick={onClose}
                 disabled={isDeleting}
-                className="flex-1 px-4 py-3 border border-[#E8E0D5] text-[#5A554F] rounded-xl font-medium hover:bg-[#F5EFE7] hover:text-[#4A453F] transition-all duration-200 disabled:opacity-50"
+                className="flex-1 px-4 py-3 border border-[#E8E0D5] text-[#636363] rounded-xl font-medium hover:bg-[#f8f8f8] hover:text-[#636363] transition-all duration-200 disabled:opacity-50"
               >
                 Keep {isCompleted ? 'Analysis' : 'Draft'}
               </button>
@@ -212,7 +212,7 @@ export const DeleteConfirmModal = memo(function DeleteConfirmModal({
 
           {/* Decorative Corner */}
           <div className="absolute bottom-0 right-0 w-32 h-32 opacity-5 pointer-events-none">
-            <svg viewBox="0 0 100 100" className="w-full h-full fill-[#B8860B]">
+            <svg viewBox="0 0 100 100" className="w-full h-full fill-[#000000]">
               <circle cx="100" cy="100" r="80" />
             </svg>
           </div>

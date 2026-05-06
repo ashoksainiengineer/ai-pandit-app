@@ -47,9 +47,9 @@ function ResultsDashboardContent(props: ResultsDashboardProps) {
                             <button
                                 key={tab}
                                 onClick={() => engine.setActiveTab(tab)}
-                                className={`pb-4 px-2 text-sm font-bold uppercase tracking-wider transition-colors whitespace-nowrap ${engine.activeTab === tab
+                                className={`pb-4 px-2 text-sm font-medium uppercase tracking-wider transition-colors whitespace-nowrap ${engine.activeTab === tab
                                     ? 'border-b-2'
-                                    : 'hover:text-[#1A1612]'
+                                    : 'hover:text-[#000000]'
                                     }`}
                                 style={{
                                     color: engine.activeTab === tab ? THEME.gold : THEME.textMuted,

@@ -118,12 +118,12 @@ export const StageLeaderboard = memo(function StageLeaderboard({
             initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
             className={`mt-6 rounded-2xl border overflow-hidden transition-all duration-500 shadow-sm ${isCompleted
-                ? 'border-[#F0E8DE] bg-[#FDF8F3]/50'
+                ? 'border-[rgba(0,0,0,0.08)] bg-[#ffffff]/50'
                 : 'border-amber-200 bg-white ring-1 ring-amber-100/50'
                 }`}
         >
             {/* 🔱 HEADER - ALIGNED WITH AI PANDIT THEME */}
-            <div className={`px-5 py-3.5 flex items-center justify-between border-b ${isCompleted ? 'bg-stone-50/80 border-[#F0E8DE]' : 'bg-amber-50/50 border-amber-200/40'
+            <div className={`px-5 py-3.5 flex items-center justify-between border-b ${isCompleted ? 'bg-stone-50/80 border-[rgba(0,0,0,0.08)]' : 'bg-amber-50/50 border-amber-200/40'
                 }`}>
                 <div className="flex items-center gap-3">
                     <div className={`w-8 h-8 rounded-lg flex items-center justify-center border ${isCompleted ? 'bg-white border-stone-200' : 'bg-white border-amber-200 shadow-sm'
@@ -131,7 +131,7 @@ export const StageLeaderboard = memo(function StageLeaderboard({
                         <Trophy className={`w-4 h-4 ${isCompleted ? 'text-stone-400' : 'text-amber-600'}`} />
                     </div>
                     <div>
-                        <h3 className={`text-[11px] font-bold uppercase tracking-wider ${isCompleted ? 'text-stone-500' : 'text-amber-800'}`}>
+                        <h3 className={`text-[11px] font-medium uppercase tracking-wider ${isCompleted ? 'text-stone-500' : 'text-amber-800'}`}>
                             {STAGES[activeStage]?.name || `Stage ${activeStage} Candidates`}
                         </h3>
                         <p className="text-[9px] text-stone-400 font-medium">
@@ -170,7 +170,7 @@ export const StageLeaderboard = memo(function StageLeaderboard({
                         })}
                     </div>
 
-                    <span className="text-[10px] font-mono font-bold text-stone-500 px-2 py-1 bg-white border border-stone-100 rounded-md">
+                    <span className="text-[10px] font-mono font-medium text-stone-500 px-2 py-1 bg-white border border-stone-100 rounded-md">
                         {stageScores.length} UNITS
                     </span>
                 </div>
@@ -188,7 +188,7 @@ export const StageLeaderboard = memo(function StageLeaderboard({
             </div>
 
             {/* 🔱 SCROLLABLE CONTAINER (SLIDER STYLE) */}
-            <div className="max-h-[450px] overflow-y-auto bg-white [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-[#E5E0D8] hover:[&::-webkit-scrollbar-thumb]:bg-[#B8860B]">
+            <div className="max-h-[450px] overflow-y-auto bg-white [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-[#E5E0D8] hover:[&::-webkit-scrollbar-thumb]:bg-[#000000]">
                 <div className="p-2 space-y-1.5">
                     <AnimatePresence initial={false}>
                         {stageScores.length > 0 ? (
@@ -219,7 +219,7 @@ export const StageLeaderboard = memo(function StageLeaderboard({
                                             <div className="flex items-center gap-4">
                                                 <div className="flex flex-col">
                                                     <div className="flex items-center gap-2">
-                                                        <span className={`text-[13px] font-mono font-bold ${idx === 0 && s.score > 0 ? 'text-amber-700' : 'text-stone-700'
+                                                        <span className={`text-[13px] font-mono font-medium ${idx === 0 && s.score > 0 ? 'text-amber-700' : 'text-stone-700'
                                                             }`}>
                                                             {s.time}
                                                         </span>
@@ -230,11 +230,11 @@ export const StageLeaderboard = memo(function StageLeaderboard({
                                                         )}
                                                     </div>
                                                     <div className="flex items-center gap-1.5 mt-0.5">
-                                                        <span className="text-[9px] uppercase font-bold text-stone-400 tracking-wider">
+                                                        <span className="text-[9px] uppercase font-medium text-stone-400 tracking-wider">
                                                             ASC: <span className="text-stone-600 font-mono">{s.minifiedEph?.ascendant}</span>
                                                         </span>
                                                         <span className="w-1 h-1 rounded-full bg-stone-200" />
-                                                        <span className="text-[9px] uppercase font-bold text-stone-400 tracking-wider">
+                                                        <span className="text-[9px] uppercase font-medium text-stone-400 tracking-wider">
                                                             MOON: <span className="text-stone-600 font-mono">{s.minifiedEph?.moon?.split(' ')[0] ?? '-'}</span>
                                                         </span>
                                                     </div>
@@ -243,7 +243,7 @@ export const StageLeaderboard = memo(function StageLeaderboard({
 
                                             <div className="flex items-center gap-6">
                                                 <div className="flex flex-col items-end">
-                                                    <span className={`text-sm font-bold font-mono ${s.score > 85 ? 'text-[#184131]' : (s.score > 0 ? 'text-[#B8860B]' : 'text-stone-400')
+                                                    <span className={`text-sm font-medium font-mono ${s.score > 85 ? 'text-[#184131]' : (s.score > 0 ? 'text-[#000000]' : 'text-stone-400')
                                                         }`}>
                                                         {s.score > 0 ? `${s.score.toFixed(1)}%` : 'PENDING'}
                                                     </span>
@@ -252,7 +252,7 @@ export const StageLeaderboard = memo(function StageLeaderboard({
                                                             initial={{ width: 0 }}
                                                             animate={{ width: `${s.score}%` }}
                                                             transition={{ duration: 1, ease: "easeOut" }}
-                                                            className={`h-full rounded-full ${s.score > 85 ? 'bg-[#184131]' : 'bg-[#B8860B]'
+                                                            className={`h-full rounded-full ${s.score > 85 ? 'bg-[#184131]' : 'bg-[#000000]'
                                                                 }`}
                                                         />
                                                     </div>
@@ -283,7 +283,7 @@ export const StageLeaderboard = memo(function StageLeaderboard({
                                                                     <div className="col-span-full py-6 text-center">
                                                                         <div className="flex items-center justify-center gap-2">
                                                                             <Loader2 className="w-4 h-4 animate-spin text-amber-500" />
-                                                                            <span className="text-[10px] text-stone-400 font-bold uppercase tracking-widest">
+                                                                            <span className="text-[10px] text-stone-400 font-medium uppercase tracking-widest">
                                                                                 Loading Ephemeris...
                                                                             </span>
                                                                         </div>
@@ -294,8 +294,8 @@ export const StageLeaderboard = memo(function StageLeaderboard({
                                                             if (ephData) {
                                                                 return Object.entries(ephData).map(([planet, position]) => (
                                                                     <div key={planet} className="p-2.5 rounded-lg bg-white border border-stone-100 flex flex-col gap-0.5 shadow-sm hover:border-amber-200 transition-colors">
-                                                                        <span className="text-[8px] font-bold uppercase text-stone-400 tracking-wider">{planet}</span>
-                                                                        <span className="text-[10px] font-mono font-bold text-stone-700 whitespace-nowrap overflow-hidden text-ellipsis">
+                                                                        <span className="text-[8px] font-medium uppercase text-stone-400 tracking-wider">{planet}</span>
+                                                                        <span className="text-[10px] font-mono font-medium text-stone-700 whitespace-nowrap overflow-hidden text-ellipsis">
                                                                             {formatSignDegree(position)}
                                                                         </span>
                                                                     </div>
@@ -304,7 +304,7 @@ export const StageLeaderboard = memo(function StageLeaderboard({
 
                                                             return (
                                                                 <div className="col-span-full py-4 text-center">
-                                                                    <p className="text-[10px] text-stone-400 font-bold uppercase tracking-widest flex items-center justify-center gap-2">
+                                                                    <p className="text-[10px] text-stone-400 font-medium uppercase tracking-widest flex items-center justify-center gap-2">
                                                                         <Info className="w-3 h-3" /> Precision data available on-demand
                                                                     </p>
                                                                 </div>
@@ -314,7 +314,7 @@ export const StageLeaderboard = memo(function StageLeaderboard({
 
                                                     <div className="px-4 py-2 bg-stone-100/30 border-t border-stone-100 flex items-center justify-between">
                                                         <div className="flex items-center gap-3">
-                                                            <span className="text-[8px] font-bold text-stone-400 flex items-center gap-1">
+                                                            <span className="text-[8px] font-medium text-stone-400 flex items-center gap-1">
                                                                 <MapIcon className="w-2.5 h-2.5" /> High Precision Ephemeris
                                                             </span>
                                                         </div>
@@ -329,7 +329,7 @@ export const StageLeaderboard = memo(function StageLeaderboard({
                         ) : (
                             <div className="py-20 flex flex-col items-center justify-center text-stone-300 gap-3">
                                 <Activity className="w-8 h-8 animate-pulse" />
-                                <p className="text-[10px] font-bold uppercase tracking-widest">Generating Grid Basis...</p>
+                                <p className="text-[10px] font-medium uppercase tracking-widest">Generating Grid Basis...</p>
                             </div>
                         )}
                     </AnimatePresence>

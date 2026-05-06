@@ -33,7 +33,7 @@ export function ActionNav({
                 <div className="flex items-center gap-8">
                     <Link href="/" className="flex items-center gap-3 group">
                         <span
-                            className="font-bold text-xl tracking-tight"
+                            className="font-medium text-xl tracking-tight"
                             style={{ color: THEME.gold }}
                         >
                             AI Pandit
@@ -43,14 +43,14 @@ export function ActionNav({
                     <div className="hidden md:flex items-center gap-6">
                         <Link
                             href="/dashboard"
-                            className="text-sm font-medium transition-colors hover:text-[#B8860B]"
+                            className="text-sm font-medium transition-colors hover:text-[#000000]"
                             style={{ color: THEME.textSecondary }}
                         >
                             Dashboard
                         </Link>
                         <Link
                             href="/rectify?new=true"
-                            className="text-sm font-medium transition-colors hover:text-[#B8860B]"
+                            className="text-sm font-medium transition-colors hover:text-[#000000]"
                             style={{ color: THEME.textSecondary }}
                         >
                             New Analysis
@@ -62,7 +62,7 @@ export function ActionNav({
                     <button
                         onClick={handleClone}
                         disabled={isCloning}
-                        className="px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 hover:shadow-md disabled:opacity-50"
+                        className="px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 hover:shadow-md disabled:opacity-50"
                         style={{
                             backgroundColor: `${THEME.gold}10`,
                             border: `1px solid ${THEME.gold}50`,
@@ -71,7 +71,7 @@ export function ActionNav({
                         aria-label="Duplicate and edit this analysis"
                     >
                         {isCloning ? (
-                            <div className="animate-spin rounded-full h-4 w-4 border-2 border-[#B8860B] border-t-transparent" aria-hidden="true" />
+                            <div className="animate-spin rounded-full h-4 w-4 border-2 border-[#000000] border-t-transparent" aria-hidden="true" />
                         ) : (
                             <CopyPlus className="w-4 h-4" aria-hidden="true" />
                         )}
@@ -113,7 +113,7 @@ export function ActionNav({
                     <button
                         onClick={generatePDF}
                         disabled={isGenerating}
-                        className="px-5 py-2 rounded-lg font-bold text-sm flex items-center gap-2 transition-all disabled:opacity-50 hover:shadow-lg"
+                        className="px-5 py-2 rounded-lg font-medium text-sm flex items-center gap-2 transition-all disabled:opacity-50 hover:shadow-lg"
                         style={{
                             background: `linear-gradient(to right, ${THEME.gold}, ${THEME.goldLight})`,
                             color: 'white',

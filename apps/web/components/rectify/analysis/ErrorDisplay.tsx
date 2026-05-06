@@ -12,7 +12,7 @@ export function ErrorDisplay({ error, onRetry }: { error?: string, onRetry: () =
                 <ServerCrash className="h-10 w-10 text-red-500" />
             </div>
 
-            <h2 className="text-3xl font-bold tracking-tight mb-3 text-red-500">Connection Error</h2>
+            <h2 className="text-3xl font-medium tracking-tight mb-3 text-red-500">Connection Error</h2>
             <p className="text-muted-foreground max-w-md text-center mb-8 text-lg">
                 {error || 'Unable to establish a stable connection with the inference engine. The AI Pandit cluster might be under heavy load or restarting.'}
             </p>

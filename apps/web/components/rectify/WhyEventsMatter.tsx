@@ -37,9 +37,9 @@ const ACCURACY_LEVELS = [
     accuracy: '70-80%',
     precision: '±3-5 minutes',
     label: 'Good Progress',
-    color: 'text-[#78611D]',
-    bgColor: 'bg-[#78611D]/10',
-    borderColor: 'border-[#78611D]/30',
+    color: 'text-[#000000]',
+    bgColor: 'bg-[#000000]/10',
+    borderColor: 'border-[#000000]/30',
     icon: TrendingUp,
     description: 'Professional-grade accuracy'
   },
@@ -59,9 +59,9 @@ const ACCURACY_LEVELS = [
     accuracy: '96-99%',
     precision: '±1-10 seconds',
     label: 'God Tier Precision',
-    color: 'text-[#B8860B]',
-    bgColor: 'bg-gradient-to-r from-[#B8860B]/15 to-[#78611D]/15',
-    borderColor: 'border-[#B8860B]/40',
+    color: 'text-[#000000]',
+    bgColor: 'bg-gradient-to-r from-[#000000]/15 to-[#000000]/15',
+    borderColor: 'border-[#000000]/40',
     icon: Sparkles,
     description: 'Research-grade seconds-level accuracy'
   }
@@ -157,33 +157,33 @@ export default function WhyEventsMatter({ currentEventCount, categoriesCovered }
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="bg-gradient-to-br from-[#FDF8F3] to-white rounded-2xl border border-[#78611D]/30 overflow-hidden shadow-lg shadow-[#78611D]/5"
+      className="bg-gradient-to-br from-[#ffffff] to-white rounded-2xl border border-[#000000]/30 overflow-hidden shadow-lg shadow-[#000000]/5"
     >
       {/* Header - Always Visible */}
       <div 
-        className="p-5 cursor-pointer hover:bg-[#F5EFE7]/50 transition-colors"
+        className="p-5 cursor-pointer hover:bg-[#f8f8f8]/50 transition-colors"
         onClick={() => setIsExpanded(!isExpanded)}
       >
         <div className="flex items-start justify-between gap-4">
           <div className="flex-1">
             <div className="flex items-center gap-2 mb-2">
-              <div className="p-2 rounded-lg bg-gradient-to-br from-[#B8860B] to-[#78611D]">
+              <div className="p-2 rounded-lg bg-gradient-to-br from-[#000000] to-[#000000]">
                 <Target className="w-5 h-5 text-white" />
               </div>
-              <h3 className="font-[family-name:var(--font-cormorant)] text-xl font-bold text-[#1A1612]">
+              <h3 className=" text-xl font-medium text-[#000000]">
                 Why Add More Events?
               </h3>
             </div>
-            <p className="text-sm text-[#4A453F] leading-relaxed">
-              <span className="font-semibold text-[#B8860B]">Seconds-level accuracy</span> requires 
-              <span className="font-semibold text-[#1A1612]"> 25-40+ events</span> across 
-              <span className="font-semibold text-[#1A1612]"> 10+ life categories</span>. 
+            <p className="text-sm text-[#636363] leading-relaxed">
+              <span className="font-medium text-[#000000]">Seconds-level accuracy</span> requires 
+              <span className="font-medium text-[#000000]"> 25-40+ events</span> across 
+              <span className="font-medium text-[#000000]"> 10+ life categories</span>. 
               Each event is a data point that narrows your birth time.
             </p>
           </div>
           <motion.div
             animate={{ rotate: isExpanded ? 180 : 0 }}
-            className="p-2 rounded-lg bg-[#F5EFE7] text-[#5A554F]"
+            className="p-2 rounded-lg bg-[#f8f8f8] text-[#636363]"
           >
             <ChevronDown className="w-5 h-5" />
           </motion.div>
@@ -191,25 +191,25 @@ export default function WhyEventsMatter({ currentEventCount, categoriesCovered }
 
         {/* Current Status Bar - Always Visible */}
         <div className="mt-4 flex items-center gap-3">
-          <div className={`px-3 py-1.5 rounded-full text-xs font-bold ${currentLevel.bgColor} ${currentLevel.color} border ${currentLevel.borderColor}`}>
+          <div className={`px-3 py-1.5 rounded-full text-xs font-medium ${currentLevel.bgColor} ${currentLevel.color} border ${currentLevel.borderColor}`}>
             <currentLevel.icon className="w-3.5 h-3.5 inline mr-1" />
             {currentLevel.label}
           </div>
-          <div className="flex-1 h-2 bg-[#F0E8DE] rounded-full overflow-hidden">
+          <div className="flex-1 h-2 bg-[rgba(0,0,0,0.08)] rounded-full overflow-hidden">
             <motion.div 
-              className="h-full bg-gradient-to-r from-[#B8860B] to-[#78611D] rounded-full"
+              className="h-full bg-gradient-to-r from-[#000000] to-[#000000] rounded-full"
               initial={{ width: 0 }}
               animate={{ width: `${Math.min(100, (currentEventCount / 40) * 100)}%` }}
               transition={{ duration: 1, delay: 0.3 }}
             />
           </div>
-          <span className="text-sm font-bold text-[#1A1612]">{currentEventCount}/40</span>
+          <span className="text-sm font-medium text-[#000000]">{currentEventCount}/40</span>
         </div>
 
         {nextLevel && (
-          <p className="mt-2 text-xs text-[#5A554F]">
-            🎯 Add <span className="font-bold text-[#B8860B]">{eventsToNextLevel} more events</span> to reach 
-            <span className={`font-bold ${nextLevel.color}`}> {nextLevel.label}</span> ({nextLevel.precision})
+          <p className="mt-2 text-xs text-[#636363]">
+            🎯 Add <span className="font-medium text-[#000000]">{eventsToNextLevel} more events</span> to reach 
+            <span className={`font-medium ${nextLevel.color}`}> {nextLevel.label}</span> ({nextLevel.precision})
           </p>
         )}
       </div>
@@ -221,10 +221,10 @@ export default function WhyEventsMatter({ currentEventCount, categoriesCovered }
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
-            className="border-t border-[#F0E8DE]"
+            className="border-t border-[rgba(0,0,0,0.08)]"
           >
             {/* Tab Navigation */}
-            <div className="flex p-1 bg-[#F5EFE7] mx-4 mt-4 rounded-xl">
+            <div className="flex p-1 bg-[#f8f8f8] mx-4 mt-4 rounded-xl">
               {[
                 { id: 'overview', label: 'Overview', icon: Clock },
                 { id: 'categories', label: 'Categories', icon: Calendar },
@@ -238,8 +238,8 @@ export default function WhyEventsMatter({ currentEventCount, categoriesCovered }
                   }}
                   className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg text-xs font-medium transition-all ${
                     activeTab === tab.id 
-                      ? 'bg-white text-[#B8860B] shadow-sm' 
-                      : 'text-[#5A554F] hover:text-[#4A453F]'
+                      ? 'bg-white text-[#000000] shadow-sm' 
+                      : 'text-[#636363] hover:text-[#636363]'
                   }`}
                 >
                   <tab.icon className="w-3.5 h-3.5" />
@@ -258,8 +258,8 @@ export default function WhyEventsMatter({ currentEventCount, categoriesCovered }
                 >
                   {/* Accuracy Levels */}
                   <div className="space-y-3">
-                    <h4 className="font-semibold text-[#1A1612] text-sm flex items-center gap-2">
-                      <TrendingUp className="w-4 h-4 text-[#B8860B]" />
+                    <h4 className="font-medium text-[#000000] text-sm flex items-center gap-2">
+                      <TrendingUp className="w-4 h-4 text-[#000000]" />
                       Accuracy Progression
                     </h4>
                     <div className="grid gap-3">
@@ -275,7 +275,7 @@ export default function WhyEventsMatter({ currentEventCount, categoriesCovered }
                                 ? `${level.bgColor} ${level.borderColor} border-2` 
                                 : isPast
                                   ? 'bg-[#184131]/5 border-[#184131]/20'
-                                  : 'bg-white border-[#F0E8DE] opacity-70'
+                                  : 'bg-white border-[rgba(0,0,0,0.08)] opacity-70'
                             }`}
                           >
                             <div className="flex items-center justify-between">
@@ -284,18 +284,18 @@ export default function WhyEventsMatter({ currentEventCount, categoriesCovered }
                                   <level.icon className={`w-4 h-4 ${level.color}`} />
                                 </div>
                                 <div>
-                                  <div className="font-semibold text-sm text-[#1A1612]">{level.label}</div>
-                                  <div className="text-xs text-[#5A554F]">{level.range}</div>
+                                  <div className="font-medium text-sm text-[#000000]">{level.label}</div>
+                                  <div className="text-xs text-[#636363]">{level.range}</div>
                                 </div>
                               </div>
                               <div className="text-right">
-                                <div className={`font-bold text-lg ${level.color}`}>{level.accuracy}</div>
-                                <div className="text-xs text-[#5A554F]">{level.precision}</div>
+                                <div className={`font-medium text-lg ${level.color}`}>{level.accuracy}</div>
+                                <div className="text-xs text-[#636363]">{level.precision}</div>
                               </div>
                             </div>
                             {isCurrent && (
-                              <div className="mt-2 pt-2 border-t border-[#78611D]/20">
-                                <p className="text-xs text-[#4A453F]">✓ Your current level</p>
+                              <div className="mt-2 pt-2 border-t border-[#000000]/20">
+                                <p className="text-xs text-[#636363]">✓ Your current level</p>
                               </div>
                             )}
                           </div>
@@ -306,17 +306,17 @@ export default function WhyEventsMatter({ currentEventCount, categoriesCovered }
 
                   {/* Quick Stats */}
                   <div className="grid grid-cols-3 gap-3">
-                    <div className="p-3 bg-white rounded-xl border border-[#F0E8DE] text-center">
-                      <div className="text-2xl font-bold text-[#B8860B]">{currentEventCount}</div>
-                      <div className="text-[10px] text-[#5A554F] uppercase tracking-wider">Events Added</div>
+                    <div className="p-3 bg-white rounded-xl border border-[rgba(0,0,0,0.08)] text-center">
+                      <div className="text-2xl font-medium text-[#000000]">{currentEventCount}</div>
+                      <div className="text-[10px] text-[#636363] uppercase tracking-wider">Events Added</div>
                     </div>
-                    <div className="p-3 bg-white rounded-xl border border-[#F0E8DE] text-center">
-                      <div className="text-2xl font-bold text-[#78611D]">{categoriesCovered}</div>
-                      <div className="text-[10px] text-[#5A554F] uppercase tracking-wider">Categories</div>
+                    <div className="p-3 bg-white rounded-xl border border-[rgba(0,0,0,0.08)] text-center">
+                      <div className="text-2xl font-medium text-[#000000]">{categoriesCovered}</div>
+                      <div className="text-[10px] text-[#636363] uppercase tracking-wider">Categories</div>
                     </div>
-                    <div className="p-3 bg-white rounded-xl border border-[#F0E8DE] text-center">
-                      <div className="text-2xl font-bold text-[#184131]">{Math.max(0, 25 - currentEventCount)}</div>
-                      <div className="text-[10px] text-[#5A554F] uppercase tracking-wider">To Optimal</div>
+                    <div className="p-3 bg-white rounded-xl border border-[rgba(0,0,0,0.08)] text-center">
+                      <div className="text-2xl font-medium text-[#184131]">{Math.max(0, 25 - currentEventCount)}</div>
+                      <div className="text-[10px] text-[#636363] uppercase tracking-wider">To Optimal</div>
                     </div>
                   </div>
                 </motion.div>
@@ -328,33 +328,33 @@ export default function WhyEventsMatter({ currentEventCount, categoriesCovered }
                   animate={{ opacity: 1 }}
                   className="space-y-3"
                 >
-                  <h4 className="font-semibold text-[#1A1612] text-sm flex items-center gap-2">
-                    <Calendar className="w-4 h-4 text-[#B8860B]" />
+                  <h4 className="font-medium text-[#000000] text-sm flex items-center gap-2">
+                    <Calendar className="w-4 h-4 text-[#000000]" />
                     Essential Life Categories
                   </h4>
-                  <p className="text-xs text-[#5A554F]">
+                  <p className="text-xs text-[#636363]">
                     Each category validates different astrological houses and planetary periods
                   </p>
                   
                   <div className="space-y-3">
                     {CATEGORY_IMPORTANCE.map((cat, idx) => (
-                      <div key={idx} className="p-3 bg-white rounded-xl border border-[#F0E8DE]">
+                      <div key={idx} className="p-3 bg-white rounded-xl border border-[rgba(0,0,0,0.08)]">
                         <div className="flex items-start gap-3">
-                          <div className="p-2 rounded-lg bg-[#B8860B]/10">
-                            <cat.icon className="w-4 h-4 text-[#B8860B]" />
+                          <div className="p-2 rounded-lg bg-[#000000]/10">
+                            <cat.icon className="w-4 h-4 text-[#000000]" />
                           </div>
                           <div className="flex-1">
                             <div className="flex items-center justify-between">
-                              <h5 className="font-semibold text-sm text-[#1A1612]">{cat.category}</h5>
-                              <span className="text-xs font-medium text-[#B8860B] bg-[#B8860B]/10 px-2 py-0.5 rounded-full">
+                              <h5 className="font-medium text-sm text-[#000000]">{cat.category}</h5>
+                              <span className="text-xs font-medium text-[#000000] bg-[#000000]/10 px-2 py-0.5 rounded-full">
                                 {cat.events}
                               </span>
                             </div>
-                            <p className="text-xs text-[#5A554F] mt-1">{cat.why}</p>
+                            <p className="text-xs text-[#636363] mt-1">{cat.why}</p>
                             <p className="text-[10px] text-[#184131] mt-1">Planets: {cat.planets}</p>
                             <div className="mt-2 flex flex-wrap gap-1">
                               {cat.examples.map((ex, i) => (
-                                <span key={i} className="text-[10px] bg-[#F5EFE7] text-[#4A453F] px-2 py-0.5 rounded">
+                                <span key={i} className="text-[10px] bg-[#f8f8f8] text-[#636363] px-2 py-0.5 rounded">
                                   {ex}
                                 </span>
                               ))}
@@ -373,64 +373,64 @@ export default function WhyEventsMatter({ currentEventCount, categoriesCovered }
                   animate={{ opacity: 1 }}
                   className="space-y-4"
                 >
-                  <h4 className="font-semibold text-[#1A1612] text-sm flex items-center gap-2">
-                    <Zap className="w-4 h-4 text-[#B8860B]" />
+                  <h4 className="font-medium text-[#000000] text-sm flex items-center gap-2">
+                    <Zap className="w-4 h-4 text-[#000000]" />
                     The Mathematics of BTR
                   </h4>
 
-                  <div className="p-4 bg-gradient-to-br from-[#B8860B]/5 to-[#78611D]/5 rounded-xl border border-[#B8860B]/20">
-                    <h5 className="font-bold text-[#1A1612] mb-2">Why 30+ Events?</h5>
-                    <p className="text-sm text-[#4A453F] leading-relaxed">
+                  <div className="p-4 bg-gradient-to-br from-[#000000]/5 to-[#000000]/5 rounded-xl border border-[#000000]/20">
+                    <h5 className="font-medium text-[#000000] mb-2">Why 30+ Events?</h5>
+                    <p className="text-sm text-[#636363] leading-relaxed">
                       Each life event is triggered by specific planetary periods (Dasha). 
                       With only 5-7 events, we have limited data points to cross-reference. 
                       With 30+ events spanning multiple decades, we create a 
-                      <span className="font-bold text-[#B8860B]"> redundant verification matrix</span> 
+                      <span className="font-medium text-[#000000]"> redundant verification matrix</span> 
                       that can pinpoint birth time to the second.
                     </p>
                   </div>
 
                   <div className="space-y-3">
-                    <h5 className="font-semibold text-sm text-[#1A1612]">How Events Validate Birth Time:</h5>
+                    <h5 className="font-medium text-sm text-[#000000]">How Events Validate Birth Time:</h5>
                     
                     <div className="space-y-2">
-                      <div className="flex items-start gap-3 p-3 bg-white rounded-lg border border-[#F0E8DE]">
-                        <div className="w-6 h-6 rounded-full bg-[#B8860B] text-white flex items-center justify-center text-xs font-bold shrink-0">1</div>
+                      <div className="flex items-start gap-3 p-3 bg-white rounded-lg border border-[rgba(0,0,0,0.08)]">
+                        <div className="w-6 h-6 rounded-full bg-[#000000] text-white flex items-center justify-center text-xs font-medium shrink-0">1</div>
                         <div>
-                          <div className="font-medium text-sm text-[#1A1612]">Dasha Overlap Verification</div>
-                          <p className="text-xs text-[#5A554F]">
+                          <div className="font-medium text-sm text-[#000000]">Dasha Overlap Verification</div>
+                          <p className="text-xs text-[#636363]">
                             Multiple events should align with the same planetary periods. 
                             If 15 events all point to Jupiter-Venus period, we confirm timing.
                           </p>
                         </div>
                       </div>
 
-                      <div className="flex items-start gap-3 p-3 bg-white rounded-lg border border-[#F0E8DE]">
-                        <div className="w-6 h-6 rounded-full bg-[#B8860B] text-white flex items-center justify-center text-xs font-bold shrink-0">2</div>
+                      <div className="flex items-start gap-3 p-3 bg-white rounded-lg border border-[rgba(0,0,0,0.08)]">
+                        <div className="w-6 h-6 rounded-full bg-[#000000] text-white flex items-center justify-center text-xs font-medium shrink-0">2</div>
                         <div>
-                          <div className="font-medium text-sm text-[#1A1612]">Multi-House Validation</div>
-                          <p className="text-xs text-[#5A554F]">
+                          <div className="font-medium text-sm text-[#000000]">Multi-House Validation</div>
+                          <p className="text-xs text-[#636363]">
                             Career events validate 10th house, Marriage validates 7th house, 
                             Health validates 6th/8th houses. All houses must align.
                           </p>
                         </div>
                       </div>
 
-                      <div className="flex items-start gap-3 p-3 bg-white rounded-lg border border-[#F0E8DE]">
-                        <div className="w-6 h-6 rounded-full bg-[#B8860B] text-white flex items-center justify-center text-xs font-bold shrink-0">3</div>
+                      <div className="flex items-start gap-3 p-3 bg-white rounded-lg border border-[rgba(0,0,0,0.08)]">
+                        <div className="w-6 h-6 rounded-full bg-[#000000] text-white flex items-center justify-center text-xs font-medium shrink-0">3</div>
                         <div>
-                          <div className="font-medium text-sm text-[#1A1612]">Transit Cross-Reference</div>
-                          <p className="text-xs text-[#5A554F]">
+                          <div className="font-medium text-sm text-[#000000]">Transit Cross-Reference</div>
+                          <p className="text-xs text-[#636363]">
                             Jupiter transits (12 years), Saturn (30 years), Rahu (18 years) 
                             must ALL align with event dates for the calculated birth time.
                           </p>
                         </div>
                       </div>
 
-                      <div className="flex items-start gap-3 p-3 bg-white rounded-lg border border-[#F0E8DE]">
-                        <div className="w-6 h-6 rounded-full bg-[#B8860B] text-white flex items-center justify-center text-xs font-bold shrink-0">4</div>
+                      <div className="flex items-start gap-3 p-3 bg-white rounded-lg border border-[rgba(0,0,0,0.08)]">
+                        <div className="w-6 h-6 rounded-full bg-[#000000] text-white flex items-center justify-center text-xs font-medium shrink-0">4</div>
                         <div>
-                          <div className="font-medium text-sm text-[#1A1612]">Statistical Confidence</div>
-                          <p className="text-xs text-[#5A554F]">
+                          <div className="font-medium text-sm text-[#000000]">Statistical Confidence</div>
+                          <p className="text-xs text-[#636363]">
                             With 5 events, coincidence is possible. With 30+ events across 
                             different categories, statistical confidence reaches 99%+.
                           </p>
@@ -444,9 +444,9 @@ export default function WhyEventsMatter({ currentEventCount, categoriesCovered }
             </div>
 
             {/* Footer CTA */}
-            <div className="p-4 bg-gradient-to-r from-[#B8860B]/10 to-[#78611D]/10 border-t border-[#78611D]/20">
-              <p className="text-sm text-center text-[#1A1612]">
-                <span className="font-bold">💡 Pro Tip:</span> Start with your most memorable life events 
+            <div className="p-4 bg-gradient-to-r from-[#000000]/10 to-[#000000]/10 border-t border-[#000000]/20">
+              <p className="text-sm text-center text-[#000000]">
+                <span className="font-medium">💡 Pro Tip:</span> Start with your most memorable life events 
                 across different years. Add events gradually—each one improves accuracy!
               </p>
             </div>

@@ -93,8 +93,8 @@ export const getImportanceColor = (level: EventImportance): string => {
   switch (level) {
     case 'critical': return 'bg-[#184131]/20 text-[#184131]';
     case 'high': return 'bg-[#8B5CF6]/20 text-[#8B5CF6]';
-    case 'medium': return 'bg-[#78611D]/20 text-[#78611D]';
-    case 'low': return 'bg-[#5A554F]/20 text-[#5A554F]';
-    default: return 'bg-[#5A554F]/20 text-[#5A554F]';
+    case 'medium': return 'bg-[#000000]/20 text-[#000000]';
+    case 'low': return 'bg-[#636363]/20 text-[#636363]';
+    default: return 'bg-[#636363]/20 text-[#636363]';
   }
 };

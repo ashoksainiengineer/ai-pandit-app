@@ -124,6 +124,6 @@ describe('UnifiedAIPanel (Heavy Testing)', () => {
     it('collapses content when isCompleted is true and isActive is false', () => {
         render(<UnifiedAIPanel {...defaultProps} isCompleted={true} isActive={false} />);
         const titleElement = screen.getByText(/Test AI Panel/i);
-        expect(titleElement).toHaveClass('text-[#4A453F]');
+        expect(titleElement).toHaveClass('text-[#636363]');
     });
 });

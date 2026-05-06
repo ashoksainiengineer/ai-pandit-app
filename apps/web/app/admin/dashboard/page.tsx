@@ -138,7 +138,7 @@ export default function DashboardPage() {
     <DashboardLayout>
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-prism-ink font-prism">
+        <h1 className="text-3xl font-medium text-prism-ink font-prism">
           Dashboard Overview
         </h1>
         <p className="text-prism-graphite mt-1">
@@ -206,7 +206,7 @@ export default function DashboardPage() {
                 </div>
                 <div>
                   <p className="text-sm text-prism-graphite">Today&apos;s Readings</p>
-                  <p className="text-xl font-semibold text-prism-ink">
+                  <p className="text-xl font-medium text-prism-ink">
                     {metrics?.readingsToday || 0}
                   </p>
                 </div>
@@ -220,7 +220,7 @@ export default function DashboardPage() {
                 </div>
                 <div>
                   <p className="text-sm text-prism-graphite">Processing</p>
-                  <p className="text-xl font-semibold text-prism-ink">
+                  <p className="text-xl font-medium text-prism-ink">
                     {metrics?.activeReadings || 0}
                   </p>
                 </div>
@@ -234,7 +234,7 @@ export default function DashboardPage() {
                 </div>
                 <div>
                   <p className="text-sm text-prism-graphite">This Week</p>
-                  <p className="text-xl font-semibold text-prism-ink">
+                  <p className="text-xl font-medium text-prism-ink">
                     {metrics?.readingsThisWeek || 0}
                   </p>
                 </div>

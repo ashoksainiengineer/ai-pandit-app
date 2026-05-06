@@ -12,13 +12,13 @@ export function EmptyState({ isVisible }: EmptyStateProps) {
         <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="bg-white rounded-xl border-2 border-[#F0E8DE] p-12 text-center"
+            className="bg-white rounded-xl border-2 border-[rgba(0,0,0,0.08)] p-12 text-center"
         >
             <div className="text-5xl mb-4">📅</div>
-            <h3 className="font-[family-name:var(--font-cormorant)] text-xl font-semibold text-[#1A1612] mb-2">
+            <h3 className=" text-xl font-medium text-[#000000] mb-2">
                 Your timeline starts here
             </h3>
-            <p className="text-[#5A554F] text-sm">Search or browse categories above to add your first event</p>
+            <p className="text-[#636363] text-sm">Search or browse categories above to add your first event</p>
         </motion.div>
     );
 }

@@ -18,7 +18,7 @@ export function GlobalCategoryBubbles({
                         className={`w-2 h-2 rounded-full transition-colors ${isComplete
                             ? 'bg-[#184131]'
                             : hasStarted
-                                ? 'bg-[#B8860B]'
+                                ? 'bg-[#000000]'
                                 : 'bg-[#E8E0D5]'
                             }`}
                         title={cat.name}

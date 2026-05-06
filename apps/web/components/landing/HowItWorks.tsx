@@ -27,7 +27,7 @@ const STEPS = [
 
 export default function HowItWorks() {
   return (
-    <section className="py-20 bg-[#FFFCF8]">
+    <section className="py-20 bg-[#f8f8f8]">
       <div className="max-w-5xl mx-auto px-4">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -35,10 +35,10 @@ export default function HowItWorks() {
           viewport={{ once: true }}
           className="text-center mb-14"
         >
-          <h2 className="font-[family-name:var(--font-cormorant)] text-3xl sm:text-4xl font-semibold text-[#1A1612] mb-3">
+          <h2 className=" text-3xl sm:text-4xl font-medium text-[#000000] mb-3">
             How It Works
           </h2>
-          <p className="text-[#5A554F] text-sm max-w-md mx-auto">
+          <p className="text-[#636363] text-sm max-w-md mx-auto">
             Three simple steps to discover your precise birth time.
           </p>
         </motion.div>
@@ -54,17 +54,17 @@ export default function HowItWorks() {
               className="relative"
             >
               <div className="flex items-start gap-4">
-                <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-[#FDF8F3] border border-[#F0E8DE] flex items-center justify-center">
+                <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-[#ffffff] border border-[rgba(0,0,0,0.08)] flex items-center justify-center">
                   <step.icon className="w-5 h-5 text-[#8A6A0B]" />
                 </div>
                 <div>
                   <div className="flex items-center gap-2 mb-2">
-                    <span className="text-xs font-bold text-[#8A857F]">Step {step.number}</span>
+                    <span className="text-xs font-medium text-[#959595]">Step {step.number}</span>
                   </div>
-                  <h3 className="font-[family-name:var(--font-cormorant)] text-xl font-semibold text-[#1A1612] mb-2">
+                  <h3 className=" text-xl font-medium text-[#000000] mb-2">
                     {step.title}
                   </h3>
-                  <p className="text-sm text-[#5A554F] leading-relaxed">{step.desc}</p>
+                  <p className="text-sm text-[#636363] leading-relaxed">{step.desc}</p>
                 </div>
               </div>
             </motion.div>

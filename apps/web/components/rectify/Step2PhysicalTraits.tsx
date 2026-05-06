@@ -135,8 +135,8 @@ function OptionCard<T extends string>({
           {option.icon}
         </div>
         <div className="flex-1 min-w-0">
-          <div className="font-bold text-[#1A1612] text-sm sm:text-base">{option.label}</div>
-          <div className="text-xs sm:text-sm text-[#5A554F] mt-1">{option.description}</div>
+          <div className="font-medium text-[#000000] text-sm sm:text-base">{option.label}</div>
+          <div className="text-xs sm:text-sm text-[#636363] mt-1">{option.description}</div>
           <div className="text-[10px] sm:text-xs text-amber-700 mt-2 font-medium opacity-75">
             {option.indicatorSigns}
           </div>
@@ -163,7 +163,7 @@ function LagnaFeedback({ scores }: { scores: LagnaScore[] }) {
             <CheckCircle2 className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-700" />
           </div>
           <div>
-            <div className="font-semibold text-emerald-800 text-xs sm:text-sm">
+            <div className="font-medium text-emerald-800 text-xs sm:text-sm">
               Strong Match ({strong.length}/12 signs)
             </div>
             <div className="text-emerald-700 text-xs sm:text-sm mt-0.5">
@@ -178,7 +178,7 @@ function LagnaFeedback({ scores }: { scores: LagnaScore[] }) {
             <AlertTriangle className="w-4 h-4 sm:w-5 sm:h-5 text-red-700" />
           </div>
           <div>
-            <div className="font-semibold text-red-800 text-xs sm:text-sm">
+            <div className="font-medium text-red-800 text-xs sm:text-sm">
               Eliminated ({eliminated.length}/12)
             </div>
             <div className="text-red-700 text-xs sm:text-sm mt-0.5">
@@ -277,10 +277,10 @@ export default function Step2PhysicalTraits({
         <div className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-amber-50 to-white border border-amber-200 rounded-full text-xs mb-4">
           <span className="text-amber-700 font-medium">Step 2 of 5</span>
         </div>
-        <h1 className="font-[family-name:var(--font-cormorant)] text-2xl sm:text-3xl font-semibold text-[#1A1612] mb-2">
+        <h1 className=" text-2xl sm:text-3xl font-medium text-[#000000] mb-2">
           Your Natural <span className="text-amber-700">Body Type</span>
         </h1>
-        <p className="text-sm text-[#5A554F] max-w-md mx-auto">
+        <p className="text-sm text-[#636363] max-w-md mx-auto">
           Just 3 simple questions — no mirror analysis needed. Each answer helps eliminate wrong birth times.
         </p>
       </div>
@@ -301,7 +301,7 @@ export default function Step2PhysicalTraits({
         <div className="flex items-center gap-2 mb-4">
           <div className="p-2 rounded-lg bg-amber-100"><User className="w-5 h-5 text-amber-700" /></div>
           <div>
-            <h2 className="font-[family-name:var(--font-cormorant)] text-lg font-bold text-[#1A1612]">
+            <h2 className=" text-lg font-medium text-[#000000]">
               What is your natural body frame?
             </h2>
             <p className="text-xs text-slate-400">Not your gym goal — your lifelong, natural build.</p>
@@ -319,7 +319,7 @@ export default function Step2PhysicalTraits({
         <div className="flex items-center gap-2 mb-4">
           <div className="p-2 rounded-lg bg-amber-100"><Sun className="w-5 h-5 text-amber-700" /></div>
           <div>
-            <h2 className="font-[family-name:var(--font-cormorant)] text-lg font-bold text-[#1A1612]">
+            <h2 className=" text-lg font-medium text-[#000000]">
               What is your natural skin tone?
             </h2>
             <p className="text-xs text-slate-400">Your untanned, natural complexion.</p>
@@ -337,7 +337,7 @@ export default function Step2PhysicalTraits({
         <div className="flex items-center gap-2 mb-4">
           <div className="p-2 rounded-lg bg-amber-100"><Zap className="w-5 h-5 text-amber-700" /></div>
           <div>
-            <h2 className="font-[family-name:var(--font-cormorant)] text-lg font-bold text-[#1A1612]">
+            <h2 className=" text-lg font-medium text-[#000000]">
               What is your natural pace?
             </h2>
             <p className="text-xs text-slate-400">Your innate tempo — not learned behavior.</p>

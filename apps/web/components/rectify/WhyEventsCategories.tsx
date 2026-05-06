@@ -11,7 +11,7 @@ export default function WhyEventsCategories() {
       animate={{ opacity: 1 }}
       className="space-y-3"
     >
-      <h4 className="font-semibold text-content-primary text-sm flex items-center gap-2">
+      <h4 className="font-medium text-content-primary text-sm flex items-center gap-2">
         <Calendar className="w-4 h-4 text-primary" />
         Essential Life Categories
       </h4>
@@ -28,7 +28,7 @@ export default function WhyEventsCategories() {
               </div>
               <div className="flex-1">
                 <div className="flex items-center justify-between">
-                  <h5 className="font-semibold text-sm text-content-primary">{cat.category}</h5>
+                  <h5 className="font-medium text-sm text-content-primary">{cat.category}</h5>
                   <span className="text-xs font-medium text-primary bg-primary/10 px-2 py-0.5 rounded-full">
                     {cat.events}
                   </span>

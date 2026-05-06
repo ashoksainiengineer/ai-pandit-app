@@ -14,11 +14,11 @@ import { useRectifyForm } from '@/hooks/use-rectify-form';
 import '@/app/prism-design-system.css';
 
 const Step2PhysicalTraits = dynamic(() => import('@/components/rectify/Step2PhysicalTraits'), {
-    loading: () => <div className="animate-pulse bg-[#F5F0E8] h-96 rounded-xl" />,
+    loading: () => <div className="animate-pulse bg-[#f8f8f8] h-96 rounded-xl" />,
     ssr: false
 });
 const Step4Review = dynamic(() => import('@/components/rectify/Step4Review'), {
-    loading: () => <div className="animate-pulse bg-[#F5F0E8] h-96 rounded-xl" />,
+    loading: () => <div className="animate-pulse bg-[#f8f8f8] h-96 rounded-xl" />,
     ssr: false
 });
 

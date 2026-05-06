@@ -56,11 +56,11 @@ export default function ForensicQuizEngine({
         return (
             <div className="max-w-2xl mx-auto text-center p-8">
                 <AlertCircle className="w-12 h-12 text-[#C65D3B] mx-auto mb-4" />
-                <h3 className="text-lg font-semibold text-[#1A1612] mb-2">Something went wrong</h3>
-                <p className="text-[#5A554F] mb-4">Unable to load the current question.</p>
+                <h3 className="text-lg font-medium text-[#000000] mb-2">Something went wrong</h3>
+                <p className="text-[#636363] mb-4">Unable to load the current question.</p>
                 <button
                     onClick={() => engine.setCurrentQuestionIndex(0)}
-                    className="px-4 py-2 bg-[#B8860B] text-white rounded-lg"
+                    className="px-4 py-2 bg-[#000000] text-white rounded-lg"
                 >
                     Restart Quiz
                 </button>

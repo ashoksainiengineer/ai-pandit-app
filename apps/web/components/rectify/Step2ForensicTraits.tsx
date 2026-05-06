@@ -61,47 +61,47 @@ function AssessmentCompleteView({ traitSummary, onRetake, onContinue }: {
     onContinue: () => void;
 }) {
     return (
-        <div className="bg-gradient-to-br from-[#FDF8F3] to-white rounded-2xl border border-[#184131]/30 p-8 shadow-lg">
+        <div className="bg-gradient-to-br from-[#ffffff] to-white rounded-2xl border border-[#184131]/30 p-8 shadow-lg">
             <div className="text-center mb-6">
                 <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-br from-[#184131] to-[#4ADE80] mb-4">
                     <svg className="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                     </svg>
                 </div>
-                <h2 className="font-[family-name:var(--font-cormorant)] text-2xl font-bold text-[#1A1612] mb-2">
+                <h2 className=" text-2xl font-medium text-[#000000] mb-2">
                     Assessment Complete
                 </h2>
-                <p className="text-[#5A554F]">
+                <p className="text-[#636363]">
                     Your forensic profile has been recorded and will be used for precise birth time rectification.
                 </p>
             </div>
             <div className="grid grid-cols-2 gap-4 mb-6">
-                <div className="p-4 bg-white rounded-xl border border-[#F0E8DE]">
+                <div className="p-4 bg-white rounded-xl border border-[rgba(0,0,0,0.08)]">
                     <div className="text-2xl mb-1">🍃</div>
-                    <div className="text-xs text-[#5A554F]">Body Type</div>
-                    <div className="font-semibold text-[#1A1612] capitalize">{traitSummary.prakriti}</div>
+                    <div className="text-xs text-[#636363]">Body Type</div>
+                    <div className="font-medium text-[#000000] capitalize">{traitSummary.prakriti}</div>
                 </div>
-                <div className="p-4 bg-white rounded-xl border border-[#F0E8DE]">
+                <div className="p-4 bg-white rounded-xl border border-[rgba(0,0,0,0.08)]">
                     <div className="text-2xl mb-1">👁️</div>
-                    <div className="text-xs text-[#5A554F]">Eye Shape</div>
-                    <div className="font-semibold text-[#1A1612] capitalize">{traitSummary.eyeShape}</div>
+                    <div className="text-xs text-[#636363]">Eye Shape</div>
+                    <div className="font-medium text-[#000000] capitalize">{traitSummary.eyeShape}</div>
                 </div>
-                <div className="p-4 bg-white rounded-xl border border-[#F0E8DE]">
+                <div className="p-4 bg-white rounded-xl border border-[rgba(0,0,0,0.08)]">
                     <div className="text-2xl mb-1">🗣️</div>
-                    <div className="text-xs text-[#5A554F]">Speech Style</div>
-                    <div className="font-semibold text-[#1A1612] capitalize">{traitSummary.speechStyle}</div>
+                    <div className="text-xs text-[#636363]">Speech Style</div>
+                    <div className="font-medium text-[#000000] capitalize">{traitSummary.speechStyle}</div>
                 </div>
-                <div className="p-4 bg-white rounded-xl border border-[#F0E8DE]">
+                <div className="p-4 bg-white rounded-xl border border-[rgba(0,0,0,0.08)]">
                     <div className="text-2xl mb-1">👨‍👩‍👧‍👦</div>
-                    <div className="text-xs text-[#5A554F]">Birth Order</div>
-                    <div className="font-semibold text-[#1A1612] capitalize">{traitSummary.birthOrder}</div>
+                    <div className="text-xs text-[#636363]">Birth Order</div>
+                    <div className="font-medium text-[#000000] capitalize">{traitSummary.birthOrder}</div>
                 </div>
             </div>
             <div className="flex gap-3">
-                <button onClick={onRetake} className="flex-1 py-3 border-2 border-[#E8E0D5] text-[#5A554F] rounded-xl font-semibold hover:bg-[#F5EFE7] transition-colors">
+                <button onClick={onRetake} className="flex-1 py-3 border-2 border-[#E8E0D5] text-[#636363] rounded-xl font-medium hover:bg-[#f8f8f8] transition-colors">
                     Retake Assessment
                 </button>
-                <button onClick={onContinue} className="flex-1 py-3 bg-gradient-to-r from-[#184131] to-[#4ADE80] text-white rounded-xl font-semibold hover:shadow-lg transition-all">
+                <button onClick={onContinue} className="flex-1 py-3 bg-gradient-to-r from-[#184131] to-[#4ADE80] text-white rounded-xl font-medium hover:shadow-lg transition-all">
                     Continue to Next Step
                 </button>
             </div>
@@ -168,7 +168,7 @@ export default function Step2ForensicTraits({
                 </svg>
                 <span className="font-medium">🔐 End-to-End Encrypted</span>
                 <span className="text-[#184131]/60">•</span>
-                <span className="text-[#5A554F]">Nobody can read your data except you</span>
+                <span className="text-[#636363]">Nobody can read your data except you</span>
             </motion.div>
 
             {/* Why Forensic Traits Matter - Educational Component */}
@@ -179,22 +179,22 @@ export default function Step2ForensicTraits({
                 <motion.div
                     initial={{ opacity: 0, scale: 0.9 }}
                     animate={{ opacity: 1, scale: 1 }}
-                    className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-[#FDF8F3] to-white border border-[#F0E8DE] rounded-full text-xs mb-6 shadow-sm"
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-[#ffffff] to-white border border-[rgba(0,0,0,0.08)] rounded-full text-xs mb-6 shadow-sm"
                 >
-                    <span className="text-[#B8860B] font-medium tracking-wider">STEP 3 OF 5</span>
+                    <span className="text-[#000000] font-medium tracking-wider">STEP 3 OF 5</span>
                 </motion.div>
                 <motion.h1
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="font-[family-name:var(--font-cormorant)] text-3xl sm:text-4xl font-semibold text-[#1A1612] leading-tight mb-2"
+                    className=" text-3xl sm:text-4xl font-medium text-[#000000] leading-tight mb-2"
                 >
-                    Forensic <span className="text-[#B8860B]">Traits</span>
+                    Forensic <span className="text-[#000000]">Traits</span>
                 </motion.h1>
                 <motion.p
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     transition={{ delay: 0.2 }}
-                    className="text-sm text-[#5A554F]"
+                    className="text-sm text-[#636363]"
                 >
                     Sub-second rectification through physical markers
                 </motion.p>
@@ -208,17 +208,17 @@ export default function Step2ForensicTraits({
             >
                 {/* Intro Screen */}
                 {!showQuiz && !quizCompleted && !hasExistingData && (
-                    <div className="bg-gradient-to-br from-[#FDF8F3] to-white rounded-2xl border border-[#B8860B]/30 p-8 shadow-lg">
+                    <div className="bg-gradient-to-br from-[#ffffff] to-white rounded-2xl border border-[#000000]/30 p-8 shadow-lg">
                         <div className="text-center mb-6">
-                            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-br from-[#B8860B] to-[#78611D] mb-4">
+                            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-br from-[#000000] to-[#000000] mb-4">
                                 <svg className="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
                                 </svg>
                             </div>
-                            <h2 className="font-[family-name:var(--font-cormorant)] text-2xl font-bold text-[#1A1612] mb-2">
+                            <h2 className=" text-2xl font-medium text-[#000000] mb-2">
                                 Vedic Forensic Assessment
                             </h2>
-                            <p className="text-[#5A554F] max-w-md mx-auto">
+                            <p className="text-[#636363] max-w-md mx-auto">
                                 Answer {QUIZ_METADATA.totalQuestions} questions about your body constitution (prakriti), behavior patterns, decision-making style, temperament, and family background.
                                 Physical appearance is covered in a separate section.
                             </p>
@@ -228,18 +228,18 @@ export default function Step2ForensicTraits({
                             {QUIZ_METADATA.categories.map((cat) => {
                                 const questionCount = FORENSIC_QUIZ_QUESTIONS.filter(q => q.category === cat.id).length;
                                 return (
-                                    <div key={cat.id} className="flex items-center gap-3 p-3 bg-white rounded-xl border border-[#F0E8DE]">
+                                    <div key={cat.id} className="flex items-center gap-3 p-3 bg-white rounded-xl border border-[rgba(0,0,0,0.08)]">
                                         <span className="text-2xl">{cat.icon}</span>
                                         <div>
-                                            <div className="font-medium text-sm text-[#1A1612]">{cat.name}</div>
-                                            <div className="text-xs text-[#5A554F]">{questionCount} Qs</div>
+                                            <div className="font-medium text-sm text-[#000000]">{cat.name}</div>
+                                            <div className="text-xs text-[#636363]">{questionCount} Qs</div>
                                         </div>
                                     </div>
                                 );
                             })}
                         </div>
 
-                        <div className="flex items-center justify-center gap-4 mb-6 text-sm text-[#5A554F]">
+                        <div className="flex items-center justify-center gap-4 mb-6 text-sm text-[#636363]">
                             <span className="flex items-center gap-1">
                                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -257,7 +257,7 @@ export default function Step2ForensicTraits({
 
                         <button
                             onClick={handleStartAssessment}
-                            className="w-full py-4 bg-gradient-to-r from-[#B8860B] to-[#78611D] text-white font-bold rounded-xl hover:shadow-lg transition-all flex items-center justify-center gap-2"
+                            className="w-full py-4 bg-gradient-to-r from-[#000000] to-[#000000] text-white font-medium rounded-xl hover:shadow-lg transition-all flex items-center justify-center gap-2"
                         >
                             Start Assessment
                             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">

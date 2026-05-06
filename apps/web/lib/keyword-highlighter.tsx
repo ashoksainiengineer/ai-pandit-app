@@ -33,13 +33,13 @@ export function highlightKeywords(text: string): ReactNode[] {
 
         // Check which category it belongs to
         if (PLANETS.some(p => p.toLowerCase() === lowerPart)) {
-            return <span key={index} className="text-[#B8860B] font-bold">{part}</span>; // Gold
+            return <span key={index} className="text-[#000000] font-medium">{part}</span>; // Gold
         }
         if (HOUSES.some(h => h.toLowerCase() === lowerPart)) {
-            return <span key={index} className="text-blue-600 font-bold">{part}</span>; // Blue
+            return <span key={index} className="text-blue-600 font-medium">{part}</span>; // Blue
         }
         if (YOGAS_AND_TERMS.some(y => y.toLowerCase() === lowerPart)) {
-            return <span key={index} className="text-emerald-600 font-bold">{part}</span>; // Emerald
+            return <span key={index} className="text-emerald-600 font-medium">{part}</span>; // Emerald
         }
 
         return <React.Fragment key={index}>{part}</React.Fragment>;

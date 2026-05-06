@@ -79,7 +79,7 @@ export const Breadcrumbs = memo(function Breadcrumbs({
               {item.href ? (
                 <Link
                   href={item.href}
-                  className="flex items-center gap-1.5 text-[#5A554F] hover:text-[#B8860B] transition-colors"
+                  className="flex items-center gap-1.5 text-[#636363] hover:text-[#000000] transition-colors"
                 >
                   {isFirst && showHomeIcon && !Icon && (
                     <Home className="w-4 h-4" />
@@ -91,7 +91,7 @@ export const Breadcrumbs = memo(function Breadcrumbs({
                 </Link>
               ) : (
                 <span 
-                  className="flex items-center gap-1.5 text-[#1A1612] font-medium"
+                  className="flex items-center gap-1.5 text-[#000000] font-medium"
                   aria-current="page"
                 >
                   {isFirst && showHomeIcon && !Icon && (

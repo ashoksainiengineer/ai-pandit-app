@@ -5,7 +5,7 @@ import TESTIMONIALS, { Testimonial, getAverageRating, getTotalTestimonials } fro
 
 function renderStars(rating: number) {
   return Array.from({ length: 5 }, (_, i) => (
-    <span key={i} className={i < rating ? 'text-[#78611D]' : 'text-[#F0E8DE]'}>
+    <span key={i} className={i < rating ? 'text-[#000000]' : 'text-[rgba(0,0,0,0.08)]'}>
       ★
     </span>
   ));
@@ -20,13 +20,13 @@ export default function TestimonialsSection() {
       <div className="max-w-7xl mx-auto px-6 relative">
         {/* Section Header */}
         <div className="text-center mb-16">
-          <span className="inline-block px-4 py-2 bg-[#78611D]/10 border border-[#78611D]/30 rounded-full text-[#78611D] text-sm font-medium mb-6">
+          <span className="inline-block px-4 py-2 bg-[#000000]/10 border border-[#000000]/30 rounded-full text-[#000000] text-sm font-medium mb-6">
             ⭐ {getAverageRating()}/5 Average Rating from {getTotalTestimonials()} Users
           </span>
-          <h2 className="text-4xl md:text-5xl font-bold text-[#1A1612] mb-4">
+          <h2 className="text-4xl md:text-5xl font-medium text-[#000000] mb-4">
             Real Results from Real Users
           </h2>
-          <p className="text-[#4A453F] text-lg max-w-2xl mx-auto">
+          <p className="text-[#636363] text-lg max-w-2xl mx-auto">
             See how accurate birth time rectification transformed their astrological predictions
           </p>
         </div>
@@ -53,22 +53,22 @@ interface TestimonialCardProps {
 
 function TestimonialCard({ testimonial, renderStars }: TestimonialCardProps) {
   return (
-    <div className="glass-card bg-white border border-[#F0E8DE] rounded-xl overflow-hidden">
+    <div className="glass-card bg-white border border-[rgba(0,0,0,0.08)] rounded-xl overflow-hidden">
       <details className="group">
         <summary className="p-6 cursor-pointer list-none">
           {/* Header */}
           <div className="flex items-start justify-between mb-4">
             <div className="flex items-center gap-3">
               {/* Avatar with initials */}
-              <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#78611D]/30 to-[#6A0572]/30 flex items-center justify-center">
-                <span className="text-[#78611D] font-bold text-lg">
+              <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#000000]/30 to-[#6A0572]/30 flex items-center justify-center">
+                <span className="text-[#000000] font-medium text-lg">
                   {testimonial.name.split(' ').map(n => n[0]).join('')}
                 </span>
               </div>
               <div>
-                <h4 className="font-semibold text-[#1A1612]">{testimonial.name}</h4>
-                <p className="text-xs text-[#5A554F]">{testimonial.profession}</p>
-                <p className="text-xs text-[#5A554F]">{testimonial.location}</p>
+                <h4 className="font-medium text-[#000000]">{testimonial.name}</h4>
+                <p className="text-xs text-[#636363]">{testimonial.profession}</p>
+                <p className="text-xs text-[#636363]">{testimonial.location}</p>
               </div>
             </div>
             <div className="text-right">
@@ -83,45 +83,45 @@ function TestimonialCard({ testimonial, renderStars }: TestimonialCardProps) {
 
           {/* Quote - short version visible in summary */}
           <div className="mb-4">
-            <p className="text-[#4A453F] italic leading-relaxed">
+            <p className="text-[#636363] italic leading-relaxed">
               &quot;{testimonial.shortQuote}&quot;
             </p>
           </div>
 
           {/* Result Badge */}
           <div className="flex flex-wrap items-center gap-3 mb-4">
-            <div className="px-3 py-1.5 bg-[#F5EFE7] rounded-lg">
-              <span className="text-xs text-[#5A554F] block">Original</span>
+            <div className="px-3 py-1.5 bg-[#f8f8f8] rounded-lg">
+              <span className="text-xs text-[#636363] block">Original</span>
               <span className="text-sm font-mono text-red-600 line-through">{testimonial.result.originalTime}</span>
             </div>
-            <span className="text-[#78611D]">→</span>
+            <span className="text-[#000000]">→</span>
             <div className="px-3 py-1.5 bg-[#184131]/20 rounded-lg border border-[#184131]/30">
               <span className="text-xs text-[#184131] block">Rectified</span>
-              <span className="text-sm font-mono text-[#184131] font-bold">{testimonial.result.rectifiedTime}</span>
+              <span className="text-sm font-mono text-[#184131] font-medium">{testimonial.result.rectifiedTime}</span>
             </div>
-            <div className="px-3 py-1.5 bg-[#78611D]/10 rounded-lg">
-              <span className="text-xs text-[#78611D] block">Accuracy</span>
-              <span className="text-sm font-mono text-[#78611D] font-bold">{testimonial.result.accuracyAchieved}%</span>
+            <div className="px-3 py-1.5 bg-[#000000]/10 rounded-lg">
+              <span className="text-xs text-[#000000] block">Accuracy</span>
+              <span className="text-sm font-mono text-[#000000] font-medium">{testimonial.result.accuracyAchieved}%</span>
             </div>
           </div>
 
           {/* Highlight */}
           <div className="p-3 bg-[#6A0572]/10 rounded-lg border border-[#6A0572]/20 mb-4">
             <p className="text-sm text-[#6A0572]">
-              <span className="font-semibold">Key Benefit:</span> {testimonial.highlight}
+              <span className="font-medium">Key Benefit:</span> {testimonial.highlight}
             </p>
           </div>
 
           {/* Expand/Collapse indicator */}
-          <div className="text-sm text-[#78611D] flex items-center gap-1">
+          <div className="text-sm text-[#000000] flex items-center gap-1">
             Read Full Story
             <span className="transition-transform group-open:rotate-180">▼</span>
           </div>
         </summary>
 
         {/* Full review - shown when expanded */}
-        <div className="px-6 pb-6 border-t border-[#F0E8DE] pt-4">
-          <p className="text-[#4A453F] italic leading-relaxed">
+        <div className="px-6 pb-6 border-t border-[rgba(0,0,0,0.08)] pt-4">
+          <p className="text-[#636363] italic leading-relaxed">
             &quot;{testimonial.fullReview}&quot;
           </p>
         </div>

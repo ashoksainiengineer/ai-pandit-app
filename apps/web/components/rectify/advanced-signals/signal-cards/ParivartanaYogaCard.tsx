@@ -50,7 +50,7 @@ const ParivartanaYogaCard: React.FC<ParivartanaYogaCardProps> = ({ yogas }) => {
 
             {/* Yoga Type Badge */}
             <div className="mb-fib-3">
-              <span className="px-fib-2 py-fib-1 text-phi-xs font-bold text-accent-primary bg-bg-elevated rounded-full border border-border-accent">
+              <span className="px-fib-2 py-fib-1 text-phi-xs font-medium text-accent-primary bg-bg-elevated rounded-full border border-border-accent">
                 {yoga.yogaType}
               </span>
             </div>
@@ -59,22 +59,22 @@ const ParivartanaYogaCard: React.FC<ParivartanaYogaCardProps> = ({ yogas }) => {
             <div className="flex items-center justify-center gap-fib-3">
 
               {/* Planet 1 */}
-              <div className="flex flex-col items-center p-fib-2 bg-bg-elevated rounded-fib-3 border border-border-default">
+              <div className="flex flex-col items-center p-fib-2 bg-bg-elevated rounded-fib-3 border border-black/8">
                 <span className="text-2xl">{planetIcons[yoga.planets[0]]}</span>
-                <span className="text-phi-xs text-text-primary font-bold">{yoga.planets[0]}</span>
-                <span className="text-phi-xs text-text-muted">in {yoga.signs[1].slice(0, 4)}</span>
+                <span className="text-phi-xs text-text-primary font-medium">{yoga.planets[0]}</span>
+                <span className="text-phi-xs text-black/60">in {yoga.signs[1].slice(0, 4)}</span>
               </div>
 
               {/* Exchange Icon */}
-              <div className="text-accent-gold-muted">
+              <div className="text-black/60">
                 <Repeat className="w-6 h-6" />
               </div>
 
               {/* Planet 2 */}
-              <div className="flex flex-col items-center p-fib-2 bg-bg-elevated rounded-fib-3 border border-border-default">
+              <div className="flex flex-col items-center p-fib-2 bg-bg-elevated rounded-fib-3 border border-black/8">
                 <span className="text-2xl">{planetIcons[yoga.planets[1]]}</span>
-                <span className="text-phi-xs text-text-primary font-bold">{yoga.planets[1]}</span>
-                <span className="text-phi-xs text-text-muted">in {yoga.signs[0].slice(0, 4)}</span>
+                <span className="text-phi-xs text-text-primary font-medium">{yoga.planets[1]}</span>
+                <span className="text-phi-xs text-black/60">in {yoga.signs[0].slice(0, 4)}</span>
               </div>
 
             </div>

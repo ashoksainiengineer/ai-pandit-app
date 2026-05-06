@@ -89,34 +89,34 @@ export function EphemerisPanel({
         <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="rounded-xl border border-[#F0E8DE] bg-white overflow-hidden"
+            className="rounded-xl border border-[rgba(0,0,0,0.08)] bg-white overflow-hidden"
         >
             {/* Header */}
             <button
                 onClick={() => setIsExpanded(!isExpanded)}
-                className="w-full px-4 py-3 flex items-center justify-between hover:bg-[#F5EFE7] transition-colors"
+                className="w-full px-4 py-3 flex items-center justify-between hover:bg-[#f8f8f8] transition-colors"
             >
                 <div className="flex items-center gap-3">
                     <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center">
                         <Orbit className="w-4 h-4 text-white" />
                     </div>
                     <div className="text-left">
-                        <h4 className="text-sm font-bold text-[#1A1612]">Ephemeris Data</h4>
-                        <p className="text-[10px] text-[#4A453F] font-mono">Candidate: {candidateTime}</p>
+                        <h4 className="text-sm font-medium text-[#000000]">Ephemeris Data</h4>
+                        <p className="text-[10px] text-[#636363] font-mono">Candidate: {candidateTime}</p>
                     </div>
                 </div>
 
                 <div className="flex items-center gap-2">
                     {minifiedEph && !isExpanded && (
-                        <div className="hidden sm:flex items-center gap-3 text-[10px] font-mono text-[#4A453F]">
+                        <div className="hidden sm:flex items-center gap-3 text-[10px] font-mono text-[#636363]">
                             <span className="text-orange-600">☉ {minifiedEph.sun}</span>
                             <span className="text-blue-600">☽ {minifiedEph.moon}</span>
                         </div>
                     )}
                     {isExpanded ? (
-                        <ChevronUp className="w-4 h-4 text-[#4A453F]" />
+                        <ChevronUp className="w-4 h-4 text-[#636363]" />
                     ) : (
-                        <ChevronDown className="w-4 h-4 text-[#4A453F]" />
+                        <ChevronDown className="w-4 h-4 text-[#636363]" />
                     )}
                 </div>
             </button>
@@ -129,17 +129,17 @@ export function EphemerisPanel({
                         animate={{ height: 'auto', opacity: 1 }}
                         exit={{ height: 0, opacity: 0 }}
                         transition={{ duration: 0.2 }}
-                        className="border-t border-[#F0E8DE] max-h-[500px] overflow-y-auto"
+                        className="border-t border-[rgba(0,0,0,0.08)] max-h-[500px] overflow-y-auto"
                     >
                         <div className="p-4 space-y-4">
                             {/* Ascendant */}
                             {(ascendant || minifiedEph?.ascendant) && (
-                                <div className="bg-[#FDF8F3] rounded-lg p-3 border border-[#78611D]/30 shrink-0">
+                                <div className="bg-[#ffffff] rounded-lg p-3 border border-[#000000]/30 shrink-0">
                                     <div className="flex items-center gap-2 mb-2">
-                                        <Star className="w-4 h-4 text-[#78611D]" />
-                                        <span className="text-[10px] text-[#5A554F] uppercase tracking-wider font-bold">Ascendant (Lagna)</span>
+                                        <Star className="w-4 h-4 text-[#000000]" />
+                                        <span className="text-[10px] text-[#636363] uppercase tracking-wider font-medium">Ascendant (Lagna)</span>
                                     </div>
-                                    <div className="text-lg font-bold text-[#78611D] font-mono">
+                                    <div className="text-lg font-medium text-[#000000] font-mono">
                                         {ascendant ? (
                                             <span>{ascendant.sign} {formatDegree(ascendant.degree)} ({ascendant.nakshatra})</span>
                                         ) : (
@@ -154,22 +154,22 @@ export function EphemerisPanel({
                                 <div className="grid grid-cols-3 gap-2">
                                     {Object.entries(planets).map(([key, data]) => {
                                         if (!data) return null;
-                                        const config = PLANET_SYMBOLS[key] || { symbol: '?', color: 'text-[#1A1612]' };
+                                        const config = PLANET_SYMBOLS[key] || { symbol: '?', color: 'text-[#000000]' };
 
                                         return (
                                             <div
                                                 key={key}
-                                                className="bg-[#FDF8F3] rounded-lg p-2.5 border border-[#F0E8DE] hover:border-[#78611D]/30 transition-colors shrink-0"
+                                                className="bg-[#ffffff] rounded-lg p-2.5 border border-[rgba(0,0,0,0.08)] hover:border-[#000000]/30 transition-colors shrink-0"
                                             >
                                                 <div className="flex items-center gap-1.5 mb-1">
                                                     <span className={`text-lg ${config.color}`}>{config.symbol}</span>
-                                                    <span className="text-[10px] text-[#5A554F] uppercase font-bold">{key}</span>
+                                                    <span className="text-[10px] text-[#636363] uppercase font-medium">{key}</span>
                                                     {data.isRetrograde && <span className="text-[8px] text-red-600">R</span>}
                                                 </div>
-                                                <div className="text-xs font-mono text-[#1A1612]">
+                                                <div className="text-xs font-mono text-[#000000]">
                                                     {data.sign} {formatDegree(data.degree)}
                                                 </div>
-                                                <div className="text-[10px] text-[#5A554F]">
+                                                <div className="text-[10px] text-[#636363]">
                                                     {data.nakshatra}
                                                     {data.isExalted && <span className="ml-1 text-emerald-600">⭐</span>}
                                                     {data.isDebilitated && <span className="ml-1 text-red-600">↓</span>}
@@ -180,26 +180,26 @@ export function EphemerisPanel({
                                 </div>
                             ) : minifiedEph && (
                                 <div className="grid grid-cols-3 gap-2">
-                                    <div className="bg-[#FDF8F3] rounded-lg p-2.5 border border-[#F0E8DE] shrink-0">
+                                    <div className="bg-[#ffffff] rounded-lg p-2.5 border border-[rgba(0,0,0,0.08)] shrink-0">
                                         <div className="flex items-center gap-1.5 mb-1">
                                             <span className="text-lg text-orange-600">☉</span>
-                                            <span className="text-[10px] text-[#5A554F] uppercase font-bold">Sun</span>
+                                            <span className="text-[10px] text-[#636363] uppercase font-medium">Sun</span>
                                         </div>
-                                        <div className="text-xs font-mono text-[#1A1612]">{minifiedEph.sun}</div>
+                                        <div className="text-xs font-mono text-[#000000]">{minifiedEph.sun}</div>
                                     </div>
-                                    <div className="bg-[#FDF8F3] rounded-lg p-2.5 border border-[#F0E8DE] shrink-0">
+                                    <div className="bg-[#ffffff] rounded-lg p-2.5 border border-[rgba(0,0,0,0.08)] shrink-0">
                                         <div className="flex items-center gap-1.5 mb-1">
                                             <span className="text-lg text-blue-600">☽</span>
-                                            <span className="text-[10px] text-[#5A554F] uppercase font-bold">Moon</span>
+                                            <span className="text-[10px] text-[#636363] uppercase font-medium">Moon</span>
                                         </div>
-                                        <div className="text-xs font-mono text-[#1A1612]">{minifiedEph.moon}</div>
+                                        <div className="text-xs font-mono text-[#000000]">{minifiedEph.moon}</div>
                                     </div>
-                                    <div className="bg-[#FDF8F3] rounded-lg p-2.5 border border-[#F0E8DE] shrink-0">
+                                    <div className="bg-[#ffffff] rounded-lg p-2.5 border border-[rgba(0,0,0,0.08)] shrink-0">
                                         <div className="flex items-center gap-1.5 mb-1">
-                                            <span className="text-lg text-[#78611D]">↑</span>
-                                            <span className="text-[10px] text-[#5A554F] uppercase font-bold">Asc</span>
+                                            <span className="text-lg text-[#000000]">↑</span>
+                                            <span className="text-[10px] text-[#636363] uppercase font-medium">Asc</span>
                                         </div>
-                                        <div className="text-xs font-mono text-[#1A1612]">{minifiedEph.ascendant}</div>
+                                        <div className="text-xs font-mono text-[#000000]">{minifiedEph.ascendant}</div>
                                     </div>
                                 </div>
                             )}
@@ -208,17 +208,17 @@ export function EphemerisPanel({
                             {houses && houses.length > 0 && (
                                 <div>
                                     <div className="flex items-center gap-2 mb-2">
-                                        <Home className="w-4 h-4 text-[#5A554F]" />
-                                        <span className="text-[10px] text-[#5A554F] uppercase tracking-wider font-bold">Houses</span>
+                                        <Home className="w-4 h-4 text-[#636363]" />
+                                        <span className="text-[10px] text-[#636363] uppercase tracking-wider font-medium">Houses</span>
                                     </div>
                                     <div className="grid grid-cols-6 gap-2">
                                         {houses.map((house) => (
                                             <div
                                                 key={house.number}
-                                                className="bg-[#FDF8F3] rounded-lg p-2 text-center border border-[#F0E8DE] shrink-0"
+                                                className="bg-[#ffffff] rounded-lg p-2 text-center border border-[rgba(0,0,0,0.08)] shrink-0"
                                             >
-                                                <div className="text-[10px] font-bold text-[#5A554F]">{house.number}H</div>
-                                                <div className="text-[11px] font-mono text-[#1A1612]">{house.sign}</div>
+                                                <div className="text-[10px] font-medium text-[#636363]">{house.number}H</div>
+                                                <div className="text-[11px] font-mono text-[#000000]">{house.sign}</div>
                                             </div>
                                         ))}
                                     </div>
@@ -227,10 +227,10 @@ export function EphemerisPanel({
 
                             {/* Dasha */}
                             {dasha && (
-                                <div className="bg-[#FDF8F3] rounded-lg p-3 border border-emerald-500/30 shrink-0">
+                                <div className="bg-[#ffffff] rounded-lg p-3 border border-emerald-500/30 shrink-0">
                                     <div className="flex items-center gap-2 mb-1">
                                         <Sparkles className="w-4 h-4 text-emerald-600" />
-                                        <span className="text-[10px] text-[#5A554F] uppercase tracking-wider font-bold">Active Dasha</span>
+                                        <span className="text-[10px] text-[#636363] uppercase tracking-wider font-medium">Active Dasha</span>
                                     </div>
                                     <div className="text-sm font-mono text-emerald-700">{dasha}</div>
                                 </div>
@@ -250,19 +250,19 @@ export function EphemerisMini({ sun, moon, ascendant }: { sun?: string; moon?: s
             {sun && (
                 <div className="flex items-center gap-1">
                     <span className="text-orange-600">☉</span>
-                    <span className="text-[#4A453F]">{sun}</span>
+                    <span className="text-[#636363]">{sun}</span>
                 </div>
             )}
             {moon && (
                 <div className="flex items-center gap-1">
                     <span className="text-blue-600">☽</span>
-                    <span className="text-[#4A453F]">{moon}</span>
+                    <span className="text-[#636363]">{moon}</span>
                 </div>
             )}
             {ascendant && (
                 <div className="flex items-center gap-1">
-                    <span className="text-[#78611D]">↑</span>
-                    <span className="text-[#4A453F]">{ascendant}</span>
+                    <span className="text-[#000000]">↑</span>
+                    <span className="text-[#636363]">{ascendant}</span>
                 </div>
             )}
         </div>

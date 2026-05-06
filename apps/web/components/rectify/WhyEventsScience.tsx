@@ -10,24 +10,24 @@ export default function WhyEventsScience() {
       animate={{ opacity: 1 }}
       className="space-y-4"
     >
-      <h4 className="font-semibold text-content-primary text-sm flex items-center gap-2">
+      <h4 className="font-medium text-content-primary text-sm flex items-center gap-2">
         <Zap className="w-4 h-4 text-primary" />
         The Mathematics of BTR
       </h4>
 
       <div className="p-4 bg-gradient-to-br from-primary/5 to-primary-dark/5 rounded-xl border border-primary/20">
-        <h5 className="font-bold text-content-primary mb-2">Why 30+ Events?</h5>
+        <h5 className="font-medium text-content-primary mb-2">Why 30+ Events?</h5>
         <p className="text-sm text-content-secondary leading-relaxed">
           Each life event is triggered by specific planetary periods (Dasha).
           With only 5-7 events, we have limited data points to cross-reference.
           With 30+ events spanning multiple decades, we create a
-          <span className="font-bold text-primary"> redundant verification matrix</span>
+          <span className="font-medium text-primary"> redundant verification matrix</span>
           that can pinpoint birth time to the second.
         </p>
       </div>
 
       <div className="space-y-3">
-        <h5 className="font-semibold text-sm text-content-primary">How Events Validate Birth Time:</h5>
+        <h5 className="font-medium text-sm text-content-primary">How Events Validate Birth Time:</h5>
 
         <div className="space-y-2">
           {[
@@ -49,7 +49,7 @@ export default function WhyEventsScience() {
             },
           ].map((item, i) => (
             <div key={i} className="flex items-start gap-3 p-3 bg-white rounded-lg border border-surface-muted">
-              <div className="w-6 h-6 rounded-full bg-primary text-white flex items-center justify-center text-xs font-bold shrink-0">
+              <div className="w-6 h-6 rounded-full bg-primary text-white flex items-center justify-center text-xs font-medium shrink-0">
                 {i + 1}
               </div>
               <div>

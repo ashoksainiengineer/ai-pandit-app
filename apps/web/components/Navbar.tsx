@@ -55,10 +55,10 @@ export default function Navbar({ transparent = false }: NavbarProps) {
           <Link href="/" className="flex items-center gap-2 sm:gap-3 group">
             <div className="flex items-center gap-2">
               <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-br from-prism-ink to-prism-graphite rounded-lg flex items-center justify-center flex-shrink-0">
-                <span className="text-prism-snow text-sm sm:text-lg font-bold">ॐ</span>
+                <span className="text-prism-snow text-sm sm:text-lg font-medium">ॐ</span>
               </div>
               <div>
-                <span className="font-prism text-xl sm:text-2xl font-semibold text-prism-ink">
+                <span className="font-prism text-xl sm:text-2xl font-medium text-prism-ink">
                   AI Pandit
                 </span>
                 <span className="hidden sm:block text-[10px] text-prism-graphite uppercase tracking-[0.2em]">

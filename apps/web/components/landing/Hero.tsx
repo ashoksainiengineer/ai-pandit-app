@@ -27,7 +27,7 @@ const coreStats = [
     label: 'Precision',
     icon: Target,
     desc: 'Exact birth time',
-    color: '#B8860B'
+    color: '#000000'
   },
   {
     value: '97%+',
@@ -72,11 +72,11 @@ export default function Hero() {
         <div className="text-center max-w-4xl mx-auto mb-16">
           {/* Sacred Badge */}
           <div
-            className="animate-scale-in inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-[#FDF8F3] to-white
-                       border border-[#F0E8DE] rounded-full text-sm mb-8"
+            className="animate-scale-in inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-[#ffffff] to-white
+                       border border-[rgba(0,0,0,0.08)] rounded-full text-sm mb-8"
           >
             <span className="text-[#6B1F7A] font-medium">Vedic Birth Time Rectification</span>
-            <span className="text-[10px] px-2 py-0.5 bg-[#B8860B]/10 text-[#8A6A0B] rounded-full">by Skyfield Ephemeris</span>
+            <span className="text-[10px] px-2 py-0.5 bg-[#000000]/10 text-[#8A6A0B] rounded-full">by Skyfield Ephemeris</span>
             <span className="text-[10px] px-2 py-0.5 bg-[#4A7C6F]/10 text-[#3A6C5F] rounded-full">by DeepSeek R1-0528</span>
           </div>
 
@@ -85,23 +85,23 @@ export default function Hero() {
             className="animate-fade-in-up mb-6"
             style={{ animationDelay: '0.1s' }}
           >
-            <h1 className="font-[family-name:var(--font-cormorant)] text-4xl sm:text-5xl lg:text-6xl xl:text-7xl
-                           font-semibold text-[#1A1612] leading-tight tracking-tight">
+            <h1 className=" text-4xl sm:text-5xl lg:text-6xl xl:text-7xl
+                           font-medium text-[#000000] leading-tight tracking-tight">
               Discover Your{' '}
-              <span className="text-[#B8860B]">Exact Birth Time</span>
+              <span className="text-[#000000]">Exact Birth Time</span>
             </h1>
-            <p className="mt-4 text-lg text-[#5A554F] font-light italic">
-              by <span className="font-[family-name:var(--font-cormorant)] text-2xl text-[#8A6A0B] font-semibold not-italic">AI Pandit</span>
+            <p className="mt-4 text-lg text-[#636363] font-light italic">
+              by <span className=" text-2xl text-[#8A6A0B] font-medium not-italic">AI Pandit</span>
             </p>
           </div>
 
           {/* Subtitle */}
           <p
-            className="animate-fade-in-up text-lg sm:text-xl text-[#4A453F] mb-10 max-w-2xl mx-auto leading-relaxed"
+            className="animate-fade-in-up text-lg sm:text-xl text-[#636363] mb-10 max-w-2xl mx-auto leading-relaxed"
             style={{ animationDelay: '0.2s' }}
           >
             Highly accurate birth time rectification within{' '}
-            <span className="text-[#8A6A0B] font-semibold">seconds-level precision</span>.
+            <span className="text-[#8A6A0B] font-medium">seconds-level precision</span>.
             Powered by Skyfield astronomical data and DeepSeek AI,
             aligned with ancient Vedic wisdom.
           </p>
@@ -113,8 +113,8 @@ export default function Hero() {
           >
             <Link href="/rectify">
               <button
-                className="group relative px-10 py-4 bg-gradient-to-r from-[#B8860B] via-[#78611D] to-[#E5C880]
-                           text-white font-semibold text-base rounded-xl
+                className="group relative px-10 py-4 bg-gradient-to-r from-[#000000] via-[#000000] to-[#E5C880]
+                           text-white font-medium text-base rounded-xl
                            overflow-hidden transition-all duration-300 hover:brightness-105 active:brightness-95"
               >
                 <span className="relative z-10 flex items-center justify-center gap-2">
@@ -139,13 +139,13 @@ export default function Hero() {
                 >
                   <Icon className="w-5 h-5 flex-shrink-0" style={{ color: stat.color }} />
                   <div className="text-left">
-                    <div className="font-[family-name:var(--font-cormorant)] text-lg sm:text-xl font-semibold text-[#1A1612]">
+                    <div className=" text-lg sm:text-xl font-medium text-[#000000]">
                       {stat.value}
                     </div>
-                    <div className="text-[11px] text-[#5A554F]">{stat.label}</div>
+                    <div className="text-[11px] text-[#636363]">{stat.label}</div>
                   </div>
                   {index < coreStats.length - 1 && (
-                    <div className="hidden sm:block w-px h-8 bg-[#F0E8DE] ml-3" />
+                    <div className="hidden sm:block w-px h-8 bg-[rgba(0,0,0,0.08)] ml-3" />
                   )}
                 </div>
               );
@@ -160,7 +160,7 @@ export default function Hero() {
             <div className="inline-flex items-center gap-3 px-5 py-3 bg-emerald-50 border border-emerald-200 rounded-xl">
               <SecurityShieldIcon />
               <div className="text-left">
-                <div className="text-sm font-semibold text-emerald-800">Your Data is Protected</div>
+                <div className="text-sm font-medium text-emerald-800">Your Data is Protected</div>
                 <div className="text-xs text-emerald-700">AES-256 End-to-End Encryption • Only you can access your data</div>
               </div>
             </div>
@@ -176,11 +176,11 @@ export default function Hero() {
                 <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
                 <div className="absolute inset-0 w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping opacity-40" />
               </div>
-              <span className="text-sm font-medium text-[#1A1612]">Live Analysis Engine</span>
+              <span className="text-sm font-medium text-[#000000]">Live Analysis Engine</span>
             </div>
             <button
-              className="flex items-center gap-2 px-4 py-2 bg-white border border-[#78611D] text-[#78611D]
-                         text-sm rounded-lg hover:bg-[#FDF8F3] transition-colors"
+              className="flex items-center gap-2 px-4 py-2 bg-white border border-[#000000] text-[#000000]
+                         text-sm rounded-lg hover:bg-[#ffffff] transition-colors"
             >
               <Play className="w-4 h-4" />
               See How It Works
@@ -196,7 +196,7 @@ export default function Hero() {
         {/* Scroll Indicator */}
         <div className="flex justify-center mt-16">
           <div
-            className="animate-gentle-float flex flex-col items-center gap-2 text-[#8A857F]"
+            className="animate-gentle-float flex flex-col items-center gap-2 text-[#959595]"
           >
             <span className="text-xs uppercase tracking-[0.2em]">Scroll to explore</span>
             <ChevronDown className="w-5 h-5" />

@@ -27,7 +27,7 @@ export function CompletionInsights({ result, sessionId }: CompletionInsightsProp
                             <div className="w-12 h-12 rounded-full bg-emerald-500/20 flex items-center justify-center border border-emerald-500/50 shadow-[0_0_20px_rgba(16,185,129,0.4)]">
                                 <CheckCircle2 className="w-7 h-7 text-emerald-400" />
                             </div>
-                            <h2 className="text-3xl font-bold tracking-tight text-white drop-shadow-[0_2px_10px_rgba(16,185,129,0.8)]">Analysis Successfully Completed</h2>
+                            <h2 className="text-3xl font-medium tracking-tight text-white drop-shadow-[0_2px_10px_rgba(16,185,129,0.8)]">Analysis Successfully Completed</h2>
                         </div>
 
                         <p className="text-emerald-100/70 max-w-lg text-lg">
@@ -49,7 +49,7 @@ export function CompletionInsights({ result, sessionId }: CompletionInsightsProp
                     <div className="flex flex-col items-center p-8 bg-black/60 backdrop-blur-md rounded-2xl border border-emerald-500/40 shadow-2xl relative min-w-[300px]">
                         <div className="absolute inset-0 bg-emerald-500/20 blur-3xl rounded-full opacity-50 pointer-events-none" />
 
-                        <span className="text-sm font-bold text-emerald-400 uppercase tracking-widest mb-2 relative z-10 flex items-center gap-2">
+                        <span className="text-sm font-medium text-emerald-400 uppercase tracking-widest mb-2 relative z-10 flex items-center gap-2">
                             Ultimate Result
                         </span>
 
@@ -72,7 +72,7 @@ export function CompletionInsights({ result, sessionId }: CompletionInsightsProp
                         <div className="flex flex-col w-full gap-3 relative z-10">
                             <button
                                 onClick={() => router.push(`/rectify/${sessionId}/report`)}
-                                className="inline-flex items-center justify-center text-white rounded-md focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 w-full h-14 text-lg font-bold bg-emerald-500 hover:bg-emerald-600 shadow-[0_0_20px_rgba(16,185,129,0.3)] hover:shadow-[0_0_30px_rgba(16,185,129,0.5)] transition-all"
+                                className="inline-flex items-center justify-center text-white rounded-md focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 w-full h-14 text-lg font-medium bg-emerald-500 hover:bg-emerald-600 shadow-[0_0_20px_rgba(16,185,129,0.3)] hover:shadow-[0_0_30px_rgba(16,185,129,0.5)] transition-all"
                             >
                                 View Official Report
                             </button>

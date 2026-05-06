@@ -35,7 +35,7 @@ export function FinalCTA() {
                 Limited Time Offer
               </div>
 
-              <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-4">
+              <h2 className="text-3xl md:text-4xl lg:text-5xl font-medium text-white mb-4">
                 Ready to Discover Your{' '}
                 <span className="bg-gradient-to-r from-[#00DC82] to-[#36E4DA] bg-clip-text text-transparent">
                   True Birth Time
@@ -51,7 +51,7 @@ export function FinalCTA() {
             <div className="max-w-md mx-auto mb-10">
               <div className="bg-zinc-900/50 border border-zinc-800 rounded-2xl p-6">
                 <div className="flex items-end justify-center gap-2 mb-4">
-                  <span className="text-5xl font-bold text-white">₹799</span>
+                  <span className="text-5xl font-medium text-white">₹799</span>
                   <span className="text-xl text-zinc-500 line-through mb-2">₹2,499</span>
                 </div>
                 
@@ -77,7 +77,7 @@ export function FinalCTA() {
                 {/* CTA Button */}
                 <Link href="/rectify">
                   <button
-                    className="w-full py-4 bg-gradient-to-r from-[#00DC82] to-[#36E4DA] text-black font-bold text-lg rounded-xl hover:shadow-[0_0_30px_rgba(0,220,130,0.3)] transition-all duration-300 flex items-center justify-center gap-2 hover:scale-[1.02] active:scale-[0.98]"
+                    className="w-full py-4 bg-gradient-to-r from-[#00DC82] to-[#36E4DA] text-black font-medium text-lg rounded-xl hover:shadow-[0_0_30px_rgba(0,220,130,0.3)] transition-all duration-300 flex items-center justify-center gap-2 hover:scale-[1.02] active:scale-[0.98]"
                   >
                     Start Your Analysis Now
                     <ArrowRight className="w-5 h-5" />

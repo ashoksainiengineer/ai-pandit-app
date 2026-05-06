@@ -239,7 +239,7 @@ const VisualSelector = memo(({ definition, value, onChange }: VisualSelectorProp
         <div className="flex items-start gap-3 p-4 bg-blue-50 rounded-xl border border-blue-100">
             <Glasses className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
             <div>
-                <div className="font-semibold text-blue-800 text-sm">How to check:</div>
+                <div className="font-medium text-blue-800 text-sm">How to check:</div>
                 <div className="text-blue-700 text-sm">{definition.howToCheck}</div>
             </div>
         </div>
@@ -248,7 +248,7 @@ const VisualSelector = memo(({ definition, value, onChange }: VisualSelectorProp
         <div className="flex items-start gap-3 p-4 bg-purple-50 rounded-xl border border-purple-100">
             <Info className="w-5 h-5 text-purple-600 mt-0.5 flex-shrink-0" />
             <div>
-                <div className="font-semibold text-purple-800 text-sm">Why it matters:</div>
+                <div className="font-medium text-purple-800 text-sm">Why it matters:</div>
                 <div className="text-purple-700 text-sm">{definition.whyItMatters}</div>
             </div>
         </div>
@@ -261,12 +261,12 @@ const VisualSelector = memo(({ definition, value, onChange }: VisualSelectorProp
                     type="button"
                     onClick={() => onChange(option.value)}
                     className={`relative p-5 rounded-2xl border-2 text-left transition-all duration-200 group ${value === option.value
-                        ? 'bg-gradient-to-br from-[#FDF8F3] to-white border-[#B8860B] shadow-lg ring-2 ring-[#B8860B]'
-                        : 'bg-white border-gray-100 hover:border-[#B8860B]/30 hover:bg-[#FDF8F3]/30'
+                        ? 'bg-gradient-to-br from-[#ffffff] to-white border-[#000000] shadow-lg ring-2 ring-[#000000]'
+                        : 'bg-white border-gray-100 hover:border-[#000000]/30 hover:bg-[#ffffff]/30'
                         }`}
                 >
                     {value === option.value && (
-                        <div className="absolute top-3 right-3 w-6 h-6 bg-[#B8860B] rounded-full flex items-center justify-center">
+                        <div className="absolute top-3 right-3 w-6 h-6 bg-[#000000] rounded-full flex items-center justify-center">
                             <CheckCircle2 className="w-4 h-4 text-white" />
                         </div>
                     )}
@@ -275,10 +275,10 @@ const VisualSelector = memo(({ definition, value, onChange }: VisualSelectorProp
                     <div className="text-5xl text-center mb-3">{option.visual}</div>
 
                     {/* Label */}
-                    <div className="font-bold text-[#1A1612] text-lg text-center mb-2">{option.label}</div>
+                    <div className="font-medium text-[#000000] text-lg text-center mb-2">{option.label}</div>
 
                     {/* Clear Description */}
-                    <div className="text-sm text-[#5A554F] text-center mb-3">{option.description}</div>
+                    <div className="text-sm text-[#636363] text-center mb-3">{option.description}</div>
 
                     {/* Example */}
                     <div className="text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded text-center">
@@ -329,16 +329,16 @@ const SpecialMarksInput = memo(({ value, onChange }: SpecialMarksInputProps) => 
     return (
         <div className="space-y-4">
             <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-[#B8860B]/10">
-                    <Fingerprint className="w-5 h-5 text-[#B8860B]" />
+                <div className="p-2 rounded-lg bg-[#000000]/10">
+                    <Fingerprint className="w-5 h-5 text-[#000000]" />
                 </div>
                 <div>
-                    <h3 className="font-[family-name:var(--font-cormorant)] text-lg font-bold text-[#1A1612]">Special Marks (Optional)</h3>
-                    <p className="text-xs text-[#5A554F]">Birthmarks, moles, scars - these help with accuracy</p>
+                    <h3 className=" text-lg font-medium text-[#000000]">Special Marks (Optional)</h3>
+                    <p className="text-xs text-[#636363]">Birthmarks, moles, scars - these help with accuracy</p>
                 </div>
             </div>
             <textarea
-                className="w-full min-h-[100px] p-4 rounded-xl border border-[#F0E8DE] bg-white focus:ring-2 focus:ring-[#B8860B]/20 focus:border-[#B8860B] outline-none text-sm"
+                className="w-full min-h-[100px] p-4 rounded-xl border border-[rgba(0,0,0,0.08)] bg-white focus:ring-2 focus:ring-[#000000]/20 focus:border-[#000000] outline-none text-sm"
                 placeholder="Mole on left cheek, scar on right arm, birthmark on back..."
                 value={localValue}
                 onChange={(e) => setLocalValue(e.target.value)}
@@ -414,21 +414,21 @@ export default function Step3PhysicalTraits({ physicalTraits, updateTraits }: St
         <div className="w-full max-w-4xl mx-auto pb-12 animate-in fade-in slide-in-from-bottom-4 duration-700">
             {/* Progress */}
             <div className="flex items-center justify-center gap-3 mb-6">
-                <div className="flex-1 max-w-xs h-2 bg-[#F0E8DE] rounded-full overflow-hidden">
-                    <div className="h-full bg-gradient-to-r from-[#B8860B] to-[#78611D] transition-all duration-500" style={{ width: `${progress}%` }} />
+                <div className="flex-1 max-w-xs h-2 bg-[rgba(0,0,0,0.08)] rounded-full overflow-hidden">
+                    <div className="h-full bg-gradient-to-r from-[#000000] to-[#000000] transition-all duration-500" style={{ width: `${progress}%` }} />
                 </div>
-                <span className="text-xs font-medium text-[#5A554F] whitespace-nowrap">{answeredCount}/{TRAIT_DEFINITIONS.length} done</span>
+                <span className="text-xs font-medium text-[#636363] whitespace-nowrap">{answeredCount}/{TRAIT_DEFINITIONS.length} done</span>
             </div>
 
             {/* Header */}
             <div className="mb-6 text-center">
-                <div className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-[#FDF8F3] to-white border border-[#F0E8DE] rounded-full text-xs mb-4">
-                    <span className="text-[#B8860B] font-medium">Step 2 of 5</span>
+                <div className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-[#ffffff] to-white border border-[rgba(0,0,0,0.08)] rounded-full text-xs mb-4">
+                    <span className="text-[#000000] font-medium">Step 2 of 5</span>
                 </div>
-                <h1 className="font-[family-name:var(--font-cormorant)] text-3xl font-semibold text-[#1A1612] mb-2">
-                    Physical <span className="text-[#B8860B]">Appearance</span>
+                <h1 className=" text-3xl font-medium text-[#000000] mb-2">
+                    Physical <span className="text-[#000000]">Appearance</span>
                 </h1>
-                <p className="text-sm text-[#5A554F] max-w-md mx-auto">
+                <p className="text-sm text-[#636363] max-w-md mx-auto">
                     Look in a mirror and select what matches you best. No astrology knowledge needed - just honest self-observation.
                 </p>
             </div>
@@ -445,10 +445,10 @@ export default function Step3PhysicalTraits({ physicalTraits, updateTraits }: St
                                 key={def.id}
                                 onClick={() => setActiveTraitId(def.id)}
                                 className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${isActive
-                                    ? 'bg-[#B8860B] text-white shadow-md'
+                                    ? 'bg-[#000000] text-white shadow-md'
                                     : isAnswered
                                         ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                                        : 'bg-white text-[#5A554F] border border-[#F0E8DE] hover:border-[#B8860B]/30'
+                                        : 'bg-white text-[#636363] border border-[rgba(0,0,0,0.08)] hover:border-[#000000]/30'
                                     }`}
                             >
                                 <Icon className="w-4 h-4" />
@@ -461,17 +461,17 @@ export default function Step3PhysicalTraits({ physicalTraits, updateTraits }: St
             </div>
 
             {/* Main Content Area */}
-            <div className="bg-white rounded-2xl border border-[#F0E8DE] p-6 shadow-sm">
+            <div className="bg-white rounded-2xl border border-[rgba(0,0,0,0.08)] p-6 shadow-sm">
                 {/* Trait Header */}
-                <div className="flex items-center gap-3 mb-6 pb-6 border-b border-[#F0E8DE]">
-                    <div className="p-3 rounded-xl bg-[#B8860B]/10">
-                        {React.createElement(activeDefinition.icon, { className: 'w-6 h-6 text-[#B8860B]' })}
+                <div className="flex items-center gap-3 mb-6 pb-6 border-b border-[rgba(0,0,0,0.08)]">
+                    <div className="p-3 rounded-xl bg-[#000000]/10">
+                        {React.createElement(activeDefinition.icon, { className: 'w-6 h-6 text-[#000000]' })}
                     </div>
                     <div>
-                        <h2 className="font-[family-name:var(--font-cormorant)] text-xl font-bold text-[#1A1612]">
+                        <h2 className=" text-xl font-medium text-[#000000]">
                             {activeDefinition.name}
                         </h2>
-                        <p className="text-xs text-[#5A554F]">{activeDefinition.sanskrit}</p>
+                        <p className="text-xs text-[#636363]">{activeDefinition.sanskrit}</p>
                     </div>
                 </div>
 
@@ -493,7 +493,7 @@ export default function Step3PhysicalTraits({ physicalTraits, updateTraits }: St
                 </AnimatePresence>
 
                 {/* Special Marks */}
-                <div className="mt-8 pt-6 border-t border-[#F0E8DE]">
+                <div className="mt-8 pt-6 border-t border-[rgba(0,0,0,0.08)]">
                     <SpecialMarksInput
                         value={physicalTraits?.skinHair?.marks || []}
                         onChange={(marks) => updateTraits({ skinHair: { ...physicalTraits?.skinHair, marks } })}
@@ -503,12 +503,12 @@ export default function Step3PhysicalTraits({ physicalTraits, updateTraits }: St
 
             {/* Navigation Hint */}
             <div className="mt-6 flex justify-between items-center text-sm">
-                <div className="text-[#5A554F]">
+                <div className="text-[#636363]">
                     {progress < 100 && (
                         <span>Tip: You can skip traits you&apos;re unsure about</span>
                     )}
                 </div>
-                <div className="text-[#B8860B] font-medium">
+                <div className="text-[#000000] font-medium">
                     {progress === 100 ? '✓ All traits selected!' : `${100 - progress}% remaining`}
                 </div>
             </div>

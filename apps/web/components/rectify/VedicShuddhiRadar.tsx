@@ -11,13 +11,13 @@ interface ShuddhiProps {
 
 export const VedicShuddhiRadar: React.FC<ShuddhiProps> = ({ shuddhi }) => {
     return (
-        <div className="bg-white border border-[#F0E8DE] rounded-xl p-6 relative overflow-hidden">
+        <div className="bg-white border border-[rgba(0,0,0,0.08)] rounded-xl p-6 relative overflow-hidden">
             <div className="absolute top-0 right-0 p-4 opacity-10">
-                <ShieldCheck className="w-24 h-24 text-[#78611D]" />
+                <ShieldCheck className="w-24 h-24 text-[#000000]" />
             </div>
 
-            <h4 className="text-[#1A1612] font-bold mb-6 flex items-center gap-2">
-                <Zap className="w-4 h-4 text-[#78611D]" />
+            <h4 className="text-[#000000] font-medium mb-6 flex items-center gap-2">
+                <Zap className="w-4 h-4 text-[#000000]" />
                 Divine Purification (Shuddhi)
             </h4>
 
@@ -25,17 +25,17 @@ export const VedicShuddhiRadar: React.FC<ShuddhiProps> = ({ shuddhi }) => {
                 {/* Kunda Shuddhi Gauge */}
                 <div>
                     <div className="flex justify-between text-xs mb-2">
-                        <span className="text-[#5A554F] uppercase font-mono">Kunda (Lunar-Asc) Alignment</span>
-                        <span className="text-[#78611D] font-bold">{shuddhi.kunda.score}%</span>
+                        <span className="text-[#636363] uppercase font-mono">Kunda (Lunar-Asc) Alignment</span>
+                        <span className="text-[#000000] font-medium">{shuddhi.kunda.score}%</span>
                     </div>
-                    <div className="h-2 bg-[#F5EFE7] rounded-full overflow-hidden border border-[#F0E8DE]">
+                    <div className="h-2 bg-[#f8f8f8] rounded-full overflow-hidden border border-[rgba(0,0,0,0.08)]">
                         <motion.div
                             initial={{ width: 0 }}
                             animate={{ width: `${shuddhi.kunda.score}%` }}
-                            className="h-full bg-gradient-to-r from-[#78611D]/40 to-[#78611D]"
+                            className="h-full bg-gradient-to-r from-[#000000]/40 to-[#000000]"
                         />
                     </div>
-                    <p className="text-[10px] text-[#5A554F] mt-2 font-mono italic">
+                    <p className="text-[10px] text-[#636363] mt-2 font-mono italic">
                         {shuddhi.kunda.details}
                     </p>
                 </div>
@@ -43,24 +43,24 @@ export const VedicShuddhiRadar: React.FC<ShuddhiProps> = ({ shuddhi }) => {
                 {/* Tatwa Shuddhi Gauge */}
                 <div>
                     <div className="flex justify-between text-xs mb-2">
-                        <span className="text-[#5A554F] uppercase font-mono">Tatwa (Elemental Path)</span>
-                        <span className="text-[#78611D] font-bold">{shuddhi.tatwa.score}%</span>
+                        <span className="text-[#636363] uppercase font-mono">Tatwa (Elemental Path)</span>
+                        <span className="text-[#000000] font-medium">{shuddhi.tatwa.score}%</span>
                     </div>
-                    <div className="h-2 bg-[#F5EFE7] rounded-full overflow-hidden border border-[#F0E8DE]">
+                    <div className="h-2 bg-[#f8f8f8] rounded-full overflow-hidden border border-[rgba(0,0,0,0.08)]">
                         <motion.div
                             initial={{ width: 0 }}
                             animate={{ width: `${shuddhi.tatwa.score}%` }}
-                            className="h-full bg-gradient-to-r from-[#78611D]/40 to-[#78611D]"
+                            className="h-full bg-gradient-to-r from-[#000000]/40 to-[#000000]"
                         />
                     </div>
-                    <p className="text-[10px] text-[#5A554F] mt-2 font-mono italic">
+                    <p className="text-[10px] text-[#636363] mt-2 font-mono italic">
                         {shuddhi.tatwa.details}
                     </p>
                 </div>
             </div>
 
-            <div className="mt-6 pt-6 border-t border-[#F0E8DE]/50">
-                <div className="text-[10px] text-[#5A554F] leading-relaxed">
+            <div className="mt-6 pt-6 border-t border-[rgba(0,0,0,0.08)]/50">
+                <div className="text-[10px] text-[#636363] leading-relaxed">
                     The universe exists in 90-minute Tatwa cycles relative to Dinamaana (Day-Length). This candidate aligns perfectly with your physical manifestation.
                 </div>
             </div>
