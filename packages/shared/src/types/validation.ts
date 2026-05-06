@@ -65,11 +65,12 @@ export interface ValidationInput {
   candidate: {
     time: string;
     ephemeris: EphemerisData;
-    dasha: Record<string, unknown>;
+    dasha: Record<string, unknown> | unknown[];
     vargas: Record<string, unknown>;
     kpData: Record<string, unknown>;
     aiScore?: number;
     birthDate?: string;
+    candidateDate?: string;
   };
   events: LifeEvent[];
   forensicProfile: ForensicTraits;
@@ -104,7 +105,7 @@ export interface CandidateWithPrecisionData {
   time: string;
   offsetMinutes: number;
   ephemeris: EphemerisData;
-  dasha: Record<string, unknown>;
+  dasha: Record<string, unknown> | unknown[];
   vargas: Record<string, unknown>;
   kpData: Record<string, unknown>;
   precision?: PrecisionEnhancement;

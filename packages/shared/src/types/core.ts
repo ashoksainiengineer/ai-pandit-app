@@ -238,8 +238,11 @@ export interface LifeEvent {
   description: string;
   importance: EventImportance;
   icon?: string;
-  color?: string;
   ageAtEvent?: number;
+  impact?: string;
+  type?: string;
+  yearOffset?: number;
+  color?: string;
 }
 
 export const LifeEventSchema = z.object({
