@@ -905,3 +905,520 @@
     display: none;
   }
 }
+
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   DIA BROWSER MESH GRADIENT & AURORA BACKGROUND
+   ═══════════════════════════════════════════════════════════════════════════════ */
+
+.dia-mesh-gradient {
+  position: relative;
+  background: linear-gradient(180deg, var(--dia-hero-blue-start) 0%, var(--dia-hero-blue-mid) 40%, var(--dia-hero-blue-end) 100%);
+  overflow: hidden;
+}
+
+.dia-mesh-gradient::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 80% 50% at 20% 40%, rgba(168, 196, 232, 0.7) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 40% at 80% 20%, rgba(200, 221, 245, 0.6) 0%, transparent 55%),
+    radial-gradient(ellipse 70% 50% at 50% 80%, rgba(184, 211, 238, 0.5) 0%, transparent 60%),
+    radial-gradient(ellipse 50% 40% at 10% 80%, rgba(168, 196, 232, 0.4) 0%, transparent 50%),
+    radial-gradient(ellipse 60% 50% at 90% 60%, rgba(200, 221, 245, 0.5) 0%, transparent 55%);
+  animation: dia-mesh-shift 20s ease-in-out infinite;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.dia-mesh-gradient::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+  opacity: 0.035;
+  mix-blend-mode: overlay;
+  z-index: 1;
+  pointer-events: none;
+}
+
+@keyframes dia-mesh-shift {
+  0%, 100% {
+    transform: translate(0, 0) scale(1);
+  }
+  25% {
+    transform: translate(2%, -1%) scale(1.02);
+  }
+  50% {
+    transform: translate(-1%, 2%) scale(1.01);
+  }
+  75% {
+    transform: translate(1%, 1%) scale(1.03);
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   DIA BROWSER GLASSMORPHISM
+   ═══════════════════════════════════════════════════════════════════════════════ */
+
+.dia-glass {
+  background: rgba(255, 255, 255, 0.65);
+  backdrop-filter: blur(40px) saturate(180%);
+  -webkit-backdrop-filter: blur(40px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  box-shadow: 0 0 40px rgba(168, 196, 232, 0.15);
+}
+
+.dia-glass-strong {
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(60px) saturate(200%);
+  -webkit-backdrop-filter: blur(60px) saturate(200%);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  box-shadow: 0 0 60px rgba(168, 196, 232, 0.2);
+}
+
+.dia-glass-subtle {
+  background: rgba(255, 255, 255, 0.5);
+  backdrop-filter: blur(24px) saturate(150%);
+  -webkit-backdrop-filter: blur(24px) saturate(150%);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   DIA BROWSER RADIAL GLOW EFFECTS
+   ═══════════════════════════════════════════════════════════════════════════════ */
+
+.dia-glow-hero {
+  position: relative;
+}
+
+.dia-glow-hero::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 80%;
+  height: 80%;
+  background: radial-gradient(circle, rgba(168, 196, 232, 0.5) 0%, rgba(200, 221, 245, 0.3) 40%, transparent 70%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.dia-glow-card {
+  position: relative;
+  overflow: hidden;
+}
+
+.dia-glow-card::before {
+  content: '';
+  position: absolute;
+  top: var(--mouse-y, 50%);
+  left: var(--mouse-x, 50%);
+  transform: translate(-50%, -50%);
+  width: 300px;
+  height: 300px;
+  background: radial-gradient(circle, rgba(168, 196, 232, 0.15) 0%, transparent 70%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.dia-glow-card:hover::before {
+  opacity: 1;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   DIA BROWSER NOISE TEXTURE OVERLAY
+   ═══════════════════════════════════════════════════════════════════════════════ */
+
+.dia-noise {
+  position: relative;
+}
+
+.dia-noise::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+  opacity: 0.03;
+  mix-blend-mode: overlay;
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   DIA BROWSER MORPHING BLOB SHAPES
+   ═══════════════════════════════════════════════════════════════════════════════ */
+
+.dia-blob {
+  position: absolute;
+  border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%;
+  animation: dia-blob-morph 8s ease-in-out infinite;
+  filter: blur(60px);
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+@keyframes dia-blob-morph {
+  0%, 100% {
+    border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%;
+    transform: rotate(0deg) scale(1);
+  }
+  25% {
+    border-radius: 30% 60% 70% 40% / 50% 60% 30% 60%;
+    transform: rotate(90deg) scale(1.05);
+  }
+  50% {
+    border-radius: 50% 60% 30% 60% / 30% 40% 70% 50%;
+    transform: rotate(180deg) scale(1);
+  }
+  75% {
+    border-radius: 60% 40% 60% 30% / 70% 50% 40% 60%;
+    transform: rotate(270deg) scale(1.05);
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   DIA BROWSER MAGNETIC BUTTON HOVER
+   ═══════════════════════════════════════════════════════════════════════════════ */
+
+.dia-btn-magnetic {
+  transition: transform 0.2s cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.dia-btn-magnetic:hover {
+  transform: scale(1.02);
+}
+
+.dia-btn-magnetic:active {
+  transform: scale(0.98);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   DIA BROWSER TEXT GRADIENT
+   ═══════════════════════════════════════════════════════════════════════════════ */
+
+.dia-text-gradient {
+  background: linear-gradient(90deg, var(--prism-rose-quartz) 0%, var(--prism-crimson) 25%, var(--prism-marigold) 50%, var(--prism-lavender) 75%, var(--prism-signal-blue) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   DIA BROWSER CUSTOM SCROLLBAR
+   ═══════════════════════════════════════════════════════════════════════════════ */
+
+.dia-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.dia-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.dia-scrollbar::-webkit-scrollbar-thumb {
+  background: var(--dia-ink-faint);
+  border-radius: 3px;
+}
+
+.dia-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: var(--dia-ink-subtle);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   DIA BROWSER SPECTRUM BORDER
+   ═══════════════════════════════════════════════════════════════════════════════ */
+
+.dia-spectrum-border {
+  position: relative;
+}
+
+.dia-spectrum-border::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  padding: 1.5px;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--prism-rose-quartz) 0%, var(--prism-crimson) 25%, var(--prism-marigold) 50%, var(--prism-lavender) 75%, var(--prism-signal-blue) 100%);
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   DIA BROWSER EASING UTILITIES
+   ═══════════════════════════════════════════════════════════════════════════════ */
+
+.dia-ease-out {
+  transition-timing-function: cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.dia-ease-out-slow {
+  transition-timing-function: cubic-bezier(0.77, 0, 0.175, 1);
+}
+
+.dia-ease-in-out {
+  transition-timing-function: cubic-bezier(0.87, 0, 0.13, 1);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   DIA BROWSER WILL-CHANGE OPTIMIZATION
+   ═══════════════════════════════════════════════════════════════════════════════ */
+
+.dia-will-change-transform {
+  will-change: transform;
+}
+
+.dia-will-change-opacity {
+  will-change: opacity;
+}
+
+.dia-will-change-filter {
+  will-change: filter;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   DIA BROWSER MIX-BLEND-MODE UTILITIES
+   ═══════════════════════════════════════════════════════════════════════════════ */
+
+.dia-blend-multiply {
+  mix-blend-mode: multiply;
+}
+
+.dia-blend-overlay {
+  mix-blend-mode: overlay;
+}
+
+.dia-blend-screen {
+  mix-blend-mode: screen;
+}
+
+.dia-blend-soft-light {
+  mix-blend-mode: soft-light;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   DIA BROWSER CONTAINER QUERIES
+   ═══════════════════════════════════════════════════════════════════════════════ */
+
+.dia-container-query {
+  container-type: inline-size;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   DIA BROWSER ANIMATED UNDERLINE
+   ═══════════════════════════════════════════════════════════════════════════════ */
+
+.dia-link-underline {
+  position: relative;
+  text-decoration: none;
+}
+
+.dia-link-underline::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  width: 100%;
+  height: 1px;
+  background: currentColor;
+  transform: scaleX(0);
+  transform-origin: right;
+  transition: transform 0.3s cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.dia-link-underline:hover::after {
+  transform: scaleX(1);
+  transform-origin: left;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   DIA BROWSER SHIMMER LOADING EFFECT
+   ═══════════════════════════════════════════════════════════════════════════════ */
+
+.dia-shimmer {
+  position: relative;
+  overflow: hidden;
+}
+
+.dia-shimmer::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.4) 50%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  animation: dia-shimmer 2s ease-in-out infinite;
+}
+
+@keyframes dia-shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   DIA BROWSER PULSE GLOW
+   ═══════════════════════════════════════════════════════════════════════════════ */
+
+.dia-pulse-glow {
+  animation: dia-pulse-glow 3s ease-in-out infinite;
+}
+
+@keyframes dia-pulse-glow {
+  0%, 100% {
+    box-shadow: 0 0 20px rgba(168, 196, 232, 0.2);
+  }
+  50% {
+    box-shadow: 0 0 40px rgba(168, 196, 232, 0.4);
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   DIA BROWSER CURVED SECTION DIVIDER
+   ═══════════════════════════════════════════════════════════════════════════════ */
+
+.dia-curve-divider {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  overflow: hidden;
+  line-height: 0;
+}
+
+.dia-curve-divider svg {
+  position: relative;
+  display: block;
+  width: calc(100% + 1.3px);
+  height: 80px;
+}
+
+.dia-curve-divider .shape-fill {
+  fill: var(--dia-bg);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   DIA BROWSER SECTION TRANSITION
+   ═══════════════════════════════════════════════════════════════════════════════ */
+
+.dia-section-transition {
+  position: relative;
+}
+
+.dia-section-transition::before {
+  content: '';
+  position: absolute;
+  top: -1px;
+  left: 0;
+  right: 0;
+  height: 120px;
+  background: linear-gradient(to bottom, var(--dia-hero-blue-end), var(--dia-bg));
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   DIA BROWSER FLOATING ELEMENT 3D TILT
+   ═══════════════════════════════════════════════════════════════════════════════ */
+
+.dia-tilt {
+  transition: transform 0.3s cubic-bezier(0.23, 1, 0.32, 1);
+  transform-style: preserve-3d;
+  perspective: 1000px;
+}
+
+.dia-tilt:hover {
+  transform: rotateX(2deg) rotateY(-2deg) scale(1.02);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   DIA BROWSER IMAGE TREATMENT
+   ═══════════════════════════════════════════════════════════════════════════════ */
+
+.dia-image {
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.dia-image img {
+  transition: transform 0.5s cubic-bezier(0.23, 1, 0.32, 1), filter 0.5s ease;
+}
+
+.dia-image:hover img {
+  transform: scale(1.03);
+  filter: brightness(1.02);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   DIA BROWSER BADGE / PILL VARIANTS
+   ═══════════════════════════════════════════════════════════════════════════════ */
+
+.dia-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background: var(--dia-card);
+  border: 1px solid var(--dia-border);
+  border-radius: 9999px;
+  font-family: var(--font-dm-sans), system-ui, sans-serif;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--dia-ink-muted);
+  box-shadow: var(--dia-shadow-sm);
+}
+
+.dia-badge-glass {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+}
+
+.dia-badge-spectrum {
+  background: linear-gradient(90deg, var(--prism-rose-quartz) 0%, var(--prism-crimson) 50%, var(--prism-marigold) 100%);
+  color: white;
+  border: none;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   DIA BROWSER HEADER VARIANTS
+   ═══════════════════════════════════════════════════════════════════════════════ */
+
+.dia-header-glass {
+  background: rgba(248, 248, 248, 0.8);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   DIA BROWSER FOOTER
+   ═══════════════════════════════════════════════════════════════════════════════ */
+
+.dia-footer {
+  background: var(--dia-bg);
+  border-top: 1px solid var(--dia-border);
+}
+
+.dia-footer-link {
+  color: var(--dia-ink-muted);
+  transition: color 0.2s ease;
+}
+
+.dia-footer-link:hover {
+  color: var(--dia-ink);
+}
