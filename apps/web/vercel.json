@@ -1,5 +1,5 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "installCommand": "npm install",
-  "buildCommand": "ESLINT_NO_DEV_ERRORS=true npm run build:vercel:web"
+  "installCommand": "cd ../.. && npm install",
+  "buildCommand": "cd ../.. && ESLINT_NO_DEV_ERRORS=true npm run build:vercel:web"
 }
