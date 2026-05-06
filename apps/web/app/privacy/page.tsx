@@ -5,6 +5,7 @@
 import { Metadata } from 'next';
 import Link from 'next/link';
 import { ArrowLeft, Shield, Lock, Eye, Database, Trash2, FileText, Server, Key, Cpu, UserX, CheckCircle, XCircle } from 'lucide-react';
+import '@/app/prism-design-system.css';
 
 export const metadata: Metadata = {
   title: 'Privacy Policy | AI Pandit',
@@ -13,11 +14,11 @@ export const metadata: Metadata = {
 
 export default function PrivacyPage() {
   return (
-    <main className="min-h-screen bg-[#FFFCF8]">
+    <main className="min-h-screen bg-prism-canvas">
       {/* Header */}
-      <div className="bg-white border-b border-[#F0E8DE]">
+      <div className="bg-white/90 backdrop-blur-xl border-b border-prism-pebble">
         <div className="max-w-4xl mx-auto px-6 py-6">
-          <Link href="/" className="inline-flex items-center gap-2 text-[#5A554F] hover:text-[#B8860B] transition-colors">
+          <Link href="/" className="inline-flex items-center gap-2 text-prism-graphite hover:text-prism-ink transition-colors">
             <ArrowLeft className="w-4 h-4" />
             <span className="text-sm">Back to Home</span>
           </Link>
@@ -27,32 +28,32 @@ export default function PrivacyPage() {
       {/* Content */}
       <div className="max-w-4xl mx-auto px-6 py-12">
         <div className="text-center mb-12">
-          <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-[#6B1F7A] to-[#8B4A9C] flex items-center justify-center">
+          <div className="w-16 h-16 mx-auto mb-4 rounded-prism-xl bg-gradient-to-br from-[#6B1F7A] to-[#8B4A9C] flex items-center justify-center">
             <Shield className="w-8 h-8 text-white" />
           </div>
-          <h1 className="font-[family-name:var(--font-cormorant)] text-4xl font-semibold text-[#1A1612] mb-4">
+          <h1 className="font-prism text-4xl font-semibold text-prism-ink mb-4">
             Privacy Policy
           </h1>
-          <p className="text-[#5A554F] max-w-2xl mx-auto">
+          <p className="text-prism-graphite max-w-2xl mx-auto">
             Your trust is our highest priority. We employ military-grade encryption, strict anonymization for AI processing, and transparent data protection practices to safeguard your personal and astrological information.
           </p>
         </div>
 
         <div className="space-y-8">
           {/* End-to-End Encryption */}
-          <section className="bg-white rounded-2xl p-8 border border-[#F0E8DE]">
+          <section className="bg-white/90 backdrop-blur-xl rounded-prism-xl p-8 border border-prism-pebble">
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-xl bg-emerald-100 flex items-center justify-center">
+              <div className="w-10 h-10 rounded-prism-lg bg-emerald-100 flex items-center justify-center">
                 <Lock className="w-5 h-5 text-emerald-600" />
               </div>
-              <h2 className="font-[family-name:var(--font-cormorant)] text-2xl font-semibold text-[#1A1612]">
+              <h2 className="font-prism text-2xl font-semibold text-prism-ink">
                 End-to-End Encryption
               </h2>
             </div>
-            <p className="text-[#4A453F] leading-relaxed mb-4">
+            <p className="text-prism-graphite leading-relaxed mb-4">
               All your personal data is protected with AES-256 end-to-end encryption. We use your unique authentication key to encrypt sensitive information, ensuring:
             </p>
-            <ul className="space-y-2 text-[#4A453F]">
+            <ul className="space-y-2 text-prism-graphite">
               <li className="flex items-start gap-2">
                 <span className="text-emerald-600 mt-1">✓</span>
                 <span>Your data is encrypted before storage in our database</span>
@@ -73,12 +74,12 @@ export default function PrivacyPage() {
           </section>
 
           {/* AI Processing & Anonymization */}
-          <section className="bg-gradient-to-br from-purple-50 to-white rounded-2xl p-8 border border-purple-200">
+          <section className="bg-gradient-to-br from-purple-50 to-white rounded-prism-xl p-8 border border-purple-200">
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-xl bg-purple-100 flex items-center justify-center">
+              <div className="w-10 h-10 rounded-prism-lg bg-purple-100 flex items-center justify-center">
                 <Cpu className="w-5 h-5 text-purple-600" />
               </div>
-              <h2 className="font-[family-name:var(--font-cormorant)] text-2xl font-semibold text-[#1A1612]">
+              <h2 className="font-prism text-2xl font-semibold text-prism-ink">
                 AI Processing & Data Anonymization
               </h2>
             </div>
@@ -89,37 +90,37 @@ export default function PrivacyPage() {
               </p>
             </div>
 
-            <h3 className="font-semibold text-[#1A1612] mb-3 flex items-center gap-2">
+            <h3 className="font-semibold text-prism-ink mb-3 flex items-center gap-2">
               <UserX className="w-5 h-5 text-purple-600" />
               How We Anonymize Your Data
             </h3>
-            <p className="text-[#4A453F] leading-relaxed mb-4">
-              Before any data is sent to AI systems for birth time rectification analysis, we automatically replace your real identity with anonymous pseudonyms:
+            <p className="text-prism-graphite leading-relaxed mb-4">
+              Before any data is sent to AI systems for birth time rectification analysis, we automatically remove personally identifiable information (PII) from your data:
             </p>
-            <ul className="space-y-2 text-[#4A453F] mb-6">
+            <ul className="space-y-2 text-prism-graphite mb-6">
               <li className="flex items-start gap-2">
                 <span className="text-purple-600 mt-1">→</span>
-                <span><strong>Your Name</strong> → Replaced with anonymous ID (e.g., &quot;Golden-Star-A7B2&quot;)</span>
+                <span><strong>Names:</strong> Real names are replaced with <code>[REDACTED_NAME]</code> markers</span>
               </li>
               <li className="flex items-start gap-2">
                 <span className="text-purple-600 mt-1">→</span>
-                <span><strong>Spouse Name</strong> → Replaced with anonymous identifier</span>
+                <span><strong>Spouse Name:</strong> Removed or replaced with <code>[REDACTED_NAME]</code></span>
               </li>
               <li className="flex items-start gap-2">
                 <span className="text-purple-600 mt-1">→</span>
-                <span><strong>Birth Place Names</strong> → Replaced with coordinates only</span>
+                <span><strong>Birth Place Names:</strong> Only coordinates (latitude/longitude) are sent to AI</span>
               </li>
               <li className="flex items-start gap-2">
                 <span className="text-purple-600 mt-1">→</span>
-                <span><strong>Location Identifiers</strong> → Redacted from event descriptions</span>
+                <span><strong>Emails & Phones:</strong> Replaced with <code>[REDACTED_EMAIL]</code> and <code>[REDACTED_PHONE]</code></span>
               </li>
             </ul>
 
-            <h3 className="font-semibold text-[#1A1612] mb-3">Explicit Consent Required</h3>
-            <p className="text-[#4A453F] leading-relaxed mb-4">
+            <h3 className="font-semibold text-prism-ink mb-3">Explicit Consent Required</h3>
+            <p className="text-prism-graphite leading-relaxed mb-4">
               Before any AI analysis begins, you must provide explicit consent. You will see a clear modal explaining:
             </p>
-            <ul className="space-y-2 text-[#4A453F]">
+            <ul className="space-y-2 text-prism-graphite">
               <li className="flex items-start gap-2">
                 <CheckCircle className="w-4 h-4 text-emerald-600 mt-1 flex-shrink-0" />
                 <span>Exactly what astrological data will be analyzed by AI</span>
@@ -146,22 +147,22 @@ export default function PrivacyPage() {
           </section>
 
           {/* Data Shared with AI Systems */}
-          <section className="bg-white rounded-2xl p-8 border border-[#F0E8DE]">
+          <section className="bg-white/90 backdrop-blur-xl rounded-prism-xl p-8 border border-prism-pebble">
             <div className="flex items-center gap-3 mb-6">
-              <div className="w-10 h-10 rounded-xl bg-indigo-100 flex items-center justify-center">
+              <div className="w-10 h-10 rounded-prism-lg bg-indigo-100 flex items-center justify-center">
                 <Database className="w-5 h-5 text-indigo-600" />
               </div>
-              <h2 className="font-[family-name:var(--font-cormorant)] text-2xl font-semibold text-[#1A1612]">
+              <h2 className="font-prism text-2xl font-semibold text-prism-ink">
                 Data Shared with AI Systems
               </h2>
             </div>
-            <p className="text-[#4A453F] leading-relaxed mb-6">
+            <p className="text-prism-graphite leading-relaxed mb-6">
               When you provide consent for AI analysis, only the following anonymized data is transmitted to our AI providers:
             </p>
 
             <div className="grid md:grid-cols-2 gap-6">
               {/* SHARED WITH AI */}
-              <div className="bg-emerald-50 rounded-xl p-5 border border-emerald-200">
+              <div className="bg-emerald-50 rounded-prism-lg p-5 border border-emerald-200">
                 <h3 className="font-semibold text-emerald-900 mb-4 flex items-center gap-2">
                   <CheckCircle className="w-5 h-5" />
                   Data Sent to AI (Anonymized)
@@ -199,7 +200,7 @@ export default function PrivacyPage() {
               </div>
 
               {/* NOT SHARED WITH AI */}
-              <div className="bg-red-50 rounded-xl p-5 border border-red-200">
+              <div className="bg-red-50 rounded-prism-lg p-5 border border-red-200">
                 <h3 className="font-semibold text-red-900 mb-4 flex items-center gap-2">
                   <XCircle className="w-5 h-5" />
                   Data NEVER Sent to AI
@@ -239,43 +240,54 @@ export default function PrivacyPage() {
 
             <div className="mt-6 p-4 bg-amber-50 border border-amber-200 rounded-lg">
               <p className="text-sm text-amber-800">
-                <strong>Important:</strong> All data sent to AI systems is processed in real-time for analysis only. AI providers (DeepSeek via OpenRouter) do not retain, store, or use your data for model training. Processing is ephemeral and stateless.
+                <strong>Important:</strong> All data sent to AI systems is processed in real-time for analysis only. AI providers (Groq with GPT-OSS-120B, or DeepSeek via OpenRouter) do not retain, store, or use your data for model training. Processing is ephemeral and stateless.
               </p>
             </div>
           </section>
 
           {/* Third-Party AI Providers */}
-          <section className="bg-white rounded-2xl p-8 border border-[#F0E8DE]">
+          <section className="bg-white/90 backdrop-blur-xl rounded-prism-xl p-8 border border-prism-pebble">
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-xl bg-cyan-100 flex items-center justify-center">
+              <div className="w-10 h-10 rounded-prism-lg bg-cyan-100 flex items-center justify-center">
                 <Server className="w-5 h-5 text-cyan-600" />
               </div>
-              <h2 className="font-[family-name:var(--font-cormorant)] text-2xl font-semibold text-[#1A1612]">
+              <h2 className="font-prism text-2xl font-semibold text-prism-ink">
                 Third-Party AI Providers
               </h2>
             </div>
-            <p className="text-[#4A453F] leading-relaxed mb-4">
-              We use OpenRouter as our AI gateway to access DeepSeek&apos;s AI models for astrological analysis. Here&apos;s how we ensure your privacy:
+            <p className="text-prism-graphite leading-relaxed mb-4">
+              We use multiple AI providers for birth time rectification analysis. Based on configuration, your anonymized data may be processed by one of the following providers:
             </p>
-
             <div className="space-y-4">
-              <div className="p-4 bg-[#FDF8F3] rounded-lg">
-                <h4 className="font-semibold text-[#1A1612] mb-2">OpenRouter (AI Gateway)</h4>
-                <ul className="space-y-1 text-sm text-[#5A554F]">
-                  <li>• Routes anonymized requests to AI models</li>
-                  <li>• Does not store request content or responses</li>
-                  <li>• Privacy Policy: <a href="https://openrouter.ai/privacy" target="_blank" rel="noopener noreferrer" className="text-[#B8860B] hover:underline">openrouter.ai/privacy</a></li>
+              <div className="p-4 bg-prism-fog/50 rounded-lg">
+                <h4 className="font-semibold text-prism-ink mb-2">Groq (Primary Provider)</h4>
+                <ul className="space-y-1 text-sm text-prism-graphite">
+                  <li>• Model: GPT-OSS-120B (open-source, 120 billion parameters)</li>
+                  <li>• Processes anonymized astrological data only</li>
+                  <li>• No access to your real name, email, or PII</li>
+                  <li>• Does not train models on your data</li>
+                  <li>• Ultra-fast inference with low latency</li>
+                  <li>• Privacy Policy: <a href="https://groq.com/privacy" target="_blank" rel="noopener noreferrer" className="text-prism-ink hover:underline">groq.com/privacy</a></li>
                 </ul>
               </div>
-
-              <div className="p-4 bg-[#FDF8F3] rounded-lg">
-                <h4 className="font-semibold text-[#1A1612] mb-2">DeepSeek (AI Model Provider)</h4>
-                <ul className="space-y-1 text-sm text-[#5A554F]">
+              <div className="p-4 bg-prism-fog/50 rounded-lg">
+                <h4 className="font-semibold text-prism-ink mb-2">OpenRouter (Alternative Gateway)</h4>
+                <ul className="space-y-1 text-sm text-prism-graphite">
+                  <li>• Routes anonymized requests to various AI models (including DeepSeek)</li>
+                  <li>• Does not store request content or responses</li>
+                  <li>• Provides model failover and routing optimization</li>
+                  <li>• Privacy Policy: <a href="https://openrouter.ai/privacy" target="_blank" rel="noopener noreferrer" className="text-prism-ink hover:underline">openrouter.ai/privacy</a></li>
+                </ul>
+              </div>
+              <div className="p-4 bg-prism-fog/50 rounded-lg">
+                <h4 className="font-semibold text-prism-ink mb-2">DeepSeek (via OpenRouter)</h4>
+                <ul className="space-y-1 text-sm text-prism-graphite">
+                  <li>• Model: DeepSeek V3 / Reasoner (when configured via OpenRouter)</li>
                   <li>• Processes anonymized astrological data only</li>
                   <li>• No access to your real name, email, or PII</li>
                   <li>• Does not train models on your data</li>
                   <li>• Data retention: Ephemeral (not stored)</li>
-                  <li>• Privacy Policy: <a href="https://www.deepseek.com/privacy" target="_blank" rel="noopener noreferrer" className="text-[#B8860B] hover:underline">deepseek.com/privacy</a></li>
+                  <li>• Privacy Policy: <a href="https://www.deepseek.com/privacy" target="_blank" rel="noopener noreferrer" className="text-prism-ink hover:underline">deepseek.com/privacy</a></li>
                 </ul>
               </div>
             </div>
@@ -288,16 +300,16 @@ export default function PrivacyPage() {
           </section>
 
           {/* Data We Collect - Detailed Table */}
-          <section className="bg-white rounded-2xl p-8 border border-[#F0E8DE]">
+          <section className="bg-white/90 backdrop-blur-xl rounded-prism-xl p-8 border border-prism-pebble">
             <div className="flex items-center gap-3 mb-6">
-              <div className="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center">
+              <div className="w-10 h-10 rounded-prism-lg bg-blue-100 flex items-center justify-center">
                 <Database className="w-5 h-5 text-blue-600" />
               </div>
-              <h2 className="font-[family-name:var(--font-cormorant)] text-2xl font-semibold text-[#1A1612]">
+              <h2 className="font-prism text-2xl font-semibold text-prism-ink">
                 Data We Collect & Store
               </h2>
             </div>
-            <p className="text-[#4A453F] leading-relaxed mb-6">
+            <p className="text-prism-graphite leading-relaxed mb-6">
               We collect only the information necessary for birth time rectification. Below is a complete breakdown of what data we store and how it&apos;s protected:
             </p>
 
@@ -305,74 +317,74 @@ export default function PrivacyPage() {
             <div className="overflow-x-auto">
               <table className="w-full text-sm border-collapse">
                 <thead>
-                  <tr className="bg-[#FDF8F3] border-b border-[#E8E0D5]">
-                    <th className="text-left p-3 font-semibold text-[#1A1612]">Data Category</th>
-                    <th className="text-left p-3 font-semibold text-[#1A1612]">Fields</th>
-                    <th className="text-left p-3 font-semibold text-[#1A1612]">Storage</th>
-                    <th className="text-left p-3 font-semibold text-[#1A1612]">Sent to AI</th>
-                    <th className="text-left p-3 font-semibold text-[#1A1612]">Encrypted</th>
+                  <tr className="bg-prism-fog/50 border-b border-[#E8E0D5]">
+                    <th className="text-left p-3 font-semibold text-prism-ink">Data Category</th>
+                    <th className="text-left p-3 font-semibold text-prism-ink">Fields</th>
+                    <th className="text-left p-3 font-semibold text-prism-ink">Storage</th>
+                    <th className="text-left p-3 font-semibold text-prism-ink">Sent to AI</th>
+                    <th className="text-left p-3 font-semibold text-prism-ink">Encrypted</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-[#F0E8DE]">
+                <tbody className="divide-y divide-prism-pebble">
                   <tr>
-                    <td className="p-3 text-[#4A453F] font-medium">Birth Information</td>
-                    <td className="p-3 text-[#5A554F]">Full Name, Date of Birth, Birth Time</td>
+                    <td className="p-3 text-prism-graphite font-medium">Birth Information</td>
+                    <td className="p-3 text-prism-graphite">Full Name, Date of Birth, Birth Time</td>
                     <td className="p-3"><span className="px-2 py-1 bg-blue-50 text-blue-700 rounded text-xs">Database</span></td>
                     <td className="p-3"><span className="px-2 py-1 bg-amber-50 text-amber-700 rounded text-xs">Anonymized</span></td>
                     <td className="p-3"><span className="px-2 py-1 bg-emerald-50 text-emerald-700 rounded text-xs">✓ AES-256</span></td>
                   </tr>
                   <tr>
-                    <td className="p-3 text-[#4A453F] font-medium">Location Coordinates</td>
-                    <td className="p-3 text-[#5A554F]">Latitude, Longitude, Timezone</td>
+                    <td className="p-3 text-prism-graphite font-medium">Location Coordinates</td>
+                    <td className="p-3 text-prism-graphite">Latitude, Longitude, Timezone</td>
                     <td className="p-3"><span className="px-2 py-1 bg-blue-50 text-blue-700 rounded text-xs">Database</span></td>
                     <td className="p-3"><span className="px-2 py-1 bg-emerald-50 text-emerald-700 rounded text-xs">Yes</span></td>
                     <td className="p-3"><span className="px-2 py-1 bg-gray-50 text-gray-600 rounded text-xs">Plain (needed for calculations)</span></td>
                   </tr>
                   <tr>
-                    <td className="p-3 text-[#4A453F] font-medium">Personal Traits</td>
-                    <td className="p-3 text-[#5A554F]">Height, Build, Complexion, Eye Color, Hair Type</td>
+                    <td className="p-3 text-prism-graphite font-medium">Personal Traits</td>
+                    <td className="p-3 text-prism-graphite">Height, Build, Complexion, Eye Color, Hair Type</td>
                     <td className="p-3"><span className="px-2 py-1 bg-blue-50 text-blue-700 rounded text-xs">Database</span></td>
                     <td className="p-3"><span className="px-2 py-1 bg-emerald-50 text-emerald-700 rounded text-xs">Yes</span></td>
                     <td className="p-3"><span className="px-2 py-1 bg-emerald-50 text-emerald-700 rounded text-xs">✓ AES-256</span></td>
                   </tr>
                   <tr>
-                    <td className="p-3 text-[#4A453F] font-medium">Forensic Traits</td>
-                    <td className="p-3 text-[#5A554F]">Facial Structure, Psychographic, Biological, Family Details</td>
+                    <td className="p-3 text-prism-graphite font-medium">Forensic Traits</td>
+                    <td className="p-3 text-prism-graphite">Facial Structure, Psychographic, Biological, Family Details</td>
                     <td className="p-3"><span className="px-2 py-1 bg-blue-50 text-blue-700 rounded text-xs">Database</span></td>
                     <td className="p-3"><span className="px-2 py-1 bg-emerald-50 text-emerald-700 rounded text-xs">Yes</span></td>
                     <td className="p-3"><span className="px-2 py-1 bg-emerald-50 text-emerald-700 rounded text-xs">✓ AES-256</span></td>
                   </tr>
                   <tr>
-                    <td className="p-3 text-[#4A453F] font-medium">Life Events</td>
-                    <td className="p-3 text-[#5A554F]">Category, Date, Description, Importance, Time Precision</td>
+                    <td className="p-3 text-prism-graphite font-medium">Life Events</td>
+                    <td className="p-3 text-prism-graphite">Category, Date, Description, Importance, Time Precision</td>
                     <td className="p-3"><span className="px-2 py-1 bg-blue-50 text-blue-700 rounded text-xs">Database</span></td>
                     <td className="p-3"><span className="px-2 py-1 bg-amber-50 text-amber-700 rounded text-xs">Anonymized</span></td>
                     <td className="p-3"><span className="px-2 py-1 bg-emerald-50 text-emerald-700 rounded text-xs">✓ AES-256</span></td>
                   </tr>
                   <tr>
-                    <td className="p-3 text-[#4A453F] font-medium">Spouse Data</td>
-                    <td className="p-3 text-[#5A554F]">Name, Date of Birth, Birth Time, Birth Place</td>
+                    <td className="p-3 text-prism-graphite font-medium">Spouse Data</td>
+                    <td className="p-3 text-prism-graphite">Name, Date of Birth, Birth Time, Birth Place</td>
                     <td className="p-3"><span className="px-2 py-1 bg-blue-50 text-blue-700 rounded text-xs">Database</span></td>
                     <td className="p-3"><span className="px-2 py-1 bg-red-50 text-red-700 rounded text-xs">No</span></td>
                     <td className="p-3"><span className="px-2 py-1 bg-emerald-50 text-emerald-700 rounded text-xs">✓ AES-256</span></td>
                   </tr>
                   <tr>
-                    <td className="p-3 text-[#4A453F] font-medium">Analysis Settings</td>
-                    <td className="p-3 text-[#5A554F]">Time Offset Preset, Custom Minutes</td>
+                    <td className="p-3 text-prism-graphite font-medium">Analysis Settings</td>
+                    <td className="p-3 text-prism-graphite">Time Offset Preset, Custom Minutes</td>
                     <td className="p-3"><span className="px-2 py-1 bg-blue-50 text-blue-700 rounded text-xs">Database</span></td>
                     <td className="p-3"><span className="px-2 py-1 bg-emerald-50 text-emerald-700 rounded text-xs">Yes</span></td>
                     <td className="p-3"><span className="px-2 py-1 bg-gray-50 text-gray-600 rounded text-xs">Plain</span></td>
                   </tr>
                   <tr>
-                    <td className="p-3 text-[#4A453F] font-medium">Account Info</td>
-                    <td className="p-3 text-[#5A554F]">Email, Full Name (from Clerk authentication)</td>
+                    <td className="p-3 text-prism-graphite font-medium">Account Info</td>
+                    <td className="p-3 text-prism-graphite">Email, Full Name (from Clerk authentication)</td>
                     <td className="p-3"><span className="px-2 py-1 bg-blue-50 text-blue-700 rounded text-xs">Database</span></td>
                     <td className="p-3"><span className="px-2 py-1 bg-red-50 text-red-700 rounded text-xs">No</span></td>
                     <td className="p-3"><span className="px-2 py-1 bg-gray-50 text-gray-600 rounded text-xs">Plain</span></td>
                   </tr>
                   <tr>
-                    <td className="p-3 text-[#4A453F] font-medium">Consent Records</td>
-                    <td className="p-3 text-[#5A554F]">AI Consent Status, Timestamp, IP Address</td>
+                    <td className="p-3 text-prism-graphite font-medium">Consent Records</td>
+                    <td className="p-3 text-prism-graphite">AI Consent Status, Timestamp, IP Address</td>
                     <td className="p-3"><span className="px-2 py-1 bg-blue-50 text-blue-700 rounded text-xs">Database</span></td>
                     <td className="p-3"><span className="px-2 py-1 bg-red-50 text-red-700 rounded text-xs">No</span></td>
                     <td className="p-3"><span className="px-2 py-1 bg-emerald-50 text-emerald-700 rounded text-xs">✓ AES-256</span></td>
@@ -389,42 +401,42 @@ export default function PrivacyPage() {
           </section>
 
           {/* How We Use Your Data */}
-          <section className="bg-white rounded-2xl p-8 border border-[#F0E8DE]">
+          <section className="bg-white/90 backdrop-blur-xl rounded-prism-xl p-8 border border-prism-pebble">
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-xl bg-indigo-100 flex items-center justify-center">
+              <div className="w-10 h-10 rounded-prism-lg bg-indigo-100 flex items-center justify-center">
                 <Eye className="w-5 h-5 text-indigo-600" />
               </div>
-              <h2 className="font-[family-name:var(--font-cormorant)] text-2xl font-semibold text-[#1A1612]">
+              <h2 className="font-prism text-2xl font-semibold text-prism-ink">
                 How We Use Your Data
               </h2>
             </div>
             <div className="grid md:grid-cols-2 gap-4">
-              <div className="p-4 bg-[#FDF8F3] rounded-lg">
-                <h3 className="font-semibold text-[#1A1612] mb-2">Birth Time Rectification</h3>
-                <p className="text-sm text-[#5A554F]">Your anonymized birth data and life events are analyzed by our AI to determine your precise birth time.</p>
+              <div className="p-4 bg-prism-fog/50 rounded-lg">
+                <h3 className="font-semibold text-prism-ink mb-2">Birth Time Rectification</h3>
+                <p className="text-sm text-prism-graphite">Your anonymized birth data and life events are analyzed by our AI to determine your precise birth time.</p>
               </div>
-              <div className="p-4 bg-[#FDF8F3] rounded-lg">
-                <h3 className="font-semibold text-[#1A1612] mb-2">Session Management</h3>
-                <p className="text-sm text-[#5A554F]">Your draft data is saved so you can resume your analysis later.</p>
+              <div className="p-4 bg-prism-fog/50 rounded-lg">
+                <h3 className="font-semibold text-prism-ink mb-2">Session Management</h3>
+                <p className="text-sm text-prism-graphite">Your draft data is saved so you can resume your analysis later.</p>
               </div>
-              <div className="p-4 bg-[#FDF8F3] rounded-lg">
-                <h3 className="font-semibold text-[#1A1612] mb-2">Account Authentication</h3>
-                <p className="text-sm text-[#5A554F]">Email and name from Clerk are used for login and account identification only.</p>
+              <div className="p-4 bg-prism-fog/50 rounded-lg">
+                <h3 className="font-semibold text-prism-ink mb-2">Account Authentication</h3>
+                <p className="text-sm text-prism-graphite">Email and name from Clerk are used for login and account identification only.</p>
               </div>
-              <div className="p-4 bg-[#FDF8F3] rounded-lg">
-                <h3 className="font-semibold text-[#1A1612] mb-2">What We DON&apos;T Do</h3>
-                <p className="text-sm text-[#5A554F]">We never sell, share, or use your data for advertising or third-party analytics.</p>
+              <div className="p-4 bg-prism-fog/50 rounded-lg">
+                <h3 className="font-semibold text-prism-ink mb-2">What We DON&apos;T Do</h3>
+                <p className="text-sm text-prism-graphite">We never sell, share, or use your data for advertising or third-party analytics.</p>
               </div>
             </div>
           </section>
 
           {/* Technical Security */}
-          <section className="bg-white rounded-2xl p-8 border border-[#F0E8DE]">
+          <section className="bg-white/90 backdrop-blur-xl rounded-prism-xl p-8 border border-prism-pebble">
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-xl bg-purple-100 flex items-center justify-center">
+              <div className="w-10 h-10 rounded-prism-lg bg-purple-100 flex items-center justify-center">
                 <Server className="w-5 h-5 text-purple-600" />
               </div>
-              <h2 className="font-[family-name:var(--font-cormorant)] text-2xl font-semibold text-[#1A1612]">
+              <h2 className="font-prism text-2xl font-semibold text-prism-ink">
                 Technical Security Measures
               </h2>
             </div>
@@ -432,48 +444,48 @@ export default function PrivacyPage() {
               <div className="flex items-start gap-3">
                 <Key className="w-5 h-5 text-purple-600 mt-0.5 flex-shrink-0" />
                 <div>
-                  <h4 className="font-semibold text-[#1A1612]">Encryption at Rest</h4>
-                  <p className="text-sm text-[#5A554F]">All database storage uses AES-256 encryption. Encryption keys are derived from your unique Clerk authentication ID.</p>
+                  <h4 className="font-semibold text-prism-ink">Encryption at Rest</h4>
+                  <p className="text-sm text-prism-graphite">All database storage uses AES-256 encryption. Encryption keys are derived from your unique Clerk authentication ID.</p>
                 </div>
               </div>
               <div className="flex items-start gap-3">
                 <Shield className="w-5 h-5 text-purple-600 mt-0.5 flex-shrink-0" />
                 <div>
-                  <h4 className="font-semibold text-[#1A1612]">Secure Infrastructure</h4>
-                  <p className="text-sm text-[#5A554F]">Data is stored in Neon Postgres databases with industry-leading security practices, regular audits, and penetration testing.</p>
+                  <h4 className="font-semibold text-prism-ink">Secure Infrastructure</h4>
+                  <p className="text-sm text-prism-graphite">Data is stored in Neon Postgres databases with industry-leading security practices, regular audits, and penetration testing.</p>
                 </div>
               </div>
               <div className="flex items-start gap-3">
                 <Lock className="w-5 h-5 text-purple-600 mt-0.5 flex-shrink-0" />
                 <div>
-                  <h4 className="font-semibold text-[#1A1612]">Secure Transmission</h4>
-                  <p className="text-sm text-[#5A554F]">All data transmitted between your browser and our servers uses TLS 1.3 encryption (HTTPS).</p>
+                  <h4 className="font-semibold text-prism-ink">Secure Transmission</h4>
+                  <p className="text-sm text-prism-graphite">All data transmitted between your browser and our servers uses TLS 1.3 encryption (HTTPS).</p>
                 </div>
               </div>
               <div className="flex items-start gap-3">
                 <UserX className="w-5 h-5 text-purple-600 mt-0.5 flex-shrink-0" />
                 <div>
-                  <h4 className="font-semibold text-[#1A1612]">AI Anonymization Layer</h4>
-                  <p className="text-sm text-[#5A554F]">Before any data reaches AI systems, our anonymization engine removes all PII and replaces names with pseudonyms.</p>
+                  <h4 className="font-semibold text-prism-ink">AI Anonymization Layer</h4>
+                  <p className="text-sm text-prism-graphite">Before any data reaches AI systems, our anonymization engine removes all PII and replaces names with pseudonyms.</p>
                 </div>
               </div>
             </div>
           </section>
 
           {/* Data Retention */}
-          <section className="bg-white rounded-2xl p-8 border border-[#F0E8DE]">
+          <section className="bg-white/90 backdrop-blur-xl rounded-prism-xl p-8 border border-prism-pebble">
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-xl bg-orange-100 flex items-center justify-center">
+              <div className="w-10 h-10 rounded-prism-lg bg-orange-100 flex items-center justify-center">
                 <FileText className="w-5 h-5 text-orange-600" />
               </div>
-              <h2 className="font-[family-name:var(--font-cormorant)] text-2xl font-semibold text-[#1A1612]">
+              <h2 className="font-prism text-2xl font-semibold text-prism-ink">
                 Data Retention
               </h2>
             </div>
-            <p className="text-[#4A453F] leading-relaxed mb-4">
+            <p className="text-prism-graphite leading-relaxed mb-4">
               We retain your data only as long as necessary:
             </p>
-            <ul className="space-y-2 text-[#4A453F]">
+            <ul className="space-y-2 text-prism-graphite">
               <li className="flex items-start gap-2">
                 <span className="text-orange-600 mt-1">•</span>
                 <span><strong>Active Sessions:</strong> Stored indefinitely until you delete them</span>
@@ -502,104 +514,104 @@ export default function PrivacyPage() {
           </section>
 
           {/* Your Rights */}
-          <section className="bg-white rounded-2xl p-8 border border-[#F0E8DE]">
+          <section className="bg-white/90 backdrop-blur-xl rounded-prism-xl p-8 border border-prism-pebble">
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-xl bg-red-100 flex items-center justify-center">
+              <div className="w-10 h-10 rounded-prism-lg bg-red-100 flex items-center justify-center">
                 <Trash2 className="w-5 h-5 text-red-600" />
               </div>
-              <h2 className="font-[family-name:var(--font-cormorant)] text-2xl font-semibold text-[#1A1612]">
+              <h2 className="font-prism text-2xl font-semibold text-prism-ink">
                 Your Rights (GDPR, CCPA & DPDP)
               </h2>
             </div>
-            <p className="text-[#4A453F] leading-relaxed mb-4">
+            <p className="text-prism-graphite leading-relaxed mb-4">
               You have complete control over your personal data:
             </p>
             <div className="grid md:grid-cols-2 gap-4">
               <div className="flex items-start gap-2">
                 <span className="text-red-600 mt-1">✓</span>
-                <span className="text-[#4A453F]"><strong>Right to Access:</strong> Request a copy of all your data</span>
+                <span className="text-prism-graphite"><strong>Right to Access:</strong> Request a copy of all your data</span>
               </div>
               <div className="flex items-start gap-2">
                 <span className="text-red-600 mt-1">✓</span>
-                <span className="text-[#4A453F]"><strong>Right to Rectification:</strong> Update inaccurate information</span>
+                <span className="text-prism-graphite"><strong>Right to Rectification:</strong> Update inaccurate information</span>
               </div>
               <div className="flex items-start gap-2">
                 <span className="text-red-600 mt-1">✓</span>
-                <span className="text-[#4A453F]"><strong>Right to Erasure:</strong> Delete all your data permanently</span>
+                <span className="text-prism-graphite"><strong>Right to Erasure:</strong> Delete all your data permanently</span>
               </div>
               <div className="flex items-start gap-2">
                 <span className="text-red-600 mt-1">✓</span>
-                <span className="text-[#4A453F]"><strong>Right to Portability:</strong> Export your data</span>
+                <span className="text-prism-graphite"><strong>Right to Portability:</strong> Export your data</span>
               </div>
               <div className="flex items-start gap-2">
                 <span className="text-red-600 mt-1">✓</span>
-                <span className="text-[#4A453F]"><strong>Right to Restrict Processing:</strong> Pause data usage</span>
+                <span className="text-prism-graphite"><strong>Right to Restrict Processing:</strong> Pause data usage</span>
               </div>
               <div className="flex items-start gap-2">
                 <span className="text-red-600 mt-1">✓</span>
-                <span className="text-[#4A453F]"><strong>Right to Object:</strong> Opt-out of AI processing</span>
+                <span className="text-prism-graphite"><strong>Right to Object:</strong> Opt-out of AI processing</span>
               </div>
               <div className="flex items-start gap-2">
                 <span className="text-red-600 mt-1">✓</span>
-                <span className="text-[#4A453F]"><strong>Right to Withdraw Consent:</strong> Revoke AI processing consent anytime</span>
+                <span className="text-prism-graphite"><strong>Right to Withdraw Consent:</strong> Revoke AI processing consent anytime</span>
               </div>
               <div className="flex items-start gap-2">
                 <span className="text-red-600 mt-1">✓</span>
-                <span className="text-[#4A453F]"><strong>Right to Explanation:</strong> Understand how AI uses your data</span>
+                <span className="text-prism-graphite"><strong>Right to Explanation:</strong> Understand how AI uses your data</span>
               </div>
             </div>
-            <p className="mt-4 text-sm text-[#5A554F]">
-              To exercise any of these rights, contact us at <a href="mailto:privacy@aipandit.app" className="text-[#B8860B] hover:underline">privacy@aipandit.app</a> or use the delete option in your dashboard.
+            <p className="mt-4 text-sm text-prism-graphite">
+              To exercise any of these rights, contact us at <a href="mailto:privacy@aipandit.app" className="text-prism-ink hover:underline">privacy@aipandit.app</a> or use the delete option in your dashboard.
             </p>
           </section>
 
           {/* Legal Compliance */}
-          <section className="bg-white rounded-2xl p-8 border border-[#F0E8DE]">
+          <section className="bg-white/90 backdrop-blur-xl rounded-prism-xl p-8 border border-prism-pebble">
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center">
+              <div className="w-10 h-10 rounded-prism-lg bg-gray-100 flex items-center justify-center">
                 <Shield className="w-5 h-5 text-gray-600" />
               </div>
-              <h2 className="font-[family-name:var(--font-cormorant)] text-2xl font-semibold text-[#1A1612]">
+              <h2 className="font-prism text-2xl font-semibold text-prism-ink">
                 Legal Compliance
               </h2>
             </div>
-            <p className="text-[#4A453F] leading-relaxed mb-4">
+            <p className="text-prism-graphite leading-relaxed mb-4">
               Our data processing practices comply with major global privacy regulations:
             </p>
             <div className="grid md:grid-cols-3 gap-4">
-              <div className="p-4 bg-[#FDF8F3] rounded-lg">
-                <h4 className="font-semibold text-[#1A1612] mb-2">GDPR (EU)</h4>
-                <p className="text-sm text-[#5A554F]">Full compliance with EU data protection standards. We process data on the basis of explicit consent and legitimate interest.</p>
+              <div className="p-4 bg-prism-fog/50 rounded-lg">
+                <h4 className="font-semibold text-prism-ink mb-2">GDPR (EU)</h4>
+                <p className="text-sm text-prism-graphite">Full compliance with EU data protection standards. We process data on the basis of explicit consent and legitimate interest.</p>
               </div>
-              <div className="p-4 bg-[#FDF8F3] rounded-lg">
-                <h4 className="font-semibold text-[#1A1612] mb-2">CCPA (California)</h4>
-                <p className="text-sm text-[#5A554F]">California residents have the right to know what data is collected and request deletion.</p>
+              <div className="p-4 bg-prism-fog/50 rounded-lg">
+                <h4 className="font-semibold text-prism-ink mb-2">CCPA (California)</h4>
+                <p className="text-sm text-prism-graphite">California residents have the right to know what data is collected and request deletion.</p>
               </div>
-              <div className="p-4 bg-[#FDF8F3] rounded-lg">
-                <h4 className="font-semibold text-[#1A1612] mb-2">DPDP (India)</h4>
-                <p className="text-sm text-[#5A554F]">Compliant with India&apos;s Digital Personal Data Protection Act, 2023.</p>
+              <div className="p-4 bg-prism-fog/50 rounded-lg">
+                <h4 className="font-semibold text-prism-ink mb-2">DPDP (India)</h4>
+                <p className="text-sm text-prism-graphite">Compliant with India&apos;s Digital Personal Data Protection Act, 2023.</p>
               </div>
             </div>
           </section>
 
           {/* Contact */}
-          <section className="bg-gradient-to-br from-[#FDF8F3] to-white rounded-2xl p-8 border border-[#F0E8DE]">
-            <h2 className="font-[family-name:var(--font-cormorant)] text-2xl font-semibold text-[#1A1612] mb-4">
+          <section className="bg-gradient-to-br from-prism-fog/50 to-white rounded-prism-xl p-8 border border-prism-pebble">
+            <h2 className="font-prism text-2xl font-semibold text-prism-ink mb-4">
               Questions About Privacy?
             </h2>
-            <p className="text-[#4A453F] mb-4">
+            <p className="text-prism-graphite mb-4">
               If you have any questions about our privacy practices, AI data processing, or would like to exercise your data rights, please contact our Data Protection Officer:
             </p>
             <a
               href="mailto:privacy@aipandit.app"
-              className="inline-flex items-center gap-2 text-[#B8860B] hover:text-[#6B1F7A] transition-colors font-medium"
+              className="inline-flex items-center gap-2 text-prism-ink hover:text-[#6B1F7A] transition-colors font-medium"
             >
               privacy@aipandit.app
             </a>
           </section>
         </div>
 
-        <p className="text-center text-sm text-[#8A857F] mt-12">
+        <p className="text-center text-sm text-prism-slate mt-12">
           Last updated: January 2026 | Version 3.0 (AI Processing Update)
         </p>
       </div>

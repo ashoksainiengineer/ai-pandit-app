@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import '@/app/prism-design-system.css';
 
 interface ModalFooterProps {
   children: React.ReactNode;
@@ -9,7 +10,7 @@ interface ModalFooterProps {
 
 export default function ModalFooter({ children, className = '' }: ModalFooterProps) {
   return (
-    <div className={`p-4 border-t border-surface-elevated bg-surface-raised flex gap-3 ${className}`}>
+    <div className={`p-4 border-t border-prism-pebble bg-prism-fog flex gap-3 ${className}`}>
       {children}
     </div>
   );

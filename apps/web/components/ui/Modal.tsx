@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import '@/app/prism-design-system.css';
 import ModalOverlay from './ModalOverlay';
 import ModalHeader from './ModalHeader';
 import ModalFooter from './ModalFooter';
@@ -50,11 +51,11 @@ export default function Modal({
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 10 }}
             transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
-            className={`relative w-full ${SIZE_CLASSES[size]} bg-white rounded-2xl shadow-2xl border border-surface-muted overflow-hidden flex flex-col ${maxHeight ? maxHeight : ''} ${className}`}
+            className={`relative w-full ${SIZE_CLASSES[size]} bg-prism-snow rounded-prism-xl shadow-prism-sm border border-prism-pebble overflow-hidden flex flex-col ${maxHeight ? maxHeight : ''} ${className}`}
             onClick={(e) => e.stopPropagation()}
           >
             {/* Decorative Top Border */}
-            <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-primary via-primary-dark to-primary" />
+            <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-prism-ink via-prism-graphite to-prism-ink" />
 
             {(title || icon) && (
               <ModalHeader

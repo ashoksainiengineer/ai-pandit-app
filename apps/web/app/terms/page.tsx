@@ -7,6 +7,7 @@
 import { Metadata } from 'next';
 import Link from 'next/link';
 import { ArrowLeft, Scale, FileText, AlertCircle, BookOpen, Shield, Cpu, Globe, Ban, DollarSign, Brain } from 'lucide-react';
+import '@/app/prism-design-system.css';
 
 export const metadata: Metadata = {
   title: 'Terms of Service | AI Pandit',
@@ -15,11 +16,11 @@ export const metadata: Metadata = {
 
 export default function TermsPage() {
   return (
-    <main className="min-h-screen bg-[#FFFCF8]">
+    <main className="min-h-screen bg-prism-canvas">
       {/* Header */}
-      <div className="bg-white border-b border-[#F0E8DE]">
+      <div className="bg-white/90 backdrop-blur-xl border-b border-prism-pebble">
         <div className="max-w-4xl mx-auto px-6 py-6">
-          <Link href="/" className="inline-flex items-center gap-2 text-[#5A554F] hover:text-[#B8860B] transition-colors">
+          <Link href="/" className="inline-flex items-center gap-2 text-prism-graphite hover:text-prism-ink transition-colors">
             <ArrowLeft className="w-4 h-4" />
             <span className="text-sm">Back to Home</span>
           </Link>
@@ -29,67 +30,67 @@ export default function TermsPage() {
       {/* Content */}
       <div className="max-w-4xl mx-auto px-6 py-12">
         <div className="text-center mb-12">
-          <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-[#B8860B] to-[#78611D] flex items-center justify-center">
+          <div className="w-16 h-16 mx-auto mb-4 rounded-prism-xl bg-gradient-to-br from-[#B8860B] to-[#78611D] flex items-center justify-center">
             <Scale className="w-8 h-8 text-white" />
           </div>
-          <h1 className="font-[family-name:var(--font-cormorant)] text-4xl font-semibold text-[#1A1612] mb-4">
+          <h1 className="font-prism text-4xl font-semibold text-prism-ink mb-4">
             Terms of Service
           </h1>
-          <p className="text-[#5A554F] max-w-2xl mx-auto">
+          <p className="text-prism-graphite max-w-2xl mx-auto">
             Please read these terms carefully before using AI Pandit services. By using our platform, you agree to be bound by these terms.
           </p>
-          <p className="text-sm text-[#8A857F] mt-4">
+          <p className="text-sm text-prism-slate mt-4">
             Last updated: January 31, 2026 | Version 3.0
           </p>
         </div>
 
         <div className="space-y-8">
           {/* Introduction */}
-          <section className="bg-white rounded-2xl p-8 border border-[#F0E8DE]">
+          <section className="bg-white/90 backdrop-blur-xl rounded-prism-xl p-8 border border-prism-pebble">
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-xl bg-[#B8860B]/10 flex items-center justify-center">
+              <div className="w-10 h-10 rounded-prism-lg bg-[#B8860B]/10 flex items-center justify-center">
                 <FileText className="w-5 h-5 text-[#B8860B]" />
               </div>
-              <h2 className="font-[family-name:var(--font-cormorant)] text-2xl font-semibold text-[#1A1612]">
+              <h2 className="font-prism text-2xl font-semibold text-prism-ink">
                 Introduction & Acceptance
               </h2>
             </div>
-            <p className="text-[#4A453F] leading-relaxed mb-4">
+            <p className="text-prism-graphite leading-relaxed mb-4">
               AI Pandit provides AI-powered birth time rectification services based on Vedic astrology principles. Our platform uses Skyfield ephemeris data and advanced machine learning algorithms to provide accurate astrological calculations.
             </p>
-            <p className="text-[#4A453F] leading-relaxed">
+            <p className="text-prism-graphite leading-relaxed">
               By accessing or using AI Pandit, you agree to these Terms of Service and our Privacy Policy. If you do not agree with any part of these terms, you may not use our services.
             </p>
           </section>
 
           {/* AI Processing Consent - NEW SECTION */}
-          <section className="bg-white rounded-2xl p-8 border border-[#F0E8DE]">
+          <section className="bg-white/90 backdrop-blur-xl rounded-prism-xl p-8 border border-prism-pebble">
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-xl bg-indigo-100 flex items-center justify-center">
+              <div className="w-10 h-10 rounded-prism-lg bg-indigo-100 flex items-center justify-center">
                 <Brain className="w-5 h-5 text-indigo-600" />
               </div>
-              <h2 className="font-[family-name:var(--font-cormorant)] text-2xl font-semibold text-[#1A1612]">
+              <h2 className="font-prism text-2xl font-semibold text-prism-ink">
                 AI Processing Consent
               </h2>
             </div>
-            <div className="bg-indigo-50 border border-indigo-200 rounded-xl p-4 mb-4">
+            <div className="bg-indigo-50 border border-indigo-200 rounded-prism-lg p-4 mb-4">
               <p className="text-indigo-800 font-medium text-sm mb-2">Important Notice About AI Processing</p>
               <p className="text-indigo-700 text-sm">
                 Our birth time rectification service uses Artificial Intelligence to analyze your astrological data. By using our service, you explicitly consent to:
               </p>
             </div>
-            <ul className="space-y-3 text-[#4A453F]">
+            <ul className="space-y-3 text-prism-graphite">
               <li className="flex items-start gap-2">
                 <span className="text-indigo-600 mt-1">✓</span>
                 <span><strong>Data Processing:</strong> Your birth data (date, time, coordinates), life events, and forensic traits will be processed by AI systems to perform astrological analysis.</span>
               </li>
               <li className="flex items-start gap-2">
                 <span className="text-indigo-600 mt-1">✓</span>
-                <span><strong>Anonymization:</strong> Your name and exact location are anonymized before being sent to AI systems. You will be assigned a pseudonym (e.g., &quot;Golden-Star-A7B2&quot;) for AI processing.</span>
+                <span><strong>Anonymization:</strong> Your name and exact location are anonymized before being sent to AI systems. Real names are replaced with <code>[REDACTED_NAME]</code> markers, emails with <code>[REDACTED_EMAIL]</code>, and phone numbers with <code>[REDACTED_PHONE]</code>.</span>
               </li>
               <li className="flex items-start gap-2">
                 <span className="text-indigo-600 mt-1">✓</span>
-                <span><strong>Third-Party AI Providers:</strong> Your anonymized astrological data may be processed by third-party AI providers (such as DeepSeek, OpenRouter, or similar services) solely for the purpose of birth time rectification.</span>
+                <span><strong>Third-Party AI Providers:</strong> Your anonymized astrological data may be processed by Groq (GPT-OSS-120B) or via OpenRouter (DeepSeek). Both providers process your data solely for birth time rectification.</span>
               </li>
               <li className="flex items-start gap-2">
                 <span className="text-indigo-600 mt-1">✓</span>
@@ -108,16 +109,16 @@ export default function TermsPage() {
           </section>
 
           {/* What Data is Shared with AI - NEW SECTION */}
-          <section className="bg-white rounded-2xl p-8 border border-[#F0E8DE]">
+          <section className="bg-white/90 backdrop-blur-xl rounded-prism-xl p-8 border border-prism-pebble">
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center">
+              <div className="w-10 h-10 rounded-prism-lg bg-blue-100 flex items-center justify-center">
                 <Cpu className="w-5 h-5 text-blue-600" />
               </div>
-              <h2 className="font-[family-name:var(--font-cormorant)] text-2xl font-semibold text-[#1A1612]">
+              <h2 className="font-prism text-2xl font-semibold text-prism-ink">
                 Data Shared with AI Systems
               </h2>
             </div>
-            <p className="text-[#4A453F] leading-relaxed mb-4">
+            <p className="text-prism-graphite leading-relaxed mb-4">
               For transparency, here is exactly what data is shared with AI systems during analysis:
             </p>
 
@@ -125,6 +126,18 @@ export default function TermsPage() {
               <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-lg">
                 <h4 className="font-semibold text-emerald-800 mb-2">✓ Data That IS Shared</h4>
                 <ul className="text-sm text-emerald-700 space-y-1">
+                  <li>• Anonymized data with PII redacted ([REDACTED_NAME])</li>
+                  <li>• Anonymized data with PII redacted ([REDACTED_NAME])</li>
+                  <li>• Birth date, time, coordinates</li>
+                  <li>• Life event dates & descriptions</li>
+                  <li>• Forensic traits (physical/psychological)</li>
+                  <li>• Spouse birth data (DOB/time/coords)</li>
+                  <li>• Skyfield ephemeris calculations</li>
+                  <li>• Birth date, time, coordinates</li>
+                  <li>• Life event dates & descriptions</li>
+                  <li>• Forensic traits (physical/psychological)</li>
+                  <li>• Spouse birth data (DOB/time/coords)</li>
+                  <li>• Skyfield ephemeris calculations</li>
                   <li>• Anonymous user ID (pseudonym)</li>
                   <li>• Birth date, time, coordinates</li>
                   <li>• Life event dates & descriptions</li>
@@ -146,28 +159,28 @@ export default function TermsPage() {
               </div>
             </div>
 
-            <p className="text-sm text-[#5A554F]">
+            <p className="text-sm text-prism-graphite">
               All data shared with AI systems is anonymized and used solely for the purpose of birth time rectification. We do not share your data with AI providers for any other purpose.
             </p>
           </section>
 
           {/* Spiritual Guidance Disclaimer */}
-          <section className="bg-white rounded-2xl p-8 border border-[#F0E8DE]">
+          <section className="bg-white/90 backdrop-blur-xl rounded-prism-xl p-8 border border-prism-pebble">
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center">
+              <div className="w-10 h-10 rounded-prism-lg bg-amber-100 flex items-center justify-center">
                 <AlertCircle className="w-5 h-5 text-amber-600" />
               </div>
-              <h2 className="font-[family-name:var(--font-cormorant)] text-2xl font-semibold text-[#1A1612]">
+              <h2 className="font-prism text-2xl font-semibold text-prism-ink">
                 Spiritual Guidance Disclaimer
               </h2>
             </div>
-            <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-4">
+            <div className="bg-amber-50 border border-amber-200 rounded-prism-lg p-4 mb-4">
               <p className="text-amber-800 font-medium text-sm mb-2">Important Notice</p>
               <p className="text-amber-700 text-sm">
                 The birth time rectification and astrological analysis provided by AI Pandit are for spiritual guidance and informational purposes only. They should not be considered as:
               </p>
             </div>
-            <ul className="space-y-2 text-[#4A453F]">
+            <ul className="space-y-2 text-prism-graphite">
               <li className="flex items-start gap-2">
                 <span className="text-amber-600 mt-1">•</span>
                 <span>A substitute for professional astrological consultation</span>
@@ -189,25 +202,25 @@ export default function TermsPage() {
                 <span>A guarantee of specific results or outcomes</span>
               </li>
             </ul>
-            <p className="mt-4 text-sm text-[#5A554F]">
+            <p className="mt-4 text-sm text-prism-graphite">
               You acknowledge that astrology is a spiritual practice and results may vary. AI Pandit makes no warranties about the accuracy, reliability, or applicability of the analysis provided.
             </p>
           </section>
 
           {/* User Responsibilities */}
-          <section className="bg-white rounded-2xl p-8 border border-[#F0E8DE]">
+          <section className="bg-white/90 backdrop-blur-xl rounded-prism-xl p-8 border border-prism-pebble">
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center">
+              <div className="w-10 h-10 rounded-prism-lg bg-blue-100 flex items-center justify-center">
                 <BookOpen className="w-5 h-5 text-blue-600" />
               </div>
-              <h2 className="font-[family-name:var(--font-cormorant)] text-2xl font-semibold text-[#1A1612]">
+              <h2 className="font-prism text-2xl font-semibold text-prism-ink">
                 User Responsibilities
               </h2>
             </div>
-            <p className="text-[#4A453F] leading-relaxed mb-4">
+            <p className="text-prism-graphite leading-relaxed mb-4">
               When using AI Pandit, you agree to:
             </p>
-            <ul className="space-y-2 text-[#4A453F]">
+            <ul className="space-y-2 text-prism-graphite">
               <li className="flex items-start gap-2">
                 <span className="text-blue-600 mt-1">•</span>
                 <span>Provide accurate birth information to the best of your knowledge</span>
@@ -240,14 +253,14 @@ export default function TermsPage() {
           </section>
 
           {/* Data Accuracy & Limitations */}
-          <section className="bg-white rounded-2xl p-8 border border-[#F0E8DE]">
-            <h2 className="font-[family-name:var(--font-cormorant)] text-2xl font-semibold text-[#1A1612] mb-4">
+          <section className="bg-white/90 backdrop-blur-xl rounded-prism-xl p-8 border border-prism-pebble">
+            <h2 className="font-prism text-2xl font-semibold text-prism-ink mb-4">
               Data Accuracy & Limitations
             </h2>
-            <p className="text-[#4A453F] leading-relaxed mb-4">
+            <p className="text-prism-graphite leading-relaxed mb-4">
               While we strive for the highest accuracy in our calculations using Skyfield ephemeris data, please note:
             </p>
-            <ul className="space-y-2 text-[#4A453F]">
+            <ul className="space-y-2 text-prism-graphite">
               <li className="flex items-start gap-2">
                 <span className="text-[#6B1F7A] mt-1">•</span>
                 <span>Rectification results depend on the accuracy of provided life events</span>
@@ -268,19 +281,19 @@ export default function TermsPage() {
           </section>
 
           {/* Limitation of Liability - NEW SECTION */}
-          <section className="bg-white rounded-2xl p-8 border border-[#F0E8DE]">
+          <section className="bg-white/90 backdrop-blur-xl rounded-prism-xl p-8 border border-prism-pebble">
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-xl bg-red-100 flex items-center justify-center">
+              <div className="w-10 h-10 rounded-prism-lg bg-red-100 flex items-center justify-center">
                 <Shield className="w-5 h-5 text-red-600" />
               </div>
-              <h2 className="font-[family-name:var(--font-cormorant)] text-2xl font-semibold text-[#1A1612]">
+              <h2 className="font-prism text-2xl font-semibold text-prism-ink">
                 Limitation of Liability
               </h2>
             </div>
-            <p className="text-[#4A453F] leading-relaxed mb-4">
+            <p className="text-prism-graphite leading-relaxed mb-4">
               To the fullest extent permitted by applicable law:
             </p>
-            <ul className="space-y-2 text-[#4A453F]">
+            <ul className="space-y-2 text-prism-graphite">
               <li className="flex items-start gap-2">
                 <span className="text-red-600 mt-1">•</span>
                 <span>AI Pandit and its operators shall not be liable for any indirect, incidental, special, consequential, or punitive damages arising from your use of the service.</span>
@@ -301,16 +314,16 @@ export default function TermsPage() {
           </section>
 
           {/* Refund Policy - NEW SECTION */}
-          <section className="bg-white rounded-2xl p-8 border border-[#F0E8DE]">
+          <section className="bg-white/90 backdrop-blur-xl rounded-prism-xl p-8 border border-prism-pebble">
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-xl bg-green-100 flex items-center justify-center">
+              <div className="w-10 h-10 rounded-prism-lg bg-green-100 flex items-center justify-center">
                 <DollarSign className="w-5 h-5 text-green-600" />
               </div>
-              <h2 className="font-[family-name:var(--font-cormorant)] text-2xl font-semibold text-[#1A1612]">
+              <h2 className="font-prism text-2xl font-semibold text-prism-ink">
                 Payment & Refund Policy
               </h2>
             </div>
-            <ul className="space-y-2 text-[#4A453F]">
+            <ul className="space-y-2 text-prism-graphite">
               <li className="flex items-start gap-2">
                 <span className="text-green-600 mt-1">•</span>
                 <span>All payments are processed securely through Razorpay.</span>
@@ -331,66 +344,66 @@ export default function TermsPage() {
           </section>
 
           {/* Termination - NEW SECTION */}
-          <section className="bg-white rounded-2xl p-8 border border-[#F0E8DE]">
+          <section className="bg-white/90 backdrop-blur-xl rounded-prism-xl p-8 border border-prism-pebble">
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-xl bg-orange-100 flex items-center justify-center">
+              <div className="w-10 h-10 rounded-prism-lg bg-orange-100 flex items-center justify-center">
                 <Ban className="w-5 h-5 text-orange-600" />
               </div>
-              <h2 className="font-[family-name:var(--font-cormorant)] text-2xl font-semibold text-[#1A1612]">
+              <h2 className="font-prism text-2xl font-semibold text-prism-ink">
                 Termination & Suspension
               </h2>
             </div>
-            <p className="text-[#4A453F] leading-relaxed mb-4">
+            <p className="text-prism-graphite leading-relaxed mb-4">
               We reserve the right to suspend or terminate your access to AI Pandit at our discretion, without notice, for conduct that we believe violates these terms or is harmful to other users, us, or third parties.
             </p>
-            <p className="text-[#4A453F] leading-relaxed">
+            <p className="text-prism-graphite leading-relaxed">
               Upon termination, your right to use the service immediately ceases. Provisions of these terms that by their nature should survive termination shall survive.
             </p>
           </section>
 
           {/* Governing Law - NEW SECTION */}
-          <section className="bg-white rounded-2xl p-8 border border-[#F0E8DE]">
+          <section className="bg-white/90 backdrop-blur-xl rounded-prism-xl p-8 border border-prism-pebble">
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-xl bg-purple-100 flex items-center justify-center">
+              <div className="w-10 h-10 rounded-prism-lg bg-purple-100 flex items-center justify-center">
                 <Globe className="w-5 h-5 text-purple-600" />
               </div>
-              <h2 className="font-[family-name:var(--font-cormorant)] text-2xl font-semibold text-[#1A1612]">
+              <h2 className="font-prism text-2xl font-semibold text-prism-ink">
                 Governing Law & Jurisdiction
               </h2>
             </div>
-            <p className="text-[#4A453F] leading-relaxed">
+            <p className="text-prism-graphite leading-relaxed">
               These Terms shall be governed by and construed in accordance with the laws of India. Any disputes arising under these terms shall be subject to the exclusive jurisdiction of the courts in Mumbai, Maharashtra, India.
             </p>
           </section>
 
           {/* Service Availability */}
-          <section className="bg-white rounded-2xl p-8 border border-[#F0E8DE]">
-            <h2 className="font-[family-name:var(--font-cormorant)] text-2xl font-semibold text-[#1A1612] mb-4">
+          <section className="bg-white/90 backdrop-blur-xl rounded-prism-xl p-8 border border-prism-pebble">
+            <h2 className="font-prism text-2xl font-semibold text-prism-ink mb-4">
               Service Availability
             </h2>
-            <p className="text-[#4A453F] leading-relaxed">
+            <p className="text-prism-graphite leading-relaxed">
               We aim to maintain high availability of our services, but we do not guarantee uninterrupted access. The service may be temporarily unavailable due to maintenance, updates, or factors beyond our control. Analysis processing times may vary based on system load.
             </p>
           </section>
 
           {/* Modifications */}
-          <section className="bg-gradient-to-br from-[#FDF8F3] to-white rounded-2xl p-8 border border-[#F0E8DE]">
-            <h2 className="font-[family-name:var(--font-cormorant)] text-2xl font-semibold text-[#1A1612] mb-4">
+          <section className="bg-gradient-to-br from-prism-fog/50 to-white rounded-prism-xl p-8 border border-prism-pebble">
+            <h2 className="font-prism text-2xl font-semibold text-prism-ink mb-4">
               Modifications to Terms
             </h2>
-            <p className="text-[#4A453F] mb-4">
+            <p className="text-prism-graphite mb-4">
               We may update these terms from time to time. We will notify users of significant changes via email or through our platform. Continued use of the service after changes constitutes acceptance of the updated terms.
             </p>
-            <p className="text-[#4A453F]">
+            <p className="text-prism-graphite">
               For questions about these terms, please contact us at{' '}
-              <a href="mailto:legal@aipandit.app" className="text-[#B8860B] hover:text-[#6B1F7A] transition-colors font-medium">
+              <a href="mailto:legal@aipandit.app" className="text-prism-ink hover:text-[#6B1F7A] transition-colors font-medium">
                 legal@aipandit.app
               </a>
             </p>
           </section>
         </div>
 
-        <p className="text-center text-sm text-[#8A857F] mt-12">
+        <p className="text-center text-sm text-prism-slate mt-12">
           © 2026 AI Pandit. All rights reserved.
         </p>
       </div>

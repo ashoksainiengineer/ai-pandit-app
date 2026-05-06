@@ -11,6 +11,7 @@ import { currentUser } from '@clerk/nextjs/server';
 import Layout from '@/components/Layout';
 import { DashboardSkeleton } from './DashboardSkeleton';
 import { DashboardContent } from './DashboardContent';
+import '@/app/prism-design-system.css';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -21,18 +22,18 @@ export default async function DashboardPage() {
   if (!user) {
     return (
       <Layout hideFooter>
-        <div className="min-h-[60vh] flex items-center justify-center">
-          <div className="text-center bg-white border border-surface-muted rounded-2xl p-8 max-w-md shadow-lg">
-            <h1 className="text-2xl font-bold text-content-primary mb-4 font-[family-name:var(--font-cormorant)]">
+        <div className="min-h-[60vh] flex items-center justify-center bg-prism-canvas">
+          <div 
+            className="prism-card max-w-md text-center"
+            style={{ WebkitBackdropFilter: 'blur(24px)' }}
+          >
+            <h1 className="font-prism text-2xl font-medium text-prism-ink mb-4">
               Please Sign In
             </h1>
-            <p className="text-content-secondary mb-6">
+            <p className="text-prism-body-sm text-prism-graphite mb-6">
               Access your dashboard to view and manage your birth time rectification sessions.
             </p>
-            <Link
-              href="/sign-in"
-              className="inline-block bg-gradient-to-r from-primary to-primary-dark text-white px-6 py-3 rounded-xl font-semibold hover:shadow-lg transition-all"
-            >
+            <Link href="/sign-in" className="prism-btn">
               Sign In
             </Link>
           </div>
@@ -43,7 +44,7 @@ export default async function DashboardPage() {
 
   return (
     <Layout hideFooter>
-      <div className="pt-8 pb-12">
+      <div className="pt-8 pb-12 bg-prism-canvas min-h-screen">
         <Suspense fallback={<DashboardSkeleton />}>
           <DashboardContent clerkId={user.id} userName={user.firstName || 'User'} />
         </Suspense>

@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { motion } from 'framer-motion';
+import '@/app/prism-design-system.css';
 
 interface ModalOverlayProps {
   onClose?: () => void;
@@ -14,7 +15,7 @@ export default function ModalOverlay({ onClose, children }: ModalOverlayProps) {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-prism-ink/50 backdrop-blur-sm"
       onClick={onClose}
     >
       {children}
