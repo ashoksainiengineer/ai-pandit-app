@@ -16,18 +16,9 @@ import {
 
 import dynamic from 'next/dynamic';
 
-const AIThinkingBox = dynamic(() => import('./AIThinkingBox'), {
-  ssr: false,
-  loading: () => <div className="h-40 bg-white rounded-2xl animate-pulse border border-[#F0E8DE] flex items-center justify-center"><div className="text-[#8A857F] text-xs">Initializing AI Thinking...</div></div>,
-});
-const EphemerisTable = dynamic(() => import('./EphemerisTable'), {
-  ssr: false,
-  loading: () => <div className="h-32 bg-white rounded-2xl animate-pulse border border-[#F0E8DE] flex items-center justify-center"><div className="text-[#8A857F] text-xs">Loading Ephemeris Data...</div></div>,
-});
-const CandidateComparisonTable = dynamic(() => import('./CandidateComparisonTable'), {
-  ssr: false,
-  loading: () => <div className="h-48 bg-white rounded-2xl animate-pulse border border-[#F0E8DE] flex items-center justify-center"><div className="text-[#8A857F] text-xs">Preparing Comparison Matrix...</div></div>,
-});
+const AIThinkingBox = dynamic(() => import('./AIThinkingBox'), { ssr: false });
+const EphemerisTable = dynamic(() => import('./EphemerisTable'), { ssr: false });
+const CandidateComparisonTable = dynamic(() => import('./CandidateComparisonTable'), { ssr: false });
 
 // Core stats with warm colors
 const coreStats = [
