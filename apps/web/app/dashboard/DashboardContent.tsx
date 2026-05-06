@@ -19,10 +19,10 @@ export function DashboardContent({ clerkId, userName }: Props) {
 
     async function load() {
       try {
-        const res = await fetch(`/api/dashboard/sessions?clerkId=${clerkId}`);
+        const res = await fetch(`/api/sessions`);
         if (!res.ok) throw new Error('Failed to load sessions');
         const data = await res.json();
-        if (!cancelled) setSessions(data.sessions ?? []);
+        if (!cancelled) setSessions(data.data ?? []);
       } catch (err) {
         if (!cancelled) setError(err instanceof Error ? err.message : 'Unknown error');
       }
