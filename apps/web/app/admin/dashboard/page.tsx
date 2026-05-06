@@ -12,10 +12,11 @@ import DashboardLayout from '@/app/components/dashboard/DashboardLayout';
 import StatsCard from '@/app/components/dashboard/StatsCard';
 import ChartCard from '@/app/components/dashboard/ChartCard';
 import RecentReadingsTable from '@/app/components/dashboard/RecentReadingsTable';
+import '@/app/prism-design-system.css';
 
 const ReadingsChart = dynamic(() => import('@/app/components/dashboard/charts/ReadingsChart'), {
   ssr: false,
-  loading: () => <div className="h-64 rounded-xl bg-[#FDF8F3] animate-pulse" />
+  loading: () => <div className="h-64 rounded-prism-lg bg-prism-fog animate-pulse" />
 });
 import {
   Activity,
@@ -125,8 +126,8 @@ export default function DashboardPage() {
         <div className="flex items-center justify-center h-96">
           <div className="text-center">
             <AlertCircle className="w-12 h-12 text-rose-500 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-[#1A1612] mb-2">Failed to load dashboard</h3>
-            <p className="text-[#5A554F]">{error}</p>
+            <h3 className="text-lg font-medium text-prism-ink mb-2">Failed to load dashboard</h3>
+            <p className="text-prism-graphite">{error}</p>
           </div>
         </div>
       </DashboardLayout>
@@ -137,10 +138,10 @@ export default function DashboardPage() {
     <DashboardLayout>
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-[#1A1612] font-[family-name:var(--font-cormorant)]">
+        <h1 className="text-3xl font-bold text-prism-ink font-prism">
           Dashboard Overview
         </h1>
-        <p className="text-[#5A554F] mt-1">
+        <p className="text-prism-graphite mt-1">
           Monitor your birth time rectification platform performance
         </p>
       </div>
@@ -198,42 +199,42 @@ export default function DashboardPage() {
 
         <ChartCard title="Quick Stats" loading={loading}>
           <div className="space-y-4">
-            <div className="flex items-center justify-between p-4 bg-[#FDF8F3] rounded-xl">
+            <div className="flex items-center justify-between p-4 bg-prism-fog rounded-prism-lg">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-lg bg-emerald-100 flex items-center justify-center">
                   <Calendar className="w-5 h-5 text-emerald-600" />
                 </div>
                 <div>
-                  <p className="text-sm text-[#5A554F]">Today&apos;s Readings</p>
-                  <p className="text-xl font-semibold text-[#1A1612]">
+                  <p className="text-sm text-prism-graphite">Today&apos;s Readings</p>
+                  <p className="text-xl font-semibold text-prism-ink">
                     {metrics?.readingsToday || 0}
                   </p>
                 </div>
               </div>
             </div>
 
-            <div className="flex items-center justify-between p-4 bg-[#FDF8F3] rounded-xl">
+            <div className="flex items-center justify-between p-4 bg-prism-fog rounded-prism-lg">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-lg bg-amber-100 flex items-center justify-center">
                   <Clock className="w-5 h-5 text-amber-600" />
                 </div>
                 <div>
-                  <p className="text-sm text-[#5A554F]">Processing</p>
-                  <p className="text-xl font-semibold text-[#1A1612]">
+                  <p className="text-sm text-prism-graphite">Processing</p>
+                  <p className="text-xl font-semibold text-prism-ink">
                     {metrics?.activeReadings || 0}
                   </p>
                 </div>
               </div>
             </div>
 
-            <div className="flex items-center justify-between p-4 bg-[#FDF8F3] rounded-xl">
+            <div className="flex items-center justify-between p-4 bg-prism-fog rounded-prism-lg">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center">
                   <TrendingUp className="w-5 h-5 text-blue-600" />
                 </div>
                 <div>
-                  <p className="text-sm text-[#5A554F]">This Week</p>
-                  <p className="text-xl font-semibold text-[#1A1612]">
+                  <p className="text-sm text-prism-graphite">This Week</p>
+                  <p className="text-xl font-semibold text-prism-ink">
                     {metrics?.readingsThisWeek || 0}
                   </p>
                 </div>

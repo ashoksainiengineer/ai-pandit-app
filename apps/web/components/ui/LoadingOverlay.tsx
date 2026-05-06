@@ -3,6 +3,7 @@
 import { memo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Sparkles, Loader2 } from 'lucide-react';
+import '@/app/prism-design-system.css';
 
 interface LoadingOverlayProps {
     isVisible: boolean;
@@ -17,7 +18,7 @@ export const LoadingOverlay = memo(function LoadingOverlay({ isVisible, message 
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
-                    className="fixed inset-0 z-[100] flex items-center justify-center bg-white/60 backdrop-blur-md"
+                    className="fixed inset-0 z-[100] flex items-center justify-center bg-prism-snow/60 backdrop-blur-md"
                 >
                     <div className="relative flex flex-col items-center">
                         {/* Animated Background Glow */}
@@ -31,26 +32,26 @@ export const LoadingOverlay = memo(function LoadingOverlay({ isVisible, message 
                                 repeat: Infinity,
                                 ease: "easeInOut"
                             }}
-                            className="absolute w-48 h-48 bg-[#B8860B]/20 rounded-full blur-3xl pointer-events-none"
+                            className="absolute w-48 h-48 bg-prism-ink/10 rounded-full blur-3xl pointer-events-none"
                         />
 
-                        <div className="relative bg-white border border-[#F0E8DE] p-8 rounded-3xl shadow-2xl flex flex-col items-center gap-6 max-w-sm text-center">
-                            {/* Sacred Ivory Ornament Ornament */}
-                            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#FFFCF8] to-[#F5EFE7] border border-[#F0E8DE] flex items-center justify-center shadow-inner relative overflow-hidden">
+                        <div className="relative bg-prism-snow border border-prism-pebble p-8 rounded-prism-xl shadow-prism-sm flex flex-col items-center gap-6 max-w-sm text-center">
+                            {/* Prism Ornament */}
+                            <div className="w-16 h-16 rounded-prism-lg bg-gradient-to-br from-prism-canvas to-prism-fog border border-prism-pebble flex items-center justify-center shadow-inner relative overflow-hidden">
                                 <motion.div
                                     animate={{ rotate: 360 }}
                                     transition={{ duration: 10, repeat: Infinity, ease: "linear" }}
-                                    className="absolute inset-0 opacity-10 bg-[radial-gradient(circle_at_center,_#B8860B_0%,_transparent_70%)]"
+                                    className="absolute inset-0 opacity-10 bg-[radial-gradient(circle_at_center,_#000000_0%,_transparent_70%)]"
                                 />
-                                <Loader2 className="w-8 h-8 text-[#B8860B] animate-spin" />
+                                <Loader2 className="w-8 h-8 text-prism-ink animate-spin" />
                             </div>
 
                             <div className="space-y-2">
-                                <h3 className="text-xl font-semibold text-[#1A1612] font-[family-name:var(--font-cormorant)] flex items-center justify-center gap-2">
-                                    <Sparkles className="w-5 h-5 text-[#B8860B]" />
+                                <h3 className="text-xl font-semibold text-prism-ink font-prism flex items-center justify-center gap-2">
+                                    <Sparkles className="w-5 h-5 text-prism-graphite" />
                                     {message}
                                 </h3>
-                                <p className="text-sm text-[#5A554F]">
+                                <p className="text-sm text-prism-graphite font-prism">
                                     Navigating the divine alignment for you...
                                 </p>
                             </div>
@@ -69,7 +70,7 @@ export const LoadingOverlay = memo(function LoadingOverlay({ isVisible, message 
                                             repeat: Infinity,
                                             delay: i * 0.2,
                                         }}
-                                        className="w-2 h-2 rounded-full bg-[#B8860B]"
+                                        className="w-2 h-2 rounded-full bg-prism-ink"
                                     />
                                 ))}
                             </div>

@@ -11,6 +11,7 @@ import { Breadcrumbs, predefinedBreadcrumbs } from '@/components/ui/Breadcrumbs'
 import { env } from '@/lib/config/env';
 import { logger } from '@/lib/secure-logger';
 import { initializeEncryption, parseSensitiveField } from '@/lib/crypto';
+import '@/app/prism-design-system.css';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -74,7 +75,7 @@ function ResultsSkeleton() {
             <div className="min-h-[60vh] flex items-center justify-center">
                 <div className="text-center">
                     <div className="animate-spin rounded-full h-12 w-12 border-2 border-[#78611D] border-t-transparent mx-auto mb-4" />
-                    <p className="text-[#8C7F72]">Loading results...</p>
+                    <p className="text-prism-slate">Loading results...</p>
                 </div>
             </div>
         </Layout>
@@ -100,18 +101,18 @@ export default async function ResultsPage({ params }: { params: Promise<{ id: st
                     <div className="w-20 h-20 rounded-full bg-[#B8860B]/10 flex items-center justify-center mb-6">
                         <span className="text-4xl">🔍</span>
                     </div>
-                    <h1 className="text-2xl font-bold text-[#1A1612] mb-4 font-[family-name:var(--font-cormorant)]">No Results Found</h1>
-                    <p className="text-[#5A554F] mb-8 max-w-md">The analysis may still be in progress or has not completed yet.</p>
+                    <h1 className="text-2xl font-bold text-prism-ink mb-4 font-prism">No Results Found</h1>
+                    <p className="text-prism-graphite mb-8 max-w-md">The analysis may still be in progress or has not completed yet.</p>
                     <div className="flex gap-4">
                         <Link
                             href={`/rectify/${id}`}
-                            className="px-6 py-3 bg-white border border-[#F0E8DE] text-[#1A1612] rounded-xl hover:border-[#78611D]/50 transition-colors"
+                            className="px-6 py-3 bg-white border border-prism-pebble text-prism-ink rounded-prism-lg hover:border-[#78611D]/50 transition-colors"
                         >
                             Check Progress
                         </Link>
                         <Link
                             href="/dashboard"
-                            className="px-6 py-3 bg-gradient-to-r from-[#B8860B] to-[#78611D] text-white rounded-xl font-semibold hover:shadow-lg transition-all"
+                            className="px-6 py-3 bg-gradient-to-r from-[#B8860B] to-[#78611D] text-white rounded-prism-lg font-semibold hover:shadow-prism-sm transition-all"
                         >
                             Go to Dashboard
                         </Link>

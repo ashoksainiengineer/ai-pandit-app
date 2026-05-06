@@ -5,7 +5,14 @@
  * Fonts loaded via next/font for optimal Core Web Vitals.
  */
 
-import { Cormorant_Garamond, DM_Sans, Playfair_Display, JetBrains_Mono } from 'next/font/google';
+import { Inter, Cormorant_Garamond, DM_Sans, Playfair_Display, JetBrains_Mono } from 'next/font/google';
+
+const inter = Inter({
+  subsets: ['latin'],
+  variable: '--font-inter',
+  display: 'swap',
+  weight: ['300', '400', '500'],
+});
 
 const cormorant = Cormorant_Garamond({
   subsets: ['latin'],
@@ -99,13 +106,13 @@ export default function RootLayout({
         }
       }}
     >
-      <html lang="en" suppressHydrationWarning className={`${cormorant.variable} ${dmSans.variable} ${playfair.variable} ${jetbrainsMono.variable}`}>
+      <html lang="en" suppressHydrationWarning className={`${inter.variable} ${cormorant.variable} ${dmSans.variable} ${playfair.variable} ${jetbrainsMono.variable}`}>
         <head>
           <link rel="manifest" href="/manifest.json" />
           <link rel="preconnect" href="https://nominatim.openstreetmap.org" />
           <link rel="preconnect" href="https://tile.openstreetmap.org" />
         </head>
-        <body className={`${cormorant.variable} ${dmSans.variable} ${playfair.variable} ${jetbrainsMono.variable} min-h-screen bg-[#FFFCF8] text-[#1A1612] antialiased overflow-x-hidden`}>
+        <body className={`${inter.variable} ${cormorant.variable} ${dmSans.variable} ${playfair.variable} ${jetbrainsMono.variable} min-h-screen bg-[#FFFCF8] text-[#1A1612] antialiased overflow-x-hidden`}>
           {/* Subtle Sacred Pattern Background */}
           <div className="fixed inset-0 pointer-events-none z-0 bg-sacred-pattern" />
 

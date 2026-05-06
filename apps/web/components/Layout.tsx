@@ -2,7 +2,7 @@
 
 /**
  * AI Pandit - Shared Layout Component
- * Sacred Ivory Light Theme - Consistent with landing page
+ * Prism Design System — "Prism on white stationery"
  * 
  * Usage:
  * ```tsx
@@ -20,6 +20,7 @@
 
 import React from 'react';
 import dynamic from 'next/dynamic';
+import '@/app/prism-design-system.css';
 
 const Navbar = dynamic(() => import('./Navbar'), { ssr: false });
 import Footer from './Footer';
@@ -42,13 +43,13 @@ export default function Layout({
   transparentNavbar = false,
 }: LayoutProps) {
   return (
-    <div className="min-h-screen bg-[#FFFCF8] text-[#1A1612] flex flex-col">
-      {/* Sacred Background Pattern */}
+    <div className="min-h-screen bg-prism-canvas text-prism-ink flex flex-col">
+      {/* Prism Background Pattern */}
       <div className="fixed inset-0 pointer-events-none z-0">
-        <div className="absolute inset-0 bg-[#FFFCF8]" />
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_80%,rgba(184,134,11,0.03)_0%,transparent_50%)]" />
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_80%_20%,rgba(107,31,122,0.03)_0%,transparent_50%)]" />
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(74,124,111,0.02)_0%,transparent_60%)]" />
+        <div className="absolute inset-0 bg-prism-canvas" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_80%,rgba(0,0,0,0.02)_0%,transparent_50%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_80%_20%,rgba(0,0,0,0.02)_0%,transparent_50%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(0,0,0,0.01)_0%,transparent_60%)]" />
       </div>
 
       {/* Navigation */}
@@ -81,12 +82,12 @@ export function CenteredLayout({
   hideFooter = false,
 }: Omit<LayoutProps, 'fullWidth'>) {
   return (
-    <div className="min-h-screen bg-[#FFFCF8] text-[#1A1612] flex flex-col relative">
-      {/* Sacred Background Pattern */}
+    <div className="min-h-screen bg-prism-canvas text-prism-ink flex flex-col relative">
+      {/* Prism Background Pattern */}
       <div className="fixed inset-0 pointer-events-none z-0">
-        <div className="absolute inset-0 bg-[#FFFCF8]" />
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_80%,rgba(184,134,11,0.03)_0%,transparent_50%)]" />
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_80%_20%,rgba(107,31,122,0.03)_0%,transparent_50%)]" />
+        <div className="absolute inset-0 bg-prism-canvas" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_80%,rgba(0,0,0,0.02)_0%,transparent_50%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_80%_20%,rgba(0,0,0,0.02)_0%,transparent_50%)]" />
       </div>
 
       {!hideNavbar && <Navbar />}
@@ -115,19 +116,19 @@ export function DashboardLayout({
   sidebar?: React.ReactNode;
 }) {
   return (
-    <div className="min-h-screen bg-[#FFFCF8] text-[#1A1612] flex flex-col relative">
-      {/* Sacred Background Pattern */}
+    <div className="min-h-screen bg-prism-canvas text-prism-ink flex flex-col relative">
+      {/* Prism Background Pattern */}
       <div className="fixed inset-0 pointer-events-none z-0">
-        <div className="absolute inset-0 bg-[#FFFCF8]" />
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_80%,rgba(184,134,11,0.03)_0%,transparent_50%)]" />
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_80%_20%,rgba(107,31,122,0.03)_0%,transparent_50%)]" />
+        <div className="absolute inset-0 bg-prism-canvas" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_80%,rgba(0,0,0,0.02)_0%,transparent_50%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_80%_20%,rgba(0,0,0,0.02)_0%,transparent_50%)]" />
       </div>
 
       <Navbar />
 
       <div className="flex-1 flex relative z-10">
         {sidebar && (
-          <aside className="hidden lg:block w-64 border-r border-[#F0E8DE] bg-[#FDF8F3]">
+          <aside className="hidden lg:block w-64 border-r border-prism-pebble bg-prism-fog">
             {sidebar}
           </aside>
         )}

@@ -11,6 +11,7 @@ import RectifySubmitBar from '@/components/rectify/RectifySubmitBar';
 import BirthDataForm from '@/components/rectify/BirthDataForm';
 import LifeEventsEditor from '@/components/rectify/LifeEventsEditor';
 import { useRectifyForm } from '@/hooks/use-rectify-form';
+import '@/app/prism-design-system.css';
 
 const Step2PhysicalTraits = dynamic(() => import('@/components/rectify/Step2PhysicalTraits'), {
     loading: () => <div className="animate-pulse bg-[#F5F0E8] h-96 rounded-xl" />,
