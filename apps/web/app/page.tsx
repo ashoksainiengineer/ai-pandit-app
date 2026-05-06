@@ -254,7 +254,7 @@ function FloatingWidget({
       initial={{ opacity: 0, y: 20, scale: 0.9 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
       transition={{ duration: 0.6, delay, ease: 'easeOut' }}
-      className={`dia-float-widget absolute ${className}`}
+      className={`dia-float-widget dia-glass absolute ${className}`}
     >
       <div className="flex items-center gap-3">
         <div className="w-8 h-8 rounded-full bg-dia-hero-blue-start/30 flex items-center justify-center">
@@ -287,10 +287,9 @@ function Header() {
     <header
       className={`sticky top-0 z-50 transition-all duration-300 ${
         scrolled
-          ? 'bg-white/90 backdrop-blur-xl border-b border-black/5'
+          ? 'dia-header-glass'
           : 'bg-transparent'
       }`}
-      style={{ WebkitBackdropFilter: scrolled ? 'blur(24px)' : 'none' }}
     >
       <div className="dia-container flex items-center justify-between h-16">
         <Link
@@ -317,7 +316,7 @@ function Header() {
           ))}
         </nav>
 
-        <Link href="/rectify" className="dia-btn text-sm">
+        <Link href="/rectify" className="dia-btn dia-btn-magnetic text-sm">
           Begin Analysis
           <ArrowRight className="w-4 h-4" />
         </Link>
@@ -328,7 +327,14 @@ function Header() {
 
 function Hero() {
   return (
-    <section className="relative overflow-hidden dia-hero-gradient">
+    <section className="relative overflow-hidden dia-mesh-gradient min-h-[90vh] flex items-center">
+      {/* Animated blob backgrounds */}
+      <div className="absolute inset-0 pointer-events-none overflow-hidden">
+        <div className="dia-blob w-[600px] h-[600px] bg-dia-hero-blue-start/30 top-[-10%] left-[-10%]" />
+        <div className="dia-blob w-[500px] h-[500px] bg-dia-hero-blue-end/20 top-[20%] right-[-5%]" style={{ animationDelay: '-2s' }} />
+        <div className="dia-blob w-[400px] h-[400px] bg-dia-hero-blue-mid/25 bottom-[-10%] left-[30%]" style={{ animationDelay: '-4s' }} />
+      </div>
+
       {/* Floating widgets */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
         <FloatingWidget
@@ -361,12 +367,12 @@ function Hero() {
         />
       </div>
 
-      <div className="dia-container pt-20 pb-32 md:pt-28 md:pb-40 relative z-10">
+      <div className="dia-container pt-20 pb-32 md:pt-28 md:pb-40 relative z-10 dia-glow-hero">
         <div className="max-w-4xl mx-auto text-center">
           {/* Badge */}
           <motion.div
             {...fadeInUp}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-white/60 backdrop-blur-sm rounded-full mb-8 border border-black/5"
+            className="inline-flex items-center gap-2 px-4 py-2 dia-badge-glass rounded-full mb-8"
           >
             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
             <span className="text-xs font-medium text-black/70 uppercase tracking-wider font-dia-mono">
@@ -404,11 +410,11 @@ function Hero() {
             transition={{ ...fadeInUp.transition, delay: 0.15 }}
             className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4"
           >
-            <Link href="/rectify" className="dia-btn text-base px-8 py-4">
+            <Link href="/rectify" className="dia-btn dia-btn-magnetic text-base px-8 py-4">
               Begin Your Journey
               <ArrowRight className="w-5 h-5" />
             </Link>
-            <a href="#tech-stack" className="dia-btn-ghost text-base px-8 py-4">
+            <a href="#tech-stack" className="dia-btn-ghost dia-btn-magnetic text-base px-8 py-4">
               See The Tech Stack
             </a>
           </motion.div>
@@ -424,7 +430,7 @@ function Hero() {
               return (
                 <div
                   key={stat.label}
-                  className="dia-pill"
+                  className="dia-pill dia-glass-subtle"
                 >
                   <Icon className="w-4 h-4 text-black/40" />
                   <span className="font-medium text-black">{stat.value}</span>
@@ -440,7 +446,7 @@ function Hero() {
             transition={{ ...fadeInUp.transition, delay: 0.25 }}
             className="mt-6 flex justify-center"
           >
-            <div className="inline-flex items-center gap-2 px-4 py-2 bg-white/50 backdrop-blur-sm rounded-full border border-black/5">
+            <div className="inline-flex items-center gap-2 px-4 py-2 dia-badge-glass rounded-full">
               <Lock className="w-3.5 h-3.5 text-black/40" />
               <span className="text-xs text-black/50 font-dia-mono uppercase tracking-wider">
                 AES-256-GCM Encryption • Per-User Keys • Zero-Knowledge
@@ -451,18 +457,9 @@ function Hero() {
       </div>
 
       {/* Curved white arc at bottom */}
-      <div className="absolute bottom-0 left-0 right-0">
-        <svg
-          viewBox="0 0 1440 120"
-          fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-          className="w-full h-auto"
-          preserveAspectRatio="none"
-        >
-          <path
-            d="M0 120L1440 120V60C1440 60 1200 0 720 0C240 0 0 60 0 60V120Z"
-            fill="#F8F8F8"
-          />
+      <div className="dia-curve-divider">
+        <svg viewBox="0 0 1440 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M0 120L1440 120V60C1440 60 1200 0 720 0C240 0 0 60 0 60V120Z" className="shape-fill"/>
         </svg>
       </div>
     </section>
@@ -474,7 +471,7 @@ function LiveAnalysisEngine() {
     <section className="dia-section-sm bg-dia-bg">
       <div className="dia-container">
         <motion.div {...fadeInUp} className="text-center mb-16">
-          <div className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-black/5 rounded-full mb-6">
+          <div className="inline-flex items-center gap-2 px-4 py-2 dia-badge-glass rounded-full mb-6">
             <span className="relative flex h-2 w-2">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
               <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
@@ -493,17 +490,17 @@ function LiveAnalysisEngine() {
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
           <motion.div {...staggerItem} transition={{ delay: 0.1 }}>
-            <div className="dia-card-sm h-full">
+            <div className="dia-card-sm h-full dia-glass dia-tilt">
               <AIThinkingBox />
             </div>
           </motion.div>
           <motion.div {...staggerItem} transition={{ delay: 0.2 }}>
-            <div className="dia-card-sm h-full">
+            <div className="dia-card-sm h-full dia-glass dia-tilt">
               <EphemerisTable />
             </div>
           </motion.div>
           <motion.div {...staggerItem} transition={{ delay: 0.3 }}>
-            <div className="dia-card-sm h-full">
+            <div className="dia-card-sm h-full dia-glass dia-tilt">
               <CandidateComparisonTable />
             </div>
           </motion.div>
@@ -590,7 +587,7 @@ function TechStack() {
                 key={category.category}
                 {...staggerItem}
                 transition={{ ...staggerItem.transition, delay: index * 0.05 }}
-                className="dia-card"
+                className="dia-card dia-glass dia-glow-card dia-tilt"
               >
                 <div className="flex items-center gap-3 mb-6">
                   <div className="w-10 h-10 rounded-xl bg-dia-bg flex items-center justify-center border border-black/5">
@@ -622,7 +619,7 @@ function TechStack() {
 
         {/* Architecture diagram */}
         <motion.div {...fadeInUp} className="mt-16">
-          <div className="dia-card p-8 md:p-10">
+          <div className="dia-card p-8 md:p-10 dia-glass">
             <h3 className="font-dia-heading text-xl font-medium text-black mb-8 text-center">
               System Architecture
             </h3>
@@ -676,7 +673,7 @@ function Features() {
                 key={feature.title}
                 {...staggerItem}
                 transition={{ ...staggerItem.transition, delay: index * 0.05 }}
-                className="dia-card hover:-translate-y-0.5 transition-transform duration-200"
+                className="dia-card dia-glass dia-glow-card dia-tilt hover:-translate-y-0.5 transition-transform duration-200"
               >
                 <div className="w-10 h-10 rounded-xl bg-dia-bg flex items-center justify-center border border-black/5 mb-5">
                   <Icon className="w-5 h-5 text-black/70" />
@@ -712,7 +709,7 @@ function FAQ() {
               key={index}
               {...staggerItem}
               transition={{ ...staggerItem.transition, delay: index * 0.05 }}
-              className="dia-faq-item group"
+              className="dia-faq-item dia-glass group"
             >
               <summary className="flex items-center justify-between cursor-pointer list-none">
                 <span className="pr-4 text-base md:text-lg font-normal text-black">
@@ -745,7 +742,7 @@ function CTA() {
             Vedic astrology. Your data stays encrypted. Your results are seconds-accurate.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <Link href="/rectify" className="dia-btn text-lg px-10 py-5">
+            <Link href="/rectify" className="dia-btn dia-btn-magnetic text-lg px-10 py-5">
               Begin Free Analysis
               <ArrowRight className="w-5 h-5" />
             </Link>
@@ -760,7 +757,7 @@ function Footer() {
   const currentYear = new Date().getFullYear();
 
   return (
-    <footer className="border-t border-black/5 bg-white">
+    <footer className="dia-footer">
       <div className="dia-container py-16">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-12">
           {/* Brand */}
@@ -796,7 +793,7 @@ function Footer() {
                 <li key={link.href}>
                   <Link
                     href={link.href}
-                    className="text-sm text-black/60 hover:text-black hover:underline underline-offset-4 transition-colors duration-200"
+                    className="dia-footer-link text-sm"
                   >
                     {link.label}
                   </Link>
@@ -815,7 +812,7 @@ function Footer() {
                 <li key={link.href}>
                   <Link
                     href={link.href}
-                    className="text-sm text-black/60 hover:text-black hover:underline underline-offset-4 transition-colors duration-200"
+                    className="dia-footer-link text-sm"
                   >
                     {link.label}
                   </Link>

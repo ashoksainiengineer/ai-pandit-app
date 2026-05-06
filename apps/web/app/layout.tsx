@@ -72,7 +72,8 @@ export const viewport: Viewport = {
   maximumScale: 5,
   userScalable: true,
   viewportFit: 'cover',
-  themeColor: '#B8860B',
+  themeColor: '#a8c4e8',
+  colorScheme: 'light',
 };
 
 export default function RootLayout({
@@ -112,8 +113,9 @@ export default function RootLayout({
           <link rel="preconnect" href="https://nominatim.openstreetmap.org" />
           <link rel="preconnect" href="https://tile.openstreetmap.org" />
         </head>
-        <body className={`${inter.variable} ${cormorant.variable} ${dmSans.variable} ${playfair.variable} ${jetbrainsMono.variable} min-h-screen bg-[#FFFCF8] text-[#1A1612] antialiased overflow-x-hidden`}>
-          {/* Subtle Sacred Pattern Background */}
+        <body className={`${inter.variable} ${cormorant.variable} ${dmSans.variable} ${playfair.variable} ${jetbrainsMono.variable} min-h-screen bg-dia-bg text-dia-ink antialiased overflow-x-hidden`}>
+          {/* Dia Browser Clean Background */}
+          <div className="fixed inset-0 pointer-events-none z-0 bg-dia-bg" />
           <div className="fixed inset-0 pointer-events-none z-0 bg-sacred-pattern" />
 
           {/* Main Content */}
