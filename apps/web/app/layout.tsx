@@ -1,38 +1,17 @@
 /**
  * AI Pandit - Root Layout
- * Sacred Ivory Light Theme with Elegant Typography
+ * Dia Browser Design System — Clean, Minimal, Monochrome
  *
  * Fonts loaded via next/font for optimal Core Web Vitals.
  */
 
-import { Inter, Cormorant_Garamond, DM_Sans, Playfair_Display, JetBrains_Mono } from 'next/font/google';
-
-const inter = Inter({
-  subsets: ['latin'],
-  variable: '--font-inter',
-  display: 'swap',
-  weight: ['300', '400', '500'],
-});
-
-const cormorant = Cormorant_Garamond({
-  subsets: ['latin'],
-  variable: '--font-cormorant',
-  display: 'swap',
-  weight: ['300', '400', '500', '600', '700'],
-});
+import { DM_Sans, JetBrains_Mono } from 'next/font/google';
 
 const dmSans = DM_Sans({
   subsets: ['latin'],
   variable: '--font-dm-sans',
   display: 'swap',
-  weight: ['400', '500', '600', '700'],
-});
-
-const playfair = Playfair_Display({
-  subsets: ['latin'],
-  variable: '--font-playfair',
-  display: 'swap',
-  weight: ['400', '500', '600', '700'],
+  weight: ['300', '400', '500'],
 });
 
 const jetbrainsMono = JetBrains_Mono({
@@ -85,38 +64,36 @@ export default function RootLayout({
     <ClerkProvider
       publishableKey={env.clerk.publishableKey}
       appearance={{
-        baseTheme: undefined,
         variables: {
-          colorPrimary: '#B8860B',
-          colorBackground: '#FFFCF8',
-          colorText: '#1A1612',
-          colorTextSecondary: '#4A453F',
-          colorInputBackground: '#FDF8F3',
-          colorInputText: '#1A1612',
+          colorPrimary: '#000000',
+          colorBackground: '#f8f8f8',
+          colorText: '#000000',
+          colorTextSecondary: '#636363',
+          colorInputBackground: '#ffffff',
+          colorInputText: '#000000',
           borderRadius: '16px',
         },
         elements: {
-          formButtonPrimary: 'bg-gradient-to-r from-[#B8860B] to-[#78611D] hover:opacity-90 text-white font-semibold',
-          card: 'bg-[#FDF8F3] border border-[#F0E8DE]',
-          headerTitle: 'text-[#1A1612] font-[family-name:var(--font-cormorant)]',
-          headerSubtitle: 'text-[#4A453F]',
-          socialButtonsBlockButton: 'border-[#78611D]/30 hover:bg-[#78611D]/10',
-          formFieldLabel: 'text-[#4A453F]',
-          formFieldInput: 'bg-[#FFFCF8] border-[#F0E8DE] text-[#1A1612] focus:border-[#78611D]',
-          footerActionLink: 'text-[#B8860B] hover:text-[#78611D]',
+          formButtonPrimary: 'bg-black hover:bg-black/85 text-white font-medium',
+          card: 'bg-white border border-black/8',
+          headerTitle: 'text-black font-[family-name:var(--font-dm-sans)]',
+          headerSubtitle: 'text-black/60',
+          socialButtonsBlockButton: 'border-black/10 hover:bg-black/5',
+          formFieldLabel: 'text-black/60',
+          formFieldInput: 'bg-white border-black/10 text-black focus:border-black',
+          footerActionLink: 'text-black hover:text-black/70',
         }
       }}
     >
-      <html lang="en" suppressHydrationWarning className={`${inter.variable} ${cormorant.variable} ${dmSans.variable} ${playfair.variable} ${jetbrainsMono.variable}`}>
+      <html lang="en" suppressHydrationWarning className={`${dmSans.variable} ${jetbrainsMono.variable}`}>
         <head>
           <link rel="manifest" href="/manifest.json" />
           <link rel="preconnect" href="https://nominatim.openstreetmap.org" />
           <link rel="preconnect" href="https://tile.openstreetmap.org" />
         </head>
-        <body className={`${inter.variable} ${cormorant.variable} ${dmSans.variable} ${playfair.variable} ${jetbrainsMono.variable} min-h-screen bg-dia-bg text-dia-ink antialiased overflow-x-hidden`}>
+        <body className={`${dmSans.variable} ${jetbrainsMono.variable} min-h-screen bg-dia-bg text-dia-ink antialiased overflow-x-hidden`}>
           {/* Dia Browser Clean Background */}
           <div className="fixed inset-0 pointer-events-none z-0 bg-dia-bg" />
-          <div className="fixed inset-0 pointer-events-none z-0 bg-sacred-pattern" />
 
           {/* Main Content */}
           <DebugProvider>

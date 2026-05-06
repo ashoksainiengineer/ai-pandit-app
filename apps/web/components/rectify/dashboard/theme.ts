@@ -1,7 +1,7 @@
 export const THEME = {
     bg: '#F8F5F0',
     surface: '#FFFFFF',
-    gold: '#B8860B',
+    gold: '#000000',
     goldLight: '#DAA520',
     textPrimary: '#1A1A1A',
     textSecondary: '#4A4A4A',

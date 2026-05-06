@@ -38,25 +38,25 @@ export function SpouseDetailsForm({
                 <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-lg bg-white border border-[#E8E0D5] flex items-center justify-center text-xl">👩‍❤️‍👨</div>
                     <div>
-                        <h4 className="font-[family-name:var(--font-cormorant)] text-base font-semibold text-[#1A1612]">Spouse Details <span className="text-[#5A554F] font-normal text-xs">(Optional)</span></h4>
-                        <p className="text-[10px] text-[#5A554F]">+15% precision boost</p>
+                        <h4 className=" text-base font-medium text-[#000000]">Spouse Details <span className="text-[#636363] font-normal text-xs">(Optional)</span></h4>
+                        <p className="text-[10px] text-[#636363]">+15% precision boost</p>
                     </div>
                 </div>
-                <div className={`w-8 h-8 rounded-full bg-white border border-[#E8E0D5] flex items-center justify-center text-xs transition-all ${showSpouse ? 'rotate-180 bg-[#B8860B] border-[#B8860B] text-white' : 'text-[#B8860B]'}`}>▼</div>
+                <div className={`w-8 h-8 rounded-full bg-white border border-[#E8E0D5] flex items-center justify-center text-xs transition-all ${showSpouse ? 'rotate-180 bg-[#000000] border-[#000000] text-white' : 'text-[#000000]'}`}>▼</div>
             </button>
 
             {showSpouse && (
                 <motion.div
                     initial={{ opacity: 0, height: 0 }}
                     animate={{ opacity: 1, height: 'auto' }}
-                    className="mt-4 space-y-4 pt-4 border-t border-[#F0E8DE]"
+                    className="mt-4 space-y-4 pt-4 border-t border-[rgba(0,0,0,0.08)]"
                 >
                     <FormField label="Spouse Date of Birth">
                         <div className="grid grid-cols-3 gap-2">
                             <select
                                 value={spouseDobParts.day}
                                 onChange={(e) => handleSpouseDateChange('day', e.target.value)}
-                                className="h-11 px-3 bg-white border border-[#E8E0D5] rounded-lg text-[#1A1612] text-sm outline-none focus:border-[#78611D]"
+                                className="h-11 px-3 bg-white border border-[#E8E0D5] rounded-lg text-[#000000] text-sm outline-none focus:border-[#000000]"
                             >
                                 <option value="">Day</option>
                                 {spouseAvailableDays.map(d => <option key={d} value={d}>{d}</option>)}
@@ -64,7 +64,7 @@ export function SpouseDetailsForm({
                             <select
                                 value={spouseDobParts.month}
                                 onChange={(e) => handleSpouseDateChange('month', e.target.value)}
-                                className="h-11 px-3 bg-white border border-[#E8E0D5] rounded-lg text-[#1A1612] text-sm outline-none focus:border-[#78611D]"
+                                className="h-11 px-3 bg-white border border-[#E8E0D5] rounded-lg text-[#000000] text-sm outline-none focus:border-[#000000]"
                             >
                                 <option value="">Month</option>
                                 {MONTHS.map(m => <option key={m.val} value={m.val}>{m.label}</option>)}
@@ -72,7 +72,7 @@ export function SpouseDetailsForm({
                             <select
                                 value={spouseDobParts.year}
                                 onChange={(e) => handleSpouseDateChange('year', e.target.value)}
-                                className="h-11 px-3 bg-white border border-[#E8E0D5] rounded-lg text-[#1A1612] text-sm outline-none focus:border-[#78611D]"
+                                className="h-11 px-3 bg-white border border-[#E8E0D5] rounded-lg text-[#000000] text-sm outline-none focus:border-[#000000]"
                             >
                                 <option value="">Year</option>
                                 {YEARS.map(y => <option key={y} value={y}>{y}</option>)}
@@ -85,16 +85,16 @@ export function SpouseDetailsForm({
                             <select
                                 value={spouseTimeParts.hour}
                                 onChange={(e) => handleSpouseTimeChange('hour', e.target.value)}
-                                className="h-11 w-20 px-2 bg-white border border-[#E8E0D5] rounded-lg text-[#1A1612] text-base text-center outline-none focus:border-[#78611D]"
+                                className="h-11 w-20 px-2 bg-white border border-[#E8E0D5] rounded-lg text-[#000000] text-base text-center outline-none focus:border-[#000000]"
                             >
                                 <option value="">HH</option>
                                 {HOURS.map(h => <option key={h} value={h}>{h}</option>)}
                             </select>
-                            <span className="text-xl text-[#B8860B]">:</span>
+                            <span className="text-xl text-[#000000]">:</span>
                             <select
                                 value={spouseTimeParts.minute}
                                 onChange={(e) => handleSpouseTimeChange('minute', e.target.value)}
-                                className="h-11 w-20 px-2 bg-white border border-[#E8E0D5] rounded-lg text-[#1A1612] text-base text-center outline-none focus:border-[#78611D]"
+                                className="h-11 w-20 px-2 bg-white border border-[#E8E0D5] rounded-lg text-[#000000] text-base text-center outline-none focus:border-[#000000]"
                             >
                                 <option value="">MM</option>
                                 {MINUTES.map(m => <option key={m} value={m}>{m}</option>)}
@@ -105,7 +105,7 @@ export function SpouseDetailsForm({
                                         key={p}
                                         type="button"
                                         onClick={() => handleSpouseTimeChange('period', p as any)}
-                                        className={`px-4 font-medium text-sm transition-all ${spouseTimeParts.period === p ? 'bg-[#B8860B] text-white' : 'text-[#5A554F] hover:text-[#1A1612]'}`}
+                                        className={`px-4 font-medium text-sm transition-all ${spouseTimeParts.period === p ? 'bg-[#000000] text-white' : 'text-[#636363] hover:text-[#000000]'}`}
                                     >
                                         {p}
                                     </button>

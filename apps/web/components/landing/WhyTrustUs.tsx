@@ -32,10 +32,10 @@ export default function WhyTrustUs() {
           viewport={{ once: true }}
           className="text-center mb-14"
         >
-          <h2 className="font-[family-name:var(--font-cormorant)] text-3xl sm:text-4xl font-semibold text-[#1A1612] mb-3">
+          <h2 className=" text-3xl sm:text-4xl font-medium text-[#000000] mb-3">
             Built for Trust
           </h2>
-          <p className="text-[#5A554F] text-sm max-w-md mx-auto">
+          <p className="text-[#636363] text-sm max-w-md mx-auto">
             Birth data is sacred. We treat it that way.
           </p>
         </motion.div>
@@ -48,16 +48,16 @@ export default function WhyTrustUs() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ delay: i * 0.12 }}
-              className="flex items-start gap-5 p-6 border border-[#F0E8DE] rounded-xl"
+              className="flex items-start gap-5 p-6 border border-[rgba(0,0,0,0.08)] rounded-xl"
             >
-              <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-[#FDF8F3] border border-[#F0E8DE] flex items-center justify-center">
+              <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-[#ffffff] border border-[rgba(0,0,0,0.08)] flex items-center justify-center">
                 <p.icon className="w-5 h-5 text-[#8A6A0B]" />
               </div>
               <div>
-                <h3 className="font-[family-name:var(--font-cormorant)] text-lg font-semibold text-[#1A1612] mb-2">
+                <h3 className=" text-lg font-medium text-[#000000] mb-2">
                   {p.title}
                 </h3>
-                <p className="text-sm text-[#5A554F] leading-relaxed">{p.desc}</p>
+                <p className="text-sm text-[#636363] leading-relaxed">{p.desc}</p>
               </div>
             </motion.div>
           ))}

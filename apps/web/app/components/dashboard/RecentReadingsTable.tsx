@@ -83,19 +83,19 @@ function formatDuration(seconds?: number): string {
 export default function RecentReadingsTable({ readings, loading }: RecentReadingsTableProps) {
   if (loading) {
     return (
-      <div className="bg-white rounded-xl border border-[#F0E8DE] overflow-hidden">
-        <div className="p-6 border-b border-[#F0E8DE]">
-          <div className="w-48 h-6 rounded bg-[#FDF8F3] animate-pulse" />
+      <div className="bg-white rounded-xl border border-[rgba(0,0,0,0.08)] overflow-hidden">
+        <div className="p-6 border-b border-[rgba(0,0,0,0.08)]">
+          <div className="w-48 h-6 rounded bg-[#ffffff] animate-pulse" />
         </div>
-        <div className="divide-y divide-[#F0E8DE]">
+        <div className="divide-y divide-[rgba(0,0,0,0.08)]">
           {[...Array(5)].map((_, i) => (
             <div key={i} className="p-4 flex items-center gap-4">
-              <div className="w-10 h-10 rounded-full bg-[#FDF8F3] animate-pulse" />
+              <div className="w-10 h-10 rounded-full bg-[#ffffff] animate-pulse" />
               <div className="flex-1 space-y-2">
-                <div className="w-32 h-4 rounded bg-[#FDF8F3] animate-pulse" />
-                <div className="w-48 h-3 rounded bg-[#FDF8F3] animate-pulse" />
+                <div className="w-32 h-4 rounded bg-[#ffffff] animate-pulse" />
+                <div className="w-48 h-3 rounded bg-[#ffffff] animate-pulse" />
               </div>
-              <div className="w-24 h-8 rounded-full bg-[#FDF8F3] animate-pulse" />
+              <div className="w-24 h-8 rounded-full bg-[#ffffff] animate-pulse" />
             </div>
           ))}
         </div>
@@ -105,12 +105,12 @@ export default function RecentReadingsTable({ readings, loading }: RecentReading
 
   if (readings.length === 0) {
     return (
-      <div className="bg-white rounded-xl border border-[#F0E8DE] p-12 text-center">
-        <div className="w-16 h-16 rounded-full bg-[#FDF8F3] flex items-center justify-center mx-auto mb-4">
-          <Calendar className="w-8 h-8 text-[#8A857F]" />
+      <div className="bg-white rounded-xl border border-[rgba(0,0,0,0.08)] p-12 text-center">
+        <div className="w-16 h-16 rounded-full bg-[#ffffff] flex items-center justify-center mx-auto mb-4">
+          <Calendar className="w-8 h-8 text-[#959595]" />
         </div>
-        <h3 className="text-lg font-medium text-[#1A1612] mb-2">No readings yet</h3>
-        <p className="text-[#5A554F]">Readings will appear here once users start using the service.</p>
+        <h3 className="text-lg font-medium text-[#000000] mb-2">No readings yet</h3>
+        <p className="text-[#636363]">Readings will appear here once users start using the service.</p>
       </div>
     );
   }
@@ -120,22 +120,22 @@ export default function RecentReadingsTable({ readings, loading }: RecentReading
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
-      className="bg-white rounded-xl border border-[#F0E8DE] overflow-hidden"
+      className="bg-white rounded-xl border border-[rgba(0,0,0,0.08)] overflow-hidden"
     >
-      <div className="p-6 border-b border-[#F0E8DE] flex items-center justify-between">
-        <h3 className="text-lg font-semibold text-[#1A1612] font-[family-name:var(--font-cormorant)]">
+      <div className="p-6 border-b border-[rgba(0,0,0,0.08)] flex items-center justify-between">
+        <h3 className="text-lg font-medium text-[#000000] ">
           Recent Readings
         </h3>
         <Link
           href="/admin/readings"
-          className="text-sm text-[#B8860B] hover:text-[#78611D] font-medium flex items-center gap-1"
+          className="text-sm text-[#000000] hover:text-[#000000] font-medium flex items-center gap-1"
         >
           View all
           <ChevronRight className="w-4 h-4" />
         </Link>
       </div>
 
-      <div className="divide-y divide-[#F0E8DE]">
+      <div className="divide-y divide-[rgba(0,0,0,0.08)]">
         {readings.map((reading, index) => {
           const status = statusConfig[reading.status];
           const StatusIcon = status.icon;
@@ -146,16 +146,16 @@ export default function RecentReadingsTable({ readings, loading }: RecentReading
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.2, delay: index * 0.05 }}
-              className="p-4 hover:bg-[#FDF8F3] transition-colors"
+              className="p-4 hover:bg-[#ffffff] transition-colors"
             >
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
-                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#B8860B]/10 to-[#78611D]/10 flex items-center justify-center">
-                    <User className="w-5 h-5 text-[#B8860B]" />
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#000000]/10 to-[#000000]/10 flex items-center justify-center">
+                    <User className="w-5 h-5 text-[#000000]" />
                   </div>
                   <div>
-                    <p className="font-medium text-[#1A1612]">{reading.userName}</p>
-                    <div className="flex items-center gap-3 text-sm text-[#5A554F]">
+                    <p className="font-medium text-[#000000]">{reading.userName}</p>
+                    <div className="flex items-center gap-3 text-sm text-[#636363]">
                       <span className="flex items-center gap-1">
                         <Calendar className="w-3.5 h-3.5" />
                         {formatDate(reading.createdAt)}
@@ -171,10 +171,10 @@ export default function RecentReadingsTable({ readings, loading }: RecentReading
                 <div className="flex items-center gap-4">
                   {reading.confidence && (
                     <div className="text-right hidden sm:block">
-                      <p className="text-sm font-medium text-[#1A1612]">
+                      <p className="text-sm font-medium text-[#000000]">
                         {(reading.confidence * 100).toFixed(1)}%
                       </p>
-                      <p className="text-xs text-[#5A554F]">Confidence</p>
+                      <p className="text-xs text-[#636363]">Confidence</p>
                     </div>
                   )}
 
@@ -185,7 +185,7 @@ export default function RecentReadingsTable({ readings, loading }: RecentReading
 
                   <Link
                     href={`/admin/readings/${reading.id}`}
-                    className="p-2 rounded-lg hover:bg-[#F0E8DE]/50 text-[#5A554F] hover:text-[#1A1612] transition-colors"
+                    className="p-2 rounded-lg hover:bg-[rgba(0,0,0,0.08)]/50 text-[#636363] hover:text-[#000000] transition-colors"
                   >
                     <ChevronRight className="w-5 h-5" />
                   </Link>

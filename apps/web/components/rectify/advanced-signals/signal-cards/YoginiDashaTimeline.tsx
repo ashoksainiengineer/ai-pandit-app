@@ -52,10 +52,10 @@ const YoginiDashaTimeline: React.FC<YoginiDashaTimelineProps> = ({ dashaPeriods 
         {/* Highlighted Event Dasha Info */}
         <div className="bg-bg-elevated p-fib-3 rounded-fib-3 mb-fib-4 text-center border border-border-accent shadow-inner">
           <p className="text-phi-sm text-text-secondary">
-            During your key life event, the active period was <span className="font-bold text-accent-primary">{eventDasha.dashaName}</span>.
+            During your key life event, the active period was <span className="font-medium text-accent-primary">{eventDasha.dashaName}</span>.
           </p>
-          <p className="text-phi-xs text-text-muted">
-            This is a <span className="font-bold">{dashaNatures[eventDasha.dashaName]?.nature}</span> period, typically associated with {dashaNatures[eventDasha.dashaName]?.description}
+          <p className="text-phi-xs text-black/60">
+            This is a <span className="font-medium">{dashaNatures[eventDasha.dashaName]?.nature}</span> period, typically associated with {dashaNatures[eventDasha.dashaName]?.description}
           </p>
         </div>
 

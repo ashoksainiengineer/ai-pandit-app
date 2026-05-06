@@ -46,7 +46,7 @@ const pipelineSteps = [
     technologies: ['Batch Splitter', 'Parallel Executor', 'Scoring Engine'],
     metrics: { label: 'Survivors', value: '~435' },
     icon: Workflow,
-    color: '#B8860B'
+    color: '#000000'
   },
   {
     number: '04',
@@ -96,18 +96,18 @@ const pipelineSteps = [
     technologies: ['Session Manager', 'Event Emitter', 'Database'],
     metrics: { label: 'Report', value: '23 pages' },
     icon: Zap,
-    color: '#78611D'
+    color: '#000000'
   }
 ];
 
 const architectureLayers = [
   { name: 'Frontend', tech: 'Next.js + React', status: 'Streaming UI', color: '#6B1F7A' },
   { name: 'API Gateway', tech: 'Express + TypeScript', status: 'Rate Limited', color: '#8B4A9C' },
-  { name: 'Event Stream', tech: 'Session Manager', status: 'SSE Active', color: '#B8860B' },
+  { name: 'Event Stream', tech: 'Session Manager', status: 'SSE Active', color: '#000000' },
   { name: 'BTR Engine', tech: 'Pipeline Processor', status: '6 Stages', color: '#4A7C6F' },
   { name: 'Ephemeris', tech: 'Skyfield', status: 'High Precision', color: '#C65D3B' },
   { name: 'AI Service', tech: 'DeepSeek R1', status: 'Connected', color: '#4A7C6F' },
-  { name: 'Database', tech: 'Neon Postgres', status: 'Synced', color: '#78611D' },
+  { name: 'Database', tech: 'Neon Postgres', status: 'Synced', color: '#000000' },
   { name: 'Progress', tech: 'Progress Tracker', status: 'Active', color: '#B8A1C9' },
 ];
 
@@ -126,21 +126,21 @@ export default function Solution() {
           className="text-center mb-20"
         >
           <div
-            className="inline-flex items-center gap-2 px-5 py-2.5 bg-white border border-[#F0E8DE] 
+            className="inline-flex items-center gap-2 px-5 py-2.5 bg-white border border-[rgba(0,0,0,0.08)] 
                        rounded-full text-sm mb-8"
           >
             <GitBranch className="w-4 h-4 text-[#4A7C6F]" />
-            <span className="text-[#4A453F]">Processing Pipeline</span>
+            <span className="text-[#636363]">Processing Pipeline</span>
           </div>
           
-          <h2 className="font-[family-name:var(--font-cormorant)] text-3xl md:text-4xl lg:text-5xl 
-                         font-semibold text-[#1A1612] mb-6 leading-tight">
+          <h2 className=" text-3xl md:text-4xl lg:text-5xl 
+                         font-medium text-[#000000] mb-6 leading-tight">
             Sacred{' '}
-            <span className="text-[#B8860B]">Technical</span>
+            <span className="text-[#000000]">Technical</span>
             {' '}Workflow
           </h2>
           
-          <p className="text-lg text-[#4A453F] max-w-3xl mx-auto">
+          <p className="text-lg text-[#636363] max-w-3xl mx-auto">
             From raw birth details to precision rectified time.
             Eight-stage pipeline with divine accuracy.
           </p>
@@ -155,8 +155,8 @@ export default function Solution() {
                 key={step.number}
                 className="group"
               >
-                <div className="relative bg-white border border-[#F0E8DE] rounded-2xl p-6 
-                                hover:border-[#78611D]/30 transition-all duration-300">
+                <div className="relative bg-white border border-[rgba(0,0,0,0.08)] rounded-2xl p-6 
+                                hover:border-[#000000]/30 transition-all duration-300">
                   <div className="flex flex-col lg:flex-row lg:items-center gap-6">
                     {/* Icon & Number */}
                     <div className="flex items-center gap-4 lg:w-72 shrink-0">
@@ -170,24 +170,24 @@ export default function Solution() {
                         <Icon className="w-6 h-6" style={{ color: step.color }} />
                       </div>
                       <div>
-                        <div className="font-mono text-2xl font-bold text-[#8A857F]">{step.number}</div>
-                        <div className="text-[10px] uppercase tracking-[0.15em] text-[#5A554F]">{step.phase}</div>
+                        <div className="font-mono text-2xl font-medium text-[#959595]">{step.number}</div>
+                        <div className="text-[10px] uppercase tracking-[0.15em] text-[#636363]">{step.phase}</div>
                       </div>
                     </div>
 
                     {/* Content */}
                     <div className="flex-1">
-                      <h3 className="font-[family-name:var(--font-cormorant)] text-xl font-semibold text-[#1A1612] mb-2">
+                      <h3 className=" text-xl font-medium text-[#000000] mb-2">
                         {step.title}
                       </h3>
-                      <p className="text-sm text-[#4A453F] mb-4 leading-relaxed">{step.description}</p>
+                      <p className="text-sm text-[#636363] mb-4 leading-relaxed">{step.description}</p>
                       
                       <div className="flex flex-wrap gap-2">
                         {step.technologies.map((tech) => (
                           <span 
                             key={tech}
-                            className="px-3 py-1 bg-[#FDF8F3] border border-[#F0E8DE] rounded-lg 
-                                       text-xs font-mono text-[#5A554F]"
+                            className="px-3 py-1 bg-[#ffffff] border border-[rgba(0,0,0,0.08)] rounded-lg 
+                                       text-xs font-mono text-[#636363]"
                           >
                             {tech}
                           </span>
@@ -197,10 +197,10 @@ export default function Solution() {
 
                     {/* Metrics */}
                     <div className="lg:w-48 shrink-0 lg:text-right">
-                      <div className="text-[10px] uppercase tracking-[0.15em] text-[#8A857F] mb-1">
+                      <div className="text-[10px] uppercase tracking-[0.15em] text-[#959595] mb-1">
                         {step.metrics.label}
                       </div>
-                      <div className="font-mono text-xl font-semibold" style={{ color: step.color }}>
+                      <div className="font-mono text-xl font-medium" style={{ color: step.color }}>
                         {step.metrics.value}
                       </div>
                     </div>
@@ -209,7 +209,7 @@ export default function Solution() {
                   {/* Connector line */}
                   {index < pipelineSteps.length - 1 && (
                     <div className="hidden lg:block absolute left-[3.5rem] top-full w-px h-4 
-                                    bg-gradient-to-b from-[#F0E8DE] to-transparent" />
+                                    bg-gradient-to-b from-[rgba(0,0,0,0.08)] to-transparent" />
                   )}
                 </div>
               </div>
@@ -219,18 +219,18 @@ export default function Solution() {
 
         {/* System Architecture */}
         <div
-          className="bg-white border border-[#F0E8DE] rounded-3xl p-8 lg:p-10"
+          className="bg-white border border-[rgba(0,0,0,0.08)] rounded-3xl p-8 lg:p-10"
         >
           <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 mb-10">
             <div>
               <div className="flex items-center gap-2 mb-3">
-                <Moon className="w-4 h-4 text-[#B8860B]" />
-                <span className="text-xs uppercase tracking-[0.2em] text-[#B8860B]">Architecture</span>
+                <Moon className="w-4 h-4 text-[#000000]" />
+                <span className="text-xs uppercase tracking-[0.2em] text-[#000000]">Architecture</span>
               </div>
-              <h3 className="font-[family-name:var(--font-cormorant)] text-2xl font-semibold text-[#1A1612] mb-2">
+              <h3 className=" text-2xl font-medium text-[#000000] mb-2">
                 System Architecture
               </h3>
-              <p className="text-sm text-[#5A554F]">Backend components and their sacred alignment</p>
+              <p className="text-sm text-[#636363]">Backend components and their sacred alignment</p>
             </div>
             
             <div className="flex items-center gap-3 px-4 py-2 bg-emerald-50 rounded-xl border border-emerald-100">
@@ -246,16 +246,16 @@ export default function Solution() {
             {architectureLayers.map((layer, index) => (
               <div
                 key={layer.name}
-                className="group p-4 bg-[#FDF8F3] rounded-xl border border-[#F0E8DE] 
-                           hover:border-[#78611D]/30 transition-all duration-300"
+                className="group p-4 bg-[#ffffff] rounded-xl border border-[rgba(0,0,0,0.08)] 
+                           hover:border-[#000000]/30 transition-all duration-300"
               >
                 <div className="text-[10px] uppercase tracking-[0.15em] mb-3" style={{ color: layer.color }}>
                   {layer.name}
                 </div>
-                <div className="text-sm font-medium text-[#1A1612] mb-2">{layer.tech}</div>
+                <div className="text-sm font-medium text-[#000000] mb-2">{layer.tech}</div>
                 <div className="flex items-center gap-1.5">
                   <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: layer.color }} />
-                  <span className="text-xs text-[#5A554F]">{layer.status}</span>
+                  <span className="text-xs text-[#636363]">{layer.status}</span>
                 </div>
               </div>
             ))}

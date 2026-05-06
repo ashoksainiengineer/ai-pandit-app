@@ -50,7 +50,7 @@ const GlobalStyles = memo(() => (
     .style-scroll::-webkit-scrollbar { width: 5px; height: 5px; }
     .style-scroll::-webkit-scrollbar-track { background: #efefef; border-radius: 10px; }
     .style-scroll::-webkit-scrollbar-thumb { background: #d9d9d9; border-radius: 10px; }
-    .style-scroll::-webkit-scrollbar-thumb:hover { background: #B8860B; }
+    .style-scroll::-webkit-scrollbar-thumb:hover { background: #000000; }
   `}</style>
 ));
 GlobalStyles.displayName = 'GlobalStyles';
@@ -61,7 +61,7 @@ const THEME = {
   border: '#d9d9d9',
   textPrimary: '#000000',
   textSecondary: '#636363',
-  gold: '#B8860B',
+  gold: '#000000',
   success: '#184131',
   error: '#C65D3B',
 };
@@ -69,9 +69,9 @@ const THEME = {
 const LoadingState = memo(() => (
   <div className="flex flex-col items-center justify-center min-h-screen bg-prism-canvas text-center p-4">
     <motion.div animate={{ rotate: 360 }} transition={{ duration: 1.5, repeat: Infinity, ease: 'linear' }}>
-      <Gem className="w-16 h-16 text-[#B8860B]" />
+      <Gem className="w-16 h-16 text-[#000000]" />
     </motion.div>
-    <h1 className="text-2xl font-bold mt-6 text-prism-ink">Starting Analysis...</h1>
+    <h1 className="text-2xl font-medium mt-6 text-prism-ink">Starting Analysis...</h1>
     <p className="text-lg text-prism-graphite mt-2">Establishing secure connection...</p>
   </div>
 ));
@@ -80,9 +80,9 @@ LoadingState.displayName = 'LoadingState';
 const ErrorDisplay = memo(({ error, onRetry }: { error: string; onRetry: () => void }) => (
   <div className="flex flex-col items-center justify-center min-h-screen bg-prism-canvas text-center p-4" role="alert">
     <AlertCircle className="w-16 h-16 text-red-500" />
-    <h1 className="text-2xl font-bold mt-6 text-red-700">Connection Error</h1>
+    <h1 className="text-2xl font-medium mt-6 text-red-700">Connection Error</h1>
     <p className="text-xs text-red-600 mt-2 max-w-2xl bg-red-50 p-4 rounded border border-red-200">{error}</p>
-    <button onClick={onRetry} className="mt-8 px-6 py-3 rounded-prism-lg font-semibold text-white bg-gradient-to-r from-[#B8860B] to-[#78611D] shadow-md flex items-center gap-2 hover:shadow-prism-sm transition-all">
+    <button onClick={onRetry} className="mt-8 px-6 py-3 rounded-prism-lg font-medium text-white bg-gradient-to-r from-[#000000] to-[#000000] shadow-md flex items-center gap-2 hover:shadow-prism-sm transition-all">
       <RefreshCw className="w-4 h-4" /> Retry
     </button>
   </div>
@@ -95,11 +95,11 @@ const Breadcrumbs = memo(({ items }: { items: { label: string; href?: string; ic
       {items.map((item, index) => (
         <li key={item.label} className="flex items-center gap-2">
           {item.href ? (
-            <Link href={item.href} className="flex items-center gap-1.5 hover:text-[#B8860B] transition-colors">
+            <Link href={item.href} className="flex items-center gap-1.5 hover:text-[#000000] transition-colors">
               {item.icon}{item.label}
             </Link>
           ) : (
-            <span className="flex items-center gap-1.5 font-semibold text-prism-ink">{item.icon}{item.label}</span>
+            <span className="flex items-center gap-1.5 font-medium text-prism-ink">{item.icon}{item.label}</span>
           )}
           {index < items.length - 1 && <span className="opacity-50">/</span>}
         </li>
@@ -140,7 +140,7 @@ const AnalysisTimer = memo(({ startedAt, isComplete, updatedAt }: { startedAt: s
     return (
       <div className="flex items-center gap-1.5 font-mono text-sm bg-stone-100 px-3 py-1.5 rounded-lg border border-stone-200">
         <Clock className="w-3.5 h-3.5 text-prism-graphite" />
-        <span className="text-xs font-semibold">Waiting...</span>
+        <span className="text-xs font-medium">Waiting...</span>
       </div>
     );
   }
@@ -152,7 +152,7 @@ const AnalysisTimer = memo(({ startedAt, isComplete, updatedAt }: { startedAt: s
   return (
     <div className="flex items-center gap-1.5 font-mono text-sm bg-stone-100 px-3 py-1.5 rounded-lg border border-stone-200">
       <Clock className="w-3.5 h-3.5 text-prism-graphite" />
-      <span className="font-semibold">{minutes}:{seconds}</span>
+      <span className="font-medium">{minutes}:{seconds}</span>
     </div>
   );
 });
@@ -370,7 +370,7 @@ export default function AnalysisPage() {
 
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mt-2">
               <div>
-                <h1 id={pageTitleId} className="text-lg sm:text-xl font-bold flex items-center gap-2" style={{ color: THEME.textPrimary }}>
+                <h1 id={pageTitleId} className="text-lg sm:text-xl font-medium flex items-center gap-2" style={{ color: THEME.textPrimary }}>
                   {metadata?.fullName || 'Birth Time Analysis'}
                   <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-stone-100 text-prism-graphite">
                     {sessionId.slice(0, 8)}
@@ -389,9 +389,9 @@ export default function AnalysisPage() {
                     {metadata?.tentativeTime && (
                       <div className="flex items-center gap-1.5">
                         <Timer className="w-3.5 h-3.5" />
-                        <span className="font-mono font-semibold">{metadata.tentativeTime}</span>
+                        <span className="font-mono font-medium">{metadata.tentativeTime}</span>
                         {metadata.offsetConfig && (
-                          <span className="text-[#B8860B] font-medium">
+                          <span className="text-[#000000] font-medium">
                             ±{metadata.offsetConfig.customMinutes ?? metadata.offsetConfig.minutes ?? 60}min
                           </span>
                         )}
@@ -414,7 +414,7 @@ export default function AnalysisPage() {
                   <div className="relative">
                     {showCancelConfirm ? (
                       <div className="flex items-center gap-2">
-                        <button onClick={cancelActiveAnalysis} className="px-3 py-1.5 text-xs font-bold text-white bg-red-600 rounded-lg hover:bg-red-700">
+                        <button onClick={cancelActiveAnalysis} className="px-3 py-1.5 text-xs font-medium text-white bg-red-600 rounded-lg hover:bg-red-700">
                           Confirm
                         </button>
                         <button onClick={() => setShowCancelConfirm(false)} className="px-3 py-1.5 text-xs text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200">
@@ -454,15 +454,15 @@ export default function AnalysisPage() {
               <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="rounded-prism-lg border shadow-sm overflow-hidden" style={{ backgroundColor: THEME.surface, borderColor: `${THEME.error}30` }}>
                 <div className="p-6 sm:p-8 text-center">
                   <XCircle className="w-12 h-12 text-red-600 mx-auto mb-4" />
-                  <h2 className="text-lg font-bold mb-2" style={{ color: THEME.textPrimary }}>
+                  <h2 className="text-lg font-medium mb-2" style={{ color: THEME.textPrimary }}>
                     {metadata?.status === 'failed' ? 'Analysis Failed' : 'Analysis Stopped'}
                   </h2>
                   <p className="mb-6 text-sm text-prism-graphite">{metadata?.errorMessage || 'The analysis was terminated.'}</p>
                   <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
-                    <button onClick={restartAnalysisSession} disabled={isCancelling} className="px-5 py-2.5 rounded-prism-lg font-bold text-white flex items-center gap-2" style={{ backgroundColor: THEME.success }}>
+                    <button onClick={restartAnalysisSession} disabled={isCancelling} className="px-5 py-2.5 rounded-prism-lg font-medium text-white flex items-center gap-2" style={{ backgroundColor: THEME.success }}>
                       <RefreshCw className={`w-4 h-4 ${isCancelling ? 'animate-spin' : ''}`} /> Restart
                     </button>
-                    <Link href="/rectify?new=true" className="px-5 py-2.5 rounded-prism-lg font-semibold border flex items-center gap-2" style={{ borderColor: THEME.border, color: THEME.textPrimary }}>
+                    <Link href="/rectify?new=true" className="px-5 py-2.5 rounded-prism-lg font-medium border flex items-center gap-2" style={{ borderColor: THEME.border, color: THEME.textPrimary }}>
                       <Home className="w-4 h-4" /> New Analysis
                     </Link>
                   </div>
@@ -485,11 +485,11 @@ export default function AnalysisPage() {
                   <div>
                     <h2 className="text-xl font-black text-prism-ink mb-1">Analysis Successfully Completed</h2>
                     <p className="text-sm text-prism-graphite flex flex-wrap items-center gap-x-3 gap-y-1">
-                      <span className="flex items-center gap-1.5 font-bold text-[#184131]">
+                      <span className="flex items-center gap-1.5 font-medium text-[#184131]">
                         <Activity className="w-4 h-4" /> {result.rectifiedTime}
                       </span>
                       <span className="w-1 h-1 rounded-full bg-stone-300" />
-                      <span className="flex items-center gap-1.5 font-bold text-[#B8860B]">
+                      <span className="flex items-center gap-1.5 font-medium text-[#000000]">
                         <Zap className="w-4 h-4" /> {result.confidence} Confidence
                       </span>
                       <span className="w-1 h-1 rounded-full bg-stone-300" />
@@ -502,13 +502,13 @@ export default function AnalysisPage() {
                 <div className="flex items-center gap-3 w-full md:w-auto">
                   <Link
                     href={`/rectify/${sessionId}/results`}
-                    className="flex-1 md:flex-none px-6 py-3 bg-gradient-to-r from-[#B8860B] to-[#78611D] text-white rounded-prism-lg font-bold text-sm flex items-center justify-center gap-2 hover:shadow-prism-sm transition-all shadow-md"
+                    className="flex-1 md:flex-none px-6 py-3 bg-gradient-to-r from-[#000000] to-[#000000] text-white rounded-prism-lg font-medium text-sm flex items-center justify-center gap-2 hover:shadow-prism-sm transition-all shadow-md"
                   >
                     View Official Report <ChevronRight className="w-4 h-4" />
                   </Link>
                   <button
                     onClick={() => window.scrollTo({ top: 800, behavior: 'smooth' })}
-                    className="flex-1 md:flex-none px-6 py-3 bg-white/90 backdrop-blur-prism-lg border border-stone-200 text-stone-600 rounded-prism-lg font-bold text-sm flex items-center justify-center gap-2 hover:bg-stone-50 transition-colors"
+                    className="flex-1 md:flex-none px-6 py-3 bg-white/90 backdrop-blur-prism-lg border border-stone-200 text-stone-600 rounded-prism-lg font-medium text-sm flex items-center justify-center gap-2 hover:bg-stone-50 transition-colors"
                   >
                     Quick Review
                   </button>
@@ -585,7 +585,7 @@ export default function AnalysisPage() {
                           style={{ contain: 'paint', minHeight: '150px' }}
                         >
                           <div className="flex items-center gap-2 mb-4 -ml-7 sm:-ml-9">
-                            <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold border-2 transition-all duration-500
+                            <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-medium border-2 transition-all duration-500
                               ${isCurrentStage
                                 ? 'bg-amber-500 border-amber-200 text-white shadow-sm ring-4 ring-amber-500/10'
                                 : isStageCompleted
@@ -594,7 +594,7 @@ export default function AnalysisPage() {
                               }`}>
                               {stageNum}
                             </div>
-                            <h3 className={`text-xs font-bold uppercase tracking-widest ${isCurrentStage ? 'text-amber-700' : 'text-stone-500'}`}>
+                            <h3 className={`text-xs font-medium uppercase tracking-widest ${isCurrentStage ? 'text-amber-700' : 'text-stone-500'}`}>
                               {stepDef.name}
                             </h3>
                           </div>
@@ -624,7 +624,7 @@ export default function AnalysisPage() {
                               <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-2">
                                   <div className={`w-2 h-2 rounded-full ${isCurrentStage ? 'bg-blue-500 animate-pulse' : 'bg-stone-300'}`} />
-                                  <span className="text-[10px] font-bold text-stone-500 uppercase tracking-wider">
+                                  <span className="text-[10px] font-medium text-stone-500 uppercase tracking-wider">
                                     {isCurrentStage ? 'Computing Mathematical Grids...' : 'Computation Complete'}
                                   </span>
                                 </div>

@@ -60,8 +60,8 @@ export const statusConfig: Record<string, {
 };
 
 export const confidenceConfig: Record<string, { color: string; label: string }> = {
-  'god-tier': { color: '#B8860B', label: 'GOD-TIER' },
+  'god-tier': { color: '#000000', label: 'GOD-TIER' },
   'high': { color: '#184131', label: 'HIGH' },
-  'medium': { color: '#78611D', label: 'MEDIUM' },
+  'medium': { color: '#000000', label: 'MEDIUM' },
   'low': { color: '#C65D3B', label: 'LOW' },
 };

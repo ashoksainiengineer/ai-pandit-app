@@ -87,7 +87,7 @@ export const EVENT_CATEGORIES: EventCategory[] = [
     id: 'career',
     icon: '💼',
     label: 'Career & Work',
-    color: '#78611D',
+    color: '#000000',
     description: 'Jobs, promotions, business, and professional achievements',
     events: [
       { id: 'first_job', label: 'First Job / Started Working', importance: 'critical', ageRange: { min: 20, max: 25 } },

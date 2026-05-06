@@ -22,7 +22,7 @@ export function EventMatchGrid({
     if (!eventMatches || eventMatches.length === 0) {
         return (
             <div className="rounded-xl p-6 shadow-sm" style={{ backgroundColor: THEME.surface, border: `1px solid ${THEME.border}` }}>
-                <h4 className="font-bold mb-4 flex items-center gap-2" style={{ color: THEME.textPrimary }}>
+                <h4 className="font-medium mb-4 flex items-center gap-2" style={{ color: THEME.textPrimary }}>
                     <CheckCircle className="w-4 h-4" style={{ color: THEME.gold }} aria-hidden="true" />
                     Event Correlation Audit
                 </h4>
@@ -35,7 +35,7 @@ export function EventMatchGrid({
 
     return (
         <div className="rounded-xl p-6 shadow-sm" style={{ backgroundColor: THEME.surface, border: `1px solid ${THEME.border}` }}>
-            <h4 className="font-bold mb-4 flex items-center gap-2" style={{ color: THEME.textPrimary }}>
+            <h4 className="font-medium mb-4 flex items-center gap-2" style={{ color: THEME.textPrimary }}>
                 <CheckCircle className="w-4 h-4" style={{ color: THEME.gold }} aria-hidden="true" />
                 Event Correlation Audit
             </h4>
@@ -63,7 +63,7 @@ export function EventMatchGrid({
                             </span>
                         </div>
                         <div className="text-right">
-                            <div className="text-xs font-mono font-bold" style={{ color: THEME.gold }}>{evt.dasha || 'N/A'}</div>
+                            <div className="text-xs font-mono font-medium" style={{ color: THEME.gold }}>{evt.dasha || 'N/A'}</div>
                             <div
                                 className="text-[9px] uppercase tracking-wider font-extrabold"
                                 style={{ color: evt.match ? THEME.success : '#F59E0B' }}

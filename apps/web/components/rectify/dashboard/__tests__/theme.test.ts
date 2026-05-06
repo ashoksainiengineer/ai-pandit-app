@@ -6,7 +6,7 @@ describe('theme', () => {
     expect(THEME).toBeDefined();
     expect(THEME.bg).toBe('#F8F5F0');
     expect(THEME.surface).toBe('#FFFFFF');
-    expect(THEME.gold).toBe('#B8860B');
+    expect(THEME.gold).toBe('#000000');
     expect(THEME.goldLight).toBe('#DAA520');
     expect(THEME.textPrimary).toBe('#1A1A1A');
     expect(THEME.textSecondary).toBe('#4A4A4A');

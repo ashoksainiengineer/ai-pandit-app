@@ -22,18 +22,18 @@ export default async function DashboardPage() {
   if (!user) {
     return (
       <Layout hideFooter>
-        <div className="min-h-[60vh] flex items-center justify-center bg-prism-canvas">
+        <div className="min-h-[60vh] flex items-center justify-center bg-dia-bg">
           <div 
-            className="prism-card max-w-md text-center"
+            className="dia-card max-w-md text-center"
             style={{ WebkitBackdropFilter: 'blur(24px)' }}
           >
-            <h1 className="font-prism text-2xl font-medium text-prism-ink mb-4">
+            <h1 className="text-2xl font-medium text-black mb-4">
               Please Sign In
             </h1>
-            <p className="text-prism-body-sm text-prism-graphite mb-6">
+            <p className="text-sm text-black/60 mb-6">
               Access your dashboard to view and manage your birth time rectification sessions.
             </p>
-            <Link href="/sign-in" className="prism-btn">
+            <Link href="/sign-in" className="dia-btn">
               Sign In
             </Link>
           </div>
@@ -44,7 +44,7 @@ export default async function DashboardPage() {
 
   return (
     <Layout hideFooter>
-      <div className="pt-8 pb-12 bg-prism-canvas min-h-screen">
+      <div className="pt-8 pb-12 bg-dia-bg min-h-screen">
         <Suspense fallback={<DashboardSkeleton />}>
           <DashboardContent clerkId={user.id} userName={user.firstName || 'User'} />
         </Suspense>

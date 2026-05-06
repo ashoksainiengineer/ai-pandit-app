@@ -74,7 +74,7 @@ export const SessionCardGrid = memo(function SessionCardGrid({
         <div className="pt-8">
           {/* Status Badge */}
           <div className={`
-            inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold
+            inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium
             ${status.bgColor} ${status.textColor} border ${status.borderColor}
             ${session.status === 'processing' ? 'animate-pulse' : ''}
           `}>
@@ -89,7 +89,7 @@ export const SessionCardGrid = memo(function SessionCardGrid({
           </div>
 
           {/* Name */}
-          <h3 className="mt-4 text-lg font-semibold text-content-primary truncate">
+          <h3 className="mt-4 text-lg font-medium text-content-primary truncate">
             {session.fullName}
           </h3>
 
@@ -109,7 +109,7 @@ export const SessionCardGrid = memo(function SessionCardGrid({
           {session.rectifiedTime && (
             <div className="mt-4 p-3 bg-surface-raised rounded-xl border border-primary-dark/20">
               <span className="text-xs text-content-secondary uppercase tracking-wider">Rectified Time</span>
-              <p className="text-primary font-mono font-bold">{session.rectifiedTime}</p>
+              <p className="text-primary font-mono font-medium">{session.rectifiedTime}</p>
             </div>
           )}
 
@@ -118,7 +118,7 @@ export const SessionCardGrid = memo(function SessionCardGrid({
             <div className="mt-4 flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <span className="text-xs text-content-secondary">Confidence:</span>
-                <span className="text-xs font-bold" style={{ color: confidence.color }}>
+                <span className="text-xs font-medium" style={{ color: confidence.color }}>
                   {confidence.label}
                 </span>
               </div>

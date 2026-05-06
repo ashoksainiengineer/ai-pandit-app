@@ -16,44 +16,44 @@ export function EventTimeline({ sortedEvents, setEditingId }: EventTimelineProps
     return (
         <FormCard className="p-5">
             <div className="flex justify-between items-center mb-4">
-                <h3 className="font-[family-name:var(--font-cormorant)] text-lg font-semibold text-[#1A1612]">📜 Timeline</h3>
-                <span className="text-xs text-[#5A554F] bg-[#F5EFE7] px-2 py-1 rounded-full">
+                <h3 className=" text-lg font-medium text-[#000000]">📜 Timeline</h3>
+                <span className="text-xs text-[#636363] bg-[#f8f8f8] px-2 py-1 rounded-full">
                     {sortedEvents.length} events
                 </span>
             </div>
-            <div className="divide-y divide-[#F0E8DE]">
+            <div className="divide-y divide-[rgba(0,0,0,0.08)]">
                 {sortedEvents.map((event) => (
                     <motion.div
                         key={event.id}
                         onClick={() => setEditingId(event.id)}
-                        className="flex items-center gap-3 p-3 cursor-pointer hover:bg-[#F5EFE7] transition-colors rounded-lg"
+                        className="flex items-center gap-3 p-3 cursor-pointer hover:bg-[#f8f8f8] transition-colors rounded-lg"
                         whileHover={{ x: 4 }}
                     >
                         <span className="text-2xl">{event.icon}</span>
                         <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2">
-                                <div className="text-[#1A1612] font-semibold text-sm truncate">{event.eventType}</div>
+                                <div className="text-[#000000] font-medium text-sm truncate">{event.eventType}</div>
                                 {event.importance && (
                                     <span className={`text-[10px] px-2 py-0.5 rounded-full ${event.importance === 'critical'
                                         ? 'bg-[#C65D3B]/10 text-[#C65D3B]'
                                         : event.importance === 'high'
-                                            ? 'bg-[#B8860B]/10 text-[#B8860B]'
+                                            ? 'bg-[#000000]/10 text-[#000000]'
                                             : event.importance === 'medium'
                                                 ? 'bg-[#184131]/10 text-[#184131]'
-                                                : 'bg-[#8A857F]/20 text-[#5A554F]'
+                                                : 'bg-[#959595]/20 text-[#636363]'
                                         }`}>
                                         {IMPORTANCE_OPTIONS.find(i => i.level === event.importance)?.icon}
                                     </span>
                                 )}
                                 {event.isCustom && (
-                                    <span className="text-[10px] px-2 py-0.5 bg-[#B8860B]/10 text-[#B8860B] rounded-full">
+                                    <span className="text-[10px] px-2 py-0.5 bg-[#000000]/10 text-[#000000] rounded-full">
                                         Custom
                                     </span>
                                 )}
                             </div>
-                            <div className="text-xs text-[#B8860B] font-medium">{formatEventDate(event)}</div>
+                            <div className="text-xs text-[#000000] font-medium">{formatEventDate(event)}</div>
                             {event.description && (
-                                <p className="text-xs text-[#5A554F] line-clamp-1 mt-0.5">{event.description}</p>
+                                <p className="text-xs text-[#636363] line-clamp-1 mt-0.5">{event.description}</p>
                             )}
                         </div>
                         {event.description && event.description.length >= 10 ? (

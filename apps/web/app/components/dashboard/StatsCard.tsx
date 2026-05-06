@@ -51,14 +51,14 @@ export default function StatsCard({
 
   if (loading) {
     return (
-      <div className="bg-white rounded-xl border border-[#F0E8DE] p-6">
+      <div className="bg-white rounded-xl border border-[rgba(0,0,0,0.08)] p-6">
         <div className="flex items-start justify-between mb-4">
-          <div className="w-12 h-12 rounded-xl bg-[#FDF8F3] animate-pulse" />
-          <div className="w-20 h-8 rounded-full bg-[#FDF8F3] animate-pulse" />
+          <div className="w-12 h-12 rounded-xl bg-[#ffffff] animate-pulse" />
+          <div className="w-20 h-8 rounded-full bg-[#ffffff] animate-pulse" />
         </div>
         <div className="space-y-2">
-          <div className="w-24 h-4 rounded bg-[#FDF8F3] animate-pulse" />
-          <div className="w-32 h-8 rounded bg-[#FDF8F3] animate-pulse" />
+          <div className="w-24 h-4 rounded bg-[#ffffff] animate-pulse" />
+          <div className="w-32 h-8 rounded bg-[#ffffff] animate-pulse" />
         </div>
       </div>
     );
@@ -69,10 +69,10 @@ export default function StatsCard({
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
-      className="bg-white rounded-xl border border-[#F0E8DE] p-6 hover:shadow-lg transition-shadow"
+      className="bg-white rounded-xl border border-[rgba(0,0,0,0.08)] p-6 hover:shadow-lg transition-shadow"
     >
       <div className="flex items-start justify-between mb-4">
-        <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#B8860B]/10 to-[#78611D]/10 flex items-center justify-center text-[#B8860B]">
+        <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#000000]/10 to-[#000000]/10 flex items-center justify-center text-[#000000]">
           {icon}
         </div>
         {change !== undefined && (
@@ -84,12 +84,12 @@ export default function StatsCard({
       </div>
 
       <div className="space-y-1">
-        <p className="text-sm text-[#5A554F]">{title}</p>
-        <p className="text-2xl font-semibold text-[#1A1612] font-[family-name:var(--font-cormorant)]">
+        <p className="text-sm text-[#636363]">{title}</p>
+        <p className="text-2xl font-medium text-[#000000] ">
           {formatValue(value)}
         </p>
         {change !== undefined && (
-          <p className="text-xs text-[#8A857F]">{changeLabel}</p>
+          <p className="text-xs text-[#959595]">{changeLabel}</p>
         )}
       </div>
     </motion.div>

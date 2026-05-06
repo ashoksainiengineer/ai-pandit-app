@@ -33,15 +33,15 @@ interface ErrorBoundaryState {
 // ═══════════════════════════════════════════════════════════════════════════════
 
 const THEME = {
-    bg: '#FFFCF8',
+    bg: '#f8f8f8',
     surface: '#FFFFFF',
-    surfaceWarm: '#FDF8F3',
-    border: '#F0E8DE',
-    textPrimary: '#1A1612',
-    textSecondary: '#4A453F',
-    textMuted: '#5A554F',
-    gold: '#B8860B',
-    goldLight: '#78611D',
+    surfaceWarm: '#ffffff',
+    border: 'rgba(0,0,0,0.08)',
+    textPrimary: '#000000',
+    textSecondary: '#636363',
+    textMuted: '#636363',
+    gold: '#000000',
+    goldLight: '#000000',
     success: '#184131',
     warning: '#E8A849',
     error: '#C65D3B',
@@ -217,7 +217,7 @@ function ErrorFallback({
 
             {/* Error Title */}
             <h2
-                className="text-2xl font-bold mb-2"
+                className="text-2xl font-medium mb-2"
                 style={{ color: THEME.textPrimary }}
             >
                 {sectionName ? `${sectionName} Error` : 'Something Went Wrong'}
@@ -248,7 +248,7 @@ function ErrorFallback({
                 {isRecoverable ? (
                     <button
                         onClick={onReset}
-                        className="inline-flex items-center gap-2 px-6 py-3 rounded-xl font-semibold text-white transition-all hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2"
+                        className="inline-flex items-center gap-2 px-6 py-3 rounded-xl font-medium text-white transition-all hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2"
                         style={{
                             background: `linear-gradient(90deg, ${THEME.gold}, ${THEME.goldLight})`,
                         }}
@@ -260,7 +260,7 @@ function ErrorFallback({
                 ) : (
                     <button
                         onClick={onReload}
-                        className="inline-flex items-center gap-2 px-6 py-3 rounded-xl font-semibold text-white transition-all hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2"
+                        className="inline-flex items-center gap-2 px-6 py-3 rounded-xl font-medium text-white transition-all hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2"
                         style={{
                             background: `linear-gradient(90deg, ${THEME.gold}, ${THEME.goldLight})`,
                         }}
@@ -273,7 +273,7 @@ function ErrorFallback({
 
                 <Link
                     href="/dashboard"
-                    className="inline-flex items-center gap-2 px-6 py-3 rounded-xl font-semibold border transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2"
+                    className="inline-flex items-center gap-2 px-6 py-3 rounded-xl font-medium border transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2"
                     style={{
                         borderColor: THEME.border,
                         color: THEME.textSecondary,

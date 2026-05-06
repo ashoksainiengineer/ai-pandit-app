@@ -16,7 +16,7 @@ export function FormLabel({ children, htmlFor, required, className = '' }: FormL
   return (
     <label
       htmlFor={htmlFor}
-      className={`block text-sm font-medium text-[#4A453F] mb-2 ${className}`}
+      className={`block text-sm font-medium text-[#636363] mb-2 ${className}`}
     >
       {children}
       {required && <span className="text-[#C65D3B] ml-1">*</span>}

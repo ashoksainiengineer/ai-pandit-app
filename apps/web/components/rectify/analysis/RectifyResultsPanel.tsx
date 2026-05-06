@@ -110,7 +110,7 @@ export const RectifyResultsPanel = memo(function RectifyResultsPanel({
                                         style={{ contain: 'paint', minHeight: isCurrentStage ? '400px' : 'auto' }}
                                     >
                                         <div className="flex items-center gap-2 mb-4 -ml-7 sm:-ml-9">
-                                            <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold border-2 transition-all duration-500
+                                            <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-medium border-2 transition-all duration-500
                                                 ${isCurrentStage
                                                     ? 'bg-amber-500 border-amber-200 text-white shadow-sm ring-4 ring-amber-500/10'
                                                     : isStageCompleted
@@ -120,7 +120,7 @@ export const RectifyResultsPanel = memo(function RectifyResultsPanel({
                                             >
                                                 {stageNum}
                                             </div>
-                                            <h3 className={`text-xs font-bold uppercase tracking-widest ${isCurrentStage ? 'text-amber-700' : 'text-stone-500'}`}>
+                                            <h3 className={`text-xs font-medium uppercase tracking-widest ${isCurrentStage ? 'text-amber-700' : 'text-stone-500'}`}>
                                                 {stepDef.name}
                                             </h3>
                                         </div>
@@ -148,7 +148,7 @@ export const RectifyResultsPanel = memo(function RectifyResultsPanel({
                                                 <div className="flex items-center justify-between">
                                                     <div className="flex items-center gap-2">
                                                         <div className={`w-2 h-2 rounded-full ${isCurrentStage ? 'bg-blue-500 animate-pulse' : 'bg-stone-300'}`} />
-                                                        <span className="text-[10px] font-bold text-stone-500 uppercase tracking-wider">
+                                                        <span className="text-[10px] font-medium text-stone-500 uppercase tracking-wider">
                                                             {isCurrentStage ? 'Computing Mathematical Grids...' : 'Computation Complete'}
                                                         </span>
                                                     </div>

@@ -39,7 +39,7 @@ export default function Navbar() {
   // Server-side: no safe-area-top, no dynamic classes
   const navClasses = mounted
     ? `fixed top-0 w-full z-50 transition-all duration-500 safe-area-top ${scrolled
-      ? 'bg-white/90 backdrop-blur-xl border-b border-[#F0E8DE]'
+      ? 'bg-white/90 backdrop-blur-xl border-b border-[rgba(0,0,0,0.08)]'
       : 'bg-transparent'
     }`
     : 'fixed top-0 w-full z-50 transition-all duration-500 bg-transparent';
@@ -51,15 +51,15 @@ export default function Navbar() {
           {/* Brand - Always visible with logo icon on mobile */}
           <Link href="/" className="flex items-center gap-2 sm:gap-3 group">
             {/* Logo Icon - Visible on all screens */}
-            <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-br from-[#B8860B] to-[#78611D] rounded-lg flex items-center justify-center flex-shrink-0" aria-hidden="true">
-              <span className="text-white text-sm sm:text-lg font-bold">ॐ</span>
+            <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-br from-[#000000] to-[#000000] rounded-lg flex items-center justify-center flex-shrink-0" aria-hidden="true">
+              <span className="text-white text-sm sm:text-lg font-medium">ॐ</span>
             </div>
             {/* Text - Hidden on very small screens, visible on sm+ */}
             <div className="hidden sm:block">
-              <span className="font-[family-name:var(--font-cormorant)] text-xl sm:text-2xl font-semibold text-[#1A1612]">
+              <span className=" text-xl sm:text-2xl font-medium text-[#000000]">
                 AI Pandit
               </span>
-              <span className="block text-[10px] text-[#5A554F] uppercase tracking-[0.2em]">
+              <span className="block text-[10px] text-[#636363] uppercase tracking-[0.2em]">
                 VEDIC ASTRO MASTER
               </span>
             </div>
@@ -71,11 +71,11 @@ export default function Navbar() {
               <Link
                 key={link.href}
                 href={link.href}
-                className="text-[#4A453F] hover:text-[#B8860B] transition-colors duration-300 
+                className="text-[#636363] hover:text-[#000000] transition-colors duration-300 
                            text-sm font-medium relative group"
               >
                 {link.label}
-                <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-gradient-to-r from-[#B8860B] to-[#78611D] 
+                <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-gradient-to-r from-[#000000] to-[#000000] 
                                  group-hover:w-full transition-all duration-300" />
               </Link>
             ))}
@@ -95,7 +95,7 @@ export default function Navbar() {
               </motion.button>
             </Link>
             {isSignedIn && (
-              <div className="border border-[#F0E8DE] rounded-xl p-1 bg-white">
+              <div className="border border-[rgba(0,0,0,0.08)] rounded-xl p-1 bg-white">
                 <UserButton />
               </div>
             )}
@@ -108,8 +108,8 @@ export default function Navbar() {
               onClick={() => setIsOpen(!isOpen)}
               aria-label={isOpen ? "Close menu" : "Open menu"}
               className="w-10 h-10 flex items-center justify-center rounded-xl 
-                         bg-white border border-[#F0E8DE] text-[#4A453F] hover:text-[#B8860B]
-                         hover:border-[#78611D]/50 transition-all duration-300"
+                         bg-white border border-[rgba(0,0,0,0.08)] text-[#636363] hover:text-[#000000]
+                         hover:border-[#000000]/50 transition-all duration-300"
             >
               {isOpen ? <X className="w-5 h-5" aria-hidden="true" /> : <Menu className="w-5 h-5" aria-hidden="true" />}
             </button>
@@ -125,7 +125,7 @@ export default function Navbar() {
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
             transition={{ duration: 0.3 }}
-            className="md:hidden bg-white/98 backdrop-blur-xl border-t border-[#F0E8DE]"
+            className="md:hidden bg-white/98 backdrop-blur-xl border-t border-[rgba(0,0,0,0.08)]"
           >
             <div className="px-6 py-6 space-y-4">
               {navLinks.map((link, index) => (
@@ -138,8 +138,8 @@ export default function Navbar() {
                   <Link
                     href={link.href}
                     onClick={() => setIsOpen(false)}
-                    className="block px-4 py-3 text-[#4A453F] hover:text-[#B8860B] 
-                               hover:bg-[#FDF8F3] rounded-xl transition-all duration-300"
+                    className="block px-4 py-3 text-[#636363] hover:text-[#000000] 
+                               hover:bg-[#ffffff] rounded-xl transition-all duration-300"
                   >
                     {link.label}
                   </Link>

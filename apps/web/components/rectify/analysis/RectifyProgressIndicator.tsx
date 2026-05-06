@@ -77,23 +77,23 @@ export const RectifyProgressIndicator = memo(function RectifyProgressIndicator({
                     >
                         <div className="p-6 sm:p-8 text-center">
                             <XCircle className="w-12 h-12 text-red-600 mx-auto mb-4" />
-                            <h2 className="text-lg font-bold mb-2" style={{ color: '#1A1612' }}>
+                            <h2 className="text-lg font-medium mb-2" style={{ color: '#000000' }}>
                                 {metadata?.status === 'failed' ? 'Analysis Failed' : 'Analysis Stopped'}
                             </h2>
-                            <p className="mb-6 text-sm text-[#5A554F]">{metadata?.errorMessage || 'The analysis was terminated.'}</p>
+                            <p className="mb-6 text-sm text-[#636363]">{metadata?.errorMessage || 'The analysis was terminated.'}</p>
                             <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
                                 <button
                                     onClick={onRestart}
                                     disabled={isCancelling}
-                                    className="px-5 py-2.5 rounded-xl font-bold text-white flex items-center gap-2"
+                                    className="px-5 py-2.5 rounded-xl font-medium text-white flex items-center gap-2"
                                     style={{ backgroundColor: '#184131' }}
                                 >
                                     <RefreshCw className={`w-4 h-4 ${isCancelling ? 'animate-spin' : ''}`} /> Restart
                                 </button>
                                 <Link
                                     href="/rectify?new=true"
-                                    className="px-5 py-2.5 rounded-xl font-semibold border flex items-center gap-2"
-                                    style={{ borderColor: '#F0E8DE', color: '#1A1612' }}
+                                    className="px-5 py-2.5 rounded-xl font-medium border flex items-center gap-2"
+                                    style={{ borderColor: 'rgba(0,0,0,0.08)', color: '#000000' }}
                                 >
                                     <Home className="w-4 h-4" /> New Analysis
                                 </Link>
@@ -115,13 +115,13 @@ export const RectifyProgressIndicator = memo(function RectifyProgressIndicator({
                                 <CheckCircle className="w-8 h-8 text-[#184131]" />
                             </div>
                             <div>
-                                <h2 className="text-xl font-black text-[#1A1612] mb-1">Analysis Successfully Completed</h2>
-                                <p className="text-sm text-[#4A453F] flex flex-wrap items-center gap-x-3 gap-y-1">
-                                    <span className="flex items-center gap-1.5 font-bold text-[#184131]">
+                                <h2 className="text-xl font-black text-[#000000] mb-1">Analysis Successfully Completed</h2>
+                                <p className="text-sm text-[#636363] flex flex-wrap items-center gap-x-3 gap-y-1">
+                                    <span className="flex items-center gap-1.5 font-medium text-[#184131]">
                                         <Activity className="w-4 h-4" /> {result.rectifiedTime}
                                     </span>
                                     <span className="w-1 h-1 rounded-full bg-stone-300" />
-                                    <span className="flex items-center gap-1.5 font-bold text-[#B8860B]">
+                                    <span className="flex items-center gap-1.5 font-medium text-[#000000]">
                                         <Zap className="w-4 h-4" /> {result.confidence} Confidence
                                     </span>
                                     <span className="w-1 h-1 rounded-full bg-stone-300" />
@@ -132,7 +132,7 @@ export const RectifyProgressIndicator = memo(function RectifyProgressIndicator({
                         <div className="flex items-center gap-3 w-full md:w-auto">
                             <Link
                                 href={`/rectify/${sessionId}/results`}
-                                className="flex-1 md:flex-none px-6 py-3 bg-gradient-to-r from-[#B8860B] to-[#78611D] text-white rounded-xl font-bold text-sm flex items-center justify-center gap-2 hover:shadow-lg transition-all shadow-md"
+                                className="flex-1 md:flex-none px-6 py-3 bg-gradient-to-r from-[#000000] to-[#000000] text-white rounded-xl font-medium text-sm flex items-center justify-center gap-2 hover:shadow-lg transition-all shadow-md"
                             >
                                 View Official Report <ChevronRight className="w-4 h-4" />
                             </Link>

@@ -37,10 +37,10 @@ export const CandidateTabsSection = memo(function CandidateTabsSection({
     if (totalCandidates === 0) return null;
 
     return (
-        <div className="px-5 py-3 bg-[#FAF8F5] border-b border-[#F0E8DE]">
+        <div className="px-5 py-3 bg-[#FAF8F5] border-b border-[rgba(0,0,0,0.08)]">
             <div className="flex items-center gap-2 mb-3">
-                <Users className="w-3.5 h-3.5 text-[#5A554F]" />
-                <span className="text-[10px] text-[#5A554F] uppercase tracking-wider font-bold">
+                <Users className="w-3.5 h-3.5 text-[#636363]" />
+                <span className="text-[10px] text-[#636363] uppercase tracking-wider font-medium">
                     Candidates ({totalCandidates})
                 </span>
             </div>
@@ -61,18 +61,18 @@ export const CandidateTabsSection = memo(function CandidateTabsSection({
                                 onClick={() => toggleTier(tier)}
                                 className="flex items-center gap-2 mb-1.5 group"
                             >
-                                <span className={`text-[9px] font-bold uppercase tracking-wider ${config.color}`}>
+                                <span className={`text-[9px] font-medium uppercase tracking-wider ${config.color}`}>
                                     {config.label}
                                 </span>
-                                <span className="text-[9px] text-[#8A857F]">
+                                <span className="text-[9px] text-[#959595]">
                                     ({candidates.length})
                                 </span>
                                 {hasMore && (
                                     <>
                                         {isExpanded ? (
-                                            <ChevronUp className="w-3 h-3 text-[#8A857F] group-hover:text-[#5A554F]" />
+                                            <ChevronUp className="w-3 h-3 text-[#959595] group-hover:text-[#636363]" />
                                         ) : (
-                                            <ChevronDown className="w-3 h-3 text-[#8A857F] group-hover:text-[#5A554F]" />
+                                            <ChevronDown className="w-3 h-3 text-[#959595] group-hover:text-[#636363]" />
                                         )}
                                     </>
                                 )}
@@ -93,7 +93,7 @@ export const CandidateTabsSection = memo(function CandidateTabsSection({
                                 {hasMore && !isExpanded && (
                                     <button
                                         onClick={() => toggleTier(tier)}
-                                        className="px-2 py-1 text-[10px] text-[#5A554F] hover:text-[#4A453F]"
+                                        className="px-2 py-1 text-[10px] text-[#636363] hover:text-[#636363]"
                                     >
                                         +{candidates.length - 5} more
                                     </button>

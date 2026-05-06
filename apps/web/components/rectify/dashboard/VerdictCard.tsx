@@ -40,7 +40,7 @@ export function VerdictCard({ rectifiedTime, accuracy }: VerdictCardProps) {
                 {rectifiedTime}
             </motion.div>
             <div
-                className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide mb-3"
+                className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium uppercase tracking-wide mb-3"
                 style={{
                     backgroundColor: `${THEME.gold}10`,
                     border: `1px solid ${THEME.gold}50`,

@@ -74,9 +74,9 @@ export const SessionCardList = memo(function SessionCardList({
 
         {/* Name & Status - Mobile Only */}
         <div className="flex-1 min-w-0 sm:hidden">
-          <h3 className="font-semibold text-content-primary truncate text-sm">{session.fullName}</h3>
+          <h3 className="font-medium text-content-primary truncate text-sm">{session.fullName}</h3>
           <span className={`
-            inline-flex items-center gap-1 text-[10px] font-semibold
+            inline-flex items-center gap-1 text-[10px] font-medium
             ${status.textColor}
           `}>
             {status.icon}
@@ -98,9 +98,9 @@ export const SessionCardList = memo(function SessionCardList({
       >
         {/* Name & Status - Desktop Only */}
         <div className="hidden sm:block col-span-3 min-w-0">
-          <h3 className="font-semibold text-content-primary truncate">{session.fullName}</h3>
+          <h3 className="font-medium text-content-primary truncate">{session.fullName}</h3>
           <span className={`
-            inline-flex items-center gap-1 text-xs font-semibold
+            inline-flex items-center gap-1 text-xs font-medium
             ${status.textColor}
           `}>
             {status.icon}
@@ -141,7 +141,7 @@ export const SessionCardList = memo(function SessionCardList({
         <div className="col-span-12 sm:col-span-2">
           {session.rectifiedTime ? (
             <div className="flex items-center gap-2">
-              <span className="text-primary font-mono font-bold text-sm">{session.rectifiedTime}</span>
+              <span className="text-primary font-mono font-medium text-sm">{session.rectifiedTime}</span>
               {confidence && (
                 <span className="text-xs" style={{ color: confidence.color }}>
                   {confidence.label}

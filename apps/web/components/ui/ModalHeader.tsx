@@ -22,7 +22,7 @@ export default function ModalHeader({ title, subtitle, icon, onClose, className 
           </div>
         )}
         <div>
-          {title && <h2 className="font-semibold text-prism-ink text-base font-prism">{title}</h2>}
+          {title && <h2 className="font-medium text-prism-ink text-base font-prism">{title}</h2>}
           {subtitle && <p className="text-xs text-prism-graphite font-prism">{subtitle}</p>}
         </div>
       </div>

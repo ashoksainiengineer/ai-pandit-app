@@ -35,13 +35,13 @@ export function LeftMetricsColumn({ data, analysisDetails }: LeftMetricsColumnPr
                     Rectified Birth Time
                 </h3>
                 <div
-                    className="text-5xl font-bold font-mono tracking-tighter mb-4"
+                    className="text-5xl font-medium font-mono tracking-tighter mb-4"
                     style={{ color: THEME.gold }}
                 >
                     {data.rectifiedTime}
                 </div>
                 <div
-                    className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide mb-3"
+                    className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium uppercase tracking-wide mb-3"
                     style={{
                         backgroundColor: `${THEME.gold}10`,
                         border: `1px solid ${THEME.gold}50`,
@@ -74,7 +74,7 @@ export function LeftMetricsColumn({ data, analysisDetails }: LeftMetricsColumnPr
                     >
                         Process Stages
                     </div>
-                    <div className="text-xl font-bold font-mono" style={{ color: THEME.textPrimary }}>
+                    <div className="text-xl font-medium font-mono" style={{ color: THEME.textPrimary }}>
                         {data.stagesCompleted || 6} / 6
                     </div>
                 </div>
@@ -88,7 +88,7 @@ export function LeftMetricsColumn({ data, analysisDetails }: LeftMetricsColumnPr
                     >
                         Grid Resolution
                     </div>
-                    <div className="text-xl font-bold font-mono" style={{ color: THEME.textPrimary }}>
+                    <div className="text-xl font-medium font-mono" style={{ color: THEME.textPrimary }}>
                         ±{data.marginOfError || 3}s
                     </div>
                 </div>
@@ -102,7 +102,7 @@ export function LeftMetricsColumn({ data, analysisDetails }: LeftMetricsColumnPr
                     >
                         AI Model
                     </div>
-                    <div className="text-sm font-bold font-mono" style={{ color: THEME.gold }}>DeepSeek R1</div>
+                    <div className="text-sm font-medium font-mono" style={{ color: THEME.gold }}>DeepSeek R1</div>
                 </div>
                 <div
                     className="rounded-xl p-4 transition-all hover:shadow-md"
@@ -115,7 +115,7 @@ export function LeftMetricsColumn({ data, analysisDetails }: LeftMetricsColumnPr
                         Confidence
                     </div>
                     <div
-                        className="text-xl font-bold font-mono"
+                        className="text-xl font-medium font-mono"
                         style={{ color: THEME.success }}
                     >
                         {data.confidence}

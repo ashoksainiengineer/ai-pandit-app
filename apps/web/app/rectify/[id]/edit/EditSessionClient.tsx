@@ -261,25 +261,25 @@ export function EditSessionClient({ sessionId, initialData }: EditSessionClientP
 
     return (
         <Layout hideFooter>
-            <main className="min-h-screen bg-[#FFFCF8] text-[#1A1612] pt-16">
-                <nav className="sticky top-0 z-50 bg-[#FFFCF8]/90 backdrop-blur-xl border-b border-[#F0E8DE]">
+            <main className="min-h-screen bg-[#f8f8f8] text-[#000000] pt-16">
+                <nav className="sticky top-0 z-50 bg-[#f8f8f8]/90 backdrop-blur-xl border-b border-[rgba(0,0,0,0.08)]">
                     <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
                         <Link href="/" className="flex items-center gap-3 group">
-                            <span className="font-bold text-xl text-[#B8860B] tracking-tight">AI Pandit</span>
+                            <span className="font-medium text-xl text-[#000000] tracking-tight">AI Pandit</span>
                         </Link>
                         <div className="flex items-center gap-6">
                             <Link
                                 href="/dashboard"
-                                className="text-sm font-medium text-[#5A554F] hover:text-[#B8860B] transition-colors"
+                                className="text-sm font-medium text-[#636363] hover:text-[#000000] transition-colors"
                             >
                                 Dashboard
                             </Link>
                             <div className="flex items-center gap-2 text-sm">
-                                {savingStatus === 'saving' && <span className="text-[#B8860B] animate-pulse">Saving...</span>}
+                                {savingStatus === 'saving' && <span className="text-[#000000] animate-pulse">Saving...</span>}
                                 {savingStatus === 'saved' && <span className="text-[#184131]">Saved ✓</span>}
                                 {savingStatus === 'error' && <span className="text-[#D64545]">Save Failed</span>}
-                                <span className="text-[#B8860B] font-medium opacity-50">|</span>
-                                <span className="text-[#B8860B] font-medium">✏️ Editing Session</span>
+                                <span className="text-[#000000] font-medium opacity-50">|</span>
+                                <span className="text-[#000000] font-medium">✏️ Editing Session</span>
                             </div>
                         </div>
                     </div>
@@ -287,15 +287,15 @@ export function EditSessionClient({ sessionId, initialData }: EditSessionClientP
 
                 <div className="max-w-4xl mx-auto px-6 py-12">
                     <div className="mb-8 text-center">
-                        <h1 className="text-3xl font-bold text-[#B8860B] mb-2">✏️ Edit & Re-analyze</h1>
-                        <p className="text-[#5A554F]">Update your details and run a new analysis</p>
+                        <h1 className="text-3xl font-medium text-[#000000] mb-2">✏️ Edit & Re-analyze</h1>
+                        <p className="text-[#636363]">Update your details and run a new analysis</p>
                     </div>
 
                     <div className="mb-12">
                         <div className="flex items-center justify-between mb-4 relative">
-                            <div className="absolute top-1/2 left-0 w-full h-1 bg-[#F0E8DE] -z-10 rounded-full" />
+                            <div className="absolute top-1/2 left-0 w-full h-1 bg-[rgba(0,0,0,0.08)] -z-10 rounded-full" />
                             <div
-                                className="absolute top-1/2 left-0 h-1 bg-[#B8860B] -z-10 rounded-full transition-all duration-500"
+                                className="absolute top-1/2 left-0 h-1 bg-[#000000] -z-10 rounded-full transition-all duration-500"
                                 style={{ width: `${((step - 1) / 4) * 100}%` }}
                             />
 
@@ -303,19 +303,19 @@ export function EditSessionClient({ sessionId, initialData }: EditSessionClientP
                                 <button
                                     key={s}
                                     onClick={() => updateStep(s)}
-                                    className="flex flex-col items-center bg-[#FFFCF8] px-2 outline-none focus:outline-none"
+                                    className="flex flex-col items-center bg-[#f8f8f8] px-2 outline-none focus:outline-none"
                                 >
                                     <div
-                                        className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm transition-all border-2 ${s < step
+                                        className={`w-10 h-10 rounded-full flex items-center justify-center font-medium text-sm transition-all border-2 ${s < step
                                             ? 'bg-[#184131] border-[#184131] text-white'
                                             : s === step
-                                                ? 'bg-white border-[#B8860B] text-[#B8860B] shadow-[0_0_15px_rgba(184,134,11,0.3)]'
-                                                : 'bg-[#F5EFE7] border-[#EBE2D6] text-[#8A857F]'
+                                                ? 'bg-white border-[#000000] text-[#000000] shadow-[0_0_15px_rgba(184,134,11,0.3)]'
+                                                : 'bg-[#f8f8f8] border-[#EBE2D6] text-[#959595]'
                                             }`}
                                     >
                                         {s < step ? '✓' : ['👤', '🪞', '📏', '📅', '✅'][s - 1]}
                                     </div>
-                                    <span className={`text-xs mt-2 font-medium ${s === step ? 'text-[#B8860B]' : 'text-[#5A554F]'}`}>
+                                    <span className={`text-xs mt-2 font-medium ${s === step ? 'text-[#000000]' : 'text-[#636363]'}`}>
                                         {s === 1 ? 'Birth' : s === 2 ? 'Physical' : s === 3 ? 'Forensic' : s === 4 ? 'Life Events' : 'Review'}
                                     </span>
                                 </button>
@@ -380,13 +380,13 @@ export function EditSessionClient({ sessionId, initialData }: EditSessionClientP
                     </div>
 
                     {step < 5 && (
-                        <div className="flex justify-between mt-12 pt-6 border-t border-[#F0E8DE]">
+                        <div className="flex justify-between mt-12 pt-6 border-t border-[rgba(0,0,0,0.08)]">
                             <button
                                 onClick={goToPreviousStep}
                                 disabled={step === 1}
-                                className={`px-6 py-3 rounded-xl font-semibold transition-colors ${step === 1
+                                className={`px-6 py-3 rounded-xl font-medium transition-colors ${step === 1
                                     ? 'opacity-0 cursor-default'
-                                    : 'border-2 border-[#B8860B]/50 text-[#B8860B] hover:bg-[#B8860B]/10'
+                                    : 'border-2 border-[#000000]/50 text-[#000000] hover:bg-[#000000]/10'
                                     }`}
                             >
                                 ← Back
@@ -394,7 +394,7 @@ export function EditSessionClient({ sessionId, initialData }: EditSessionClientP
 
                             <button
                                 onClick={advanceToNextStep}
-                                className="px-8 py-3 bg-gradient-to-r from-[#B8860B] to-[#78611D] text-white rounded-xl font-semibold hover:shadow-[0_0_15px_rgba(184,134,11,0.4)] transition-all"
+                                className="px-8 py-3 bg-gradient-to-r from-[#000000] to-[#000000] text-white rounded-xl font-medium hover:shadow-[0_0_15px_rgba(184,134,11,0.4)] transition-all"
                             >
                                 Next Step →
                             </button>

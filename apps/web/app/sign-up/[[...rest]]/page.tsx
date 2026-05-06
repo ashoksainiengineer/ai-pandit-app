@@ -18,7 +18,7 @@ export default function SignUpPage() {
 
             {/* Logo */}
             <Link href="/" className="absolute top-8 left-1/2 -translate-x-1/2 flex items-center gap-3 group z-20">
-                <span className="font-prism font-bold text-2xl text-prism-ink">
+                <span className="font-prism font-medium text-2xl text-prism-ink">
                     AI Pandit
                 </span>
             </Link>
@@ -27,7 +27,7 @@ export default function SignUpPage() {
                 <SignUp
                     appearance={{
                         variables: {
-                            colorPrimary: '#B8860B',
+                            colorPrimary: '#000000',
                             colorBackground: '#FFFFFF',
                             colorInputBackground: '#f8f8f8',
                             colorInputText: '#000000',
@@ -44,17 +44,17 @@ export default function SignUpPage() {
                             
                             // Header
                             header: 'p-6 pb-4',
-                            headerTitle: 'text-prism-ink font-bold text-2xl mb-1',
+                            headerTitle: 'text-prism-ink font-medium text-2xl mb-1',
                             headerSubtitle: 'text-prism-graphite text-sm',
                             
                             // Form
                             form: 'p-6 pt-2',
-                            formButtonPrimary: 'w-full bg-gradient-to-r from-[#B8860B] to-[#78611D] hover:from-[#9A7609] hover:to-[#C49843] text-white font-bold py-3 rounded-xl transition-all shadow-lg shadow-[#B8860B]/20',
+                            formButtonPrimary: 'w-full bg-gradient-to-r from-[#000000] to-[#000000] hover:from-[#9A7609] hover:to-[#C49843] text-white font-medium py-3 rounded-xl transition-all shadow-lg shadow-[#000000]/20',
                             
                             // Input fields - CRITICAL FOR VISIBILITY
-                            formFieldLabel: 'text-prism-ink text-sm font-semibold mb-2 block',
-                            formFieldInput: 'w-full bg-white border-2 border-prism-pebble text-prism-ink placeholder-prism-slate focus:border-[#B8860B] focus:ring-2 focus:ring-[#B8860B]/20 rounded-xl py-3 px-4 text-base outline-none transition-all',
-                            formFieldInputShowPassword: 'text-prism-graphite hover:text-[#B8860B]',
+                            formFieldLabel: 'text-prism-ink text-sm font-medium mb-2 block',
+                            formFieldInput: 'w-full bg-white border-2 border-prism-pebble text-prism-ink placeholder-prism-slate focus:border-[#000000] focus:ring-2 focus:ring-[#000000]/20 rounded-xl py-3 px-4 text-base outline-none transition-all',
+                            formFieldInputShowPassword: 'text-prism-graphite hover:text-[#000000]',
                             formFieldInputWrapper: 'relative',
                             
                             // Required/Optional indicators - hide optional text completely
@@ -70,10 +70,10 @@ export default function SignUpPage() {
                             // Links
                             footer: 'p-6 pt-4 bg-prism-canvas border-t border-prism-pebble',
                             footerAction: 'text-center text-sm text-prism-graphite',
-                            footerActionLink: 'text-[#B8860B] font-semibold hover:text-[#9A7609] transition-colors',
+                            footerActionLink: 'text-[#000000] font-medium hover:text-[#9A7609] transition-colors',
                             
                             // Social buttons
-                            socialButtonsBlockButton: 'w-full border-2 border-prism-pebble bg-white text-prism-graphite hover:bg-prism-canvas hover:border-[#78611D]/30 py-3 rounded-xl transition-all font-medium',
+                            socialButtonsBlockButton: 'w-full border-2 border-prism-pebble bg-white text-prism-graphite hover:bg-prism-canvas hover:border-[#000000]/30 py-3 rounded-xl transition-all font-medium',
                             socialButtonsBlockButtonText: 'text-prism-graphite font-medium',
                             socialButtonsProviderIcon: 'w-5 h-5',
                             
@@ -85,12 +85,12 @@ export default function SignUpPage() {
                             // Identity preview
                             identityPreview: 'bg-prism-canvas border border-prism-pebble rounded-xl p-4 mb-4',
                             identityPreviewText: 'text-prism-ink',
-                            identityPreviewEditButton: 'text-[#B8860B] font-medium hover:text-[#9A7609]',
+                            identityPreviewEditButton: 'text-[#000000] font-medium hover:text-[#9A7609]',
                             
                             // Other
-                            formResendCodeLink: 'text-[#B8860B] font-medium hover:text-[#9A7609]',
-                            otpCodeField: 'text-prism-ink text-xl font-bold text-center',
-                            otpCodeFieldInput: 'bg-white border-2 border-prism-pebble rounded-xl text-prism-ink text-xl font-bold',
+                            formResendCodeLink: 'text-[#000000] font-medium hover:text-[#9A7609]',
+                            otpCodeField: 'text-prism-ink text-xl font-medium text-center',
+                            otpCodeFieldInput: 'bg-white border-2 border-prism-pebble rounded-xl text-prism-ink text-xl font-medium',
                         }
                     }}
                     routing="path"

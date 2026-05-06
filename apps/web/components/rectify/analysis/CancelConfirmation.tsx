@@ -13,7 +13,7 @@ export function CancelConfirmation({ onConfirm, onAbort }: { onConfirm: () => vo
         >
             <div className="flex items-center justify-center gap-3 mb-4 text-red-400">
                 <XCircle className="w-8 h-8" />
-                <h3 className="text-lg font-bold">Cancel Analysis?</h3>
+                <h3 className="text-lg font-medium">Cancel Analysis?</h3>
             </div>
             <p className="text-sm text-muted-foreground mb-6">
                 All current progress and intermediate mathematical solutions will be lost. This cannot be undone.

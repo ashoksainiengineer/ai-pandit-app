@@ -35,7 +35,7 @@ export default function Pricing() {
         <div
           className="text-center mb-16"
         >
-          <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
+          <h2 className="text-3xl md:text-4xl font-medium text-white mb-4">
             Transparent Pricing
           </h2>
           <p className="text-xl text-gray-300">
@@ -47,11 +47,11 @@ export default function Pricing() {
           className="bg-gradient-to-br from-slate-700 to-slate-800 border border-slate-600 rounded-2xl p-8 md:p-12 shadow-2xl hover:shadow-blue-500/10 transition-all duration-300"
         >
           <div className="text-center mb-8">
-            <h3 className="text-2xl font-bold text-white mb-2">
+            <h3 className="text-2xl font-medium text-white mb-2">
               Premium Birth Time Analysis
             </h3>
             <div className="flex items-center justify-center gap-2 mb-4">
-              <span className="text-5xl font-bold text-blue-400">₹799</span>
+              <span className="text-5xl font-medium text-blue-400">₹799</span>
               <span className="text-gray-400">one-time</span>
             </div>
             <p className="text-gray-300">Lifetime access to your detailed analysis</p>
@@ -69,7 +69,7 @@ export default function Pricing() {
           </div>
 
           <div className="space-y-4 mb-8">
-            <h4 className="text-lg font-semibold text-white mb-4">What&apos;s Included:</h4>
+            <h4 className="text-lg font-medium text-white mb-4">What&apos;s Included:</h4>
             {features.map((feature, index) => {
               const IconComponent = feature.icon;
               return (
@@ -89,7 +89,7 @@ export default function Pricing() {
           <div className="text-center">
             <Link href="/rectify">
               <button
-                className="w-full md:w-auto px-8 py-4 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-bold text-lg rounded-xl transition-all duration-300 hover:scale-[1.05] active:scale-[0.95]"
+                className="w-full md:w-auto px-8 py-4 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-medium text-lg rounded-xl transition-all duration-300 hover:scale-[1.05] active:scale-[0.95]"
               >
                 Get Your Analysis
               </button>

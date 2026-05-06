@@ -46,7 +46,7 @@ export default function ErrorFallback({
           </div>
 
           {/* Title */}
-          <h1 className="font-prism text-2xl font-semibold text-prism-ink text-center mb-2">
+          <h1 className="font-prism text-2xl font-medium text-prism-ink text-center mb-2">
             {title}
           </h1>
 

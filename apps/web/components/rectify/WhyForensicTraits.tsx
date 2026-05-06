@@ -69,32 +69,32 @@ export default function WhyForensicTraits() {
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="bg-gradient-to-br from-[#FDF8F3] to-white rounded-2xl border border-[#B8860B]/30 overflow-hidden shadow-lg shadow-[#B8860B]/5"
+      className="bg-gradient-to-br from-[#ffffff] to-white rounded-2xl border border-[#000000]/30 overflow-hidden shadow-lg shadow-[#000000]/5"
     >
       {/* Header */}
       <div
-        className="p-5 cursor-pointer hover:bg-[#F5EFE7]/50 transition-colors"
+        className="p-5 cursor-pointer hover:bg-[#f8f8f8]/50 transition-colors"
         onClick={() => setIsExpanded(!isExpanded)}
       >
         <div className="flex items-start justify-between gap-4">
           <div className="flex-1">
             <div className="flex items-center gap-2 mb-2">
-              <div className="p-2 rounded-lg bg-gradient-to-br from-[#B8860B] to-[#78611D]">
+              <div className="p-2 rounded-lg bg-gradient-to-br from-[#000000] to-[#000000]">
                 <Sparkles className="w-5 h-5 text-white" />
               </div>
-              <h3 className="font-[family-name:var(--font-cormorant)] text-xl font-bold text-[#1A1612]">
+              <h3 className=" text-xl font-medium text-[#000000]">
                 Why Do Physical Traits Matter?
               </h3>
             </div>
-            <p className="text-sm text-[#4A453F] leading-relaxed">
-              <span className="font-semibold text-[#B8860B]">Your body is a cosmic map.</span> Every feature—forehead, eyes, voice—is
-              <span className="font-semibold text-[#1A1612]"> encoded by planets at birth</span>.
+            <p className="text-sm text-[#636363] leading-relaxed">
+              <span className="font-medium text-[#000000]">Your body is a cosmic map.</span> Every feature—forehead, eyes, voice—is
+              <span className="font-medium text-[#000000]"> encoded by planets at birth</span>.
               We verify: Does your body match your chart?
             </p>
           </div>
           <motion.div
             animate={{ rotate: isExpanded ? 180 : 0 }}
-            className="p-2 rounded-lg bg-[#F5EFE7] text-[#5A554F]"
+            className="p-2 rounded-lg bg-[#f8f8f8] text-[#636363]"
           >
             <ChevronDown className="w-5 h-5" />
           </motion.div>
@@ -102,11 +102,11 @@ export default function WhyForensicTraits() {
 
         {/* Quick Stats */}
         <div className="mt-4 flex items-center gap-3">
-          <div className="px-3 py-1.5 rounded-full text-xs font-bold bg-[#B8860B]/10 text-[#B8860B] border border-[#B8860B]/20">
+          <div className="px-3 py-1.5 rounded-full text-xs font-medium bg-[#000000]/10 text-[#000000] border border-[#000000]/20">
             <Target className="w-3.5 h-3.5 inline mr-1" />
             ±3-5 min accuracy
           </div>
-          <div className="text-xs text-[#5A554F]">
+          <div className="text-xs text-[#636363]">
             8 forensic markers • Vedic verification
           </div>
         </div>
@@ -119,10 +119,10 @@ export default function WhyForensicTraits() {
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
-            className="border-t border-[#F0E8DE]"
+            className="border-t border-[rgba(0,0,0,0.08)]"
           >
             {/* Tab Navigation */}
-            <div className="flex p-1 bg-[#F5EFE7] mx-4 mt-4 rounded-xl">
+            <div className="flex p-1 bg-[#f8f8f8] mx-4 mt-4 rounded-xl">
               {[
                 { id: 'intro', label: 'The Science', icon: BookOpen },
                 { id: 'traits', label: '8 Markers', icon: ScanFace }
@@ -134,8 +134,8 @@ export default function WhyForensicTraits() {
                     setActiveSection(tab.id as any);
                   }}
                   className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg text-xs font-medium transition-all ${activeSection === tab.id
-                    ? 'bg-white text-[#B8860B] shadow-sm'
-                    : 'text-[#5A554F] hover:text-[#4A453F]'
+                    ? 'bg-white text-[#000000] shadow-sm'
+                    : 'text-[#636363] hover:text-[#636363]'
                     }`}
                 >
                   <tab.icon className="w-3.5 h-3.5" />
@@ -152,41 +152,41 @@ export default function WhyForensicTraits() {
                   animate={{ opacity: 1 }}
                   className="space-y-4"
                 >
-                  <div className="p-4 bg-gradient-to-br from-[#B8860B]/10 to-[#78611D]/10 rounded-xl border border-[#B8860B]/20">
-                    <h4 className="font-bold text-[#1A1612] mb-2 flex items-center gap-2">
-                      <Sparkles className="w-4 h-4 text-[#B8860B]" />
+                  <div className="p-4 bg-gradient-to-br from-[#000000]/10 to-[#000000]/10 rounded-xl border border-[#000000]/20">
+                    <h4 className="font-medium text-[#000000] mb-2 flex items-center gap-2">
+                      <Sparkles className="w-4 h-4 text-[#000000]" />
                       The Body is a Cosmic Text
                     </h4>
-                    <p className="text-sm text-[#4A453F] leading-relaxed">
+                    <p className="text-sm text-[#636363] leading-relaxed">
                       According to <span className="italic">Brihat Parashara Hora Shastra</span>, your physical body is
-                      <span className="font-bold text-[#B8860B]"> NOT random</span>. It is a manifestation of your
-                      <span className="font-bold text-[#1A1612]"> Lagna (Ascendant)</span> and its ruling planet at the moment of birth.
+                      <span className="font-medium text-[#000000]"> NOT random</span>. It is a manifestation of your
+                      <span className="font-medium text-[#000000]"> Lagna (Ascendant)</span> and its ruling planet at the moment of birth.
                     </p>
                   </div>
 
                   <div className="space-y-3">
-                    <h5 className="font-semibold text-sm text-[#1A1612]">The Lagna-Body Connection:</h5>
+                    <h5 className="font-medium text-sm text-[#000000]">The Lagna-Body Connection:</h5>
 
                     <div className="space-y-2">
-                      <div className="p-3 bg-white rounded-lg border border-[#F0E8DE]">
-                        <div className="font-medium text-sm text-[#1A1612] mb-1">1st House (Lagna)</div>
-                        <p className="text-xs text-[#5A554F]">
+                      <div className="p-3 bg-white rounded-lg border border-[rgba(0,0,0,0.08)]">
+                        <div className="font-medium text-sm text-[#000000] mb-1">1st House (Lagna)</div>
+                        <p className="text-xs text-[#636363]">
                           Determines overall body type, appearance, and constitution.
                           Wrong Lagna = Wrong physical description.
                         </p>
                       </div>
 
-                      <div className="p-3 bg-white rounded-lg border border-[#F0E8DE]">
-                        <div className="font-medium text-sm text-[#1A1612] mb-1">Lagna Lord</div>
-                        <p className="text-xs text-[#5A554F]">
+                      <div className="p-3 bg-white rounded-lg border border-[rgba(0,0,0,0.08)]">
+                        <div className="font-medium text-sm text-[#000000] mb-1">Lagna Lord</div>
+                        <p className="text-xs text-[#636363]">
                           The ruling planet of your ascendant stamps its qualities on your body.
                           Mars Lagna → Athletic build. Venus Lagna → Beautiful features.
                         </p>
                       </div>
 
-                      <div className="p-3 bg-white rounded-lg border border-[#F0E8DE]">
-                        <div className="font-medium text-sm text-[#1A1612] mb-1">Planets in Lagna</div>
-                        <p className="text-xs text-[#5A554F]">
+                      <div className="p-3 bg-white rounded-lg border border-[rgba(0,0,0,0.08)]">
+                        <div className="font-medium text-sm text-[#000000] mb-1">Planets in Lagna</div>
+                        <p className="text-xs text-[#636363]">
                           Any planets sitting in the 1st house physically modify your appearance.
                           Saturn in Lagna → Lean, mature appearance. Moon in Lagna → Soft, round face.
                         </p>
@@ -197,12 +197,12 @@ export default function WhyForensicTraits() {
                   <div className="p-3 bg-[#C65D3B]/5 rounded-lg border border-[#C65D3B]/20">
                     <div className="flex items-center gap-2 mb-1">
                       <Target className="w-4 h-4 text-[#C65D3B]" />
-                      <span className="font-semibold text-sm text-[#C65D3B]">Birth Time Discrepancy</span>
+                      <span className="font-medium text-sm text-[#C65D3B]">Birth Time Discrepancy</span>
                     </div>
-                    <p className="text-xs text-[#4A453F]">
+                    <p className="text-xs text-[#636363]">
                       If your chart says Aries Lagna (Pitta, athletic, competitive) but you have
                       a thin, nervous, intellectual build (Vata, Gemini traits), your birth time is likely
-                      off by <span className="font-bold">12-15 minutes</span>.
+                      off by <span className="font-medium">12-15 minutes</span>.
                     </p>
                   </div>
                 </motion.div>
@@ -214,40 +214,40 @@ export default function WhyForensicTraits() {
                   animate={{ opacity: 1 }}
                   className="space-y-3"
                 >
-                  <h4 className="font-semibold text-[#1A1612] text-sm flex items-center gap-2">
-                    <ScanFace className="w-4 h-4 text-[#B8860B]" />
+                  <h4 className="font-medium text-[#000000] text-sm flex items-center gap-2">
+                    <ScanFace className="w-4 h-4 text-[#000000]" />
                     8 Forensic Markers
                   </h4>
-                  <p className="text-xs text-[#5A554F]">
+                  <p className="text-xs text-[#636363]">
                     Each trait corresponds to specific planetary and house influences
                   </p>
 
                   <div className="space-y-3">
                     {traitScience.map((item, idx) => (
-                      <div key={idx} className="p-3 bg-white rounded-xl border border-[#F0E8DE]">
+                      <div key={idx} className="p-3 bg-white rounded-xl border border-[rgba(0,0,0,0.08)]">
                         <div className="flex items-start gap-3">
-                          <div className="p-2 rounded-lg bg-[#B8860B]/10">
-                            <item.icon className="w-4 h-4 text-[#B8860B]" />
+                          <div className="p-2 rounded-lg bg-[#000000]/10">
+                            <item.icon className="w-4 h-4 text-[#000000]" />
                           </div>
                           <div className="flex-1">
                             <div className="flex items-center justify-between">
-                              <h5 className="font-semibold text-sm text-[#1A1612]">{item.trait}</h5>
+                              <h5 className="font-medium text-sm text-[#000000]">{item.trait}</h5>
                               <span className={`text-[10px] px-2 py-0.5 rounded-full ${item.accuracy === 'Very High'
                                 ? 'bg-[#184131]/10 text-[#184131]'
-                                : 'bg-[#78611D]/10 text-[#B8860B]'
+                                : 'bg-[#000000]/10 text-[#000000]'
                                 }`}>
                                 {item.accuracy} Accuracy
                               </span>
                             </div>
                             <div className="mt-2 space-y-1">
-                              <p className="text-xs text-[#5A554F]">
-                                <span className="text-[#B8860B] font-medium">Planet:</span> {item.planet}
+                              <p className="text-xs text-[#636363]">
+                                <span className="text-[#000000] font-medium">Planet:</span> {item.planet}
                               </p>
-                              <p className="text-xs text-[#5A554F]">
-                                <span className="text-[#B8860B] font-medium">House:</span> {item.houses}
+                              <p className="text-xs text-[#636363]">
+                                <span className="text-[#000000] font-medium">House:</span> {item.houses}
                               </p>
-                              <p className="text-xs text-[#5A554F]">
-                                <span className="text-[#B8860B] font-medium">Meaning:</span> {item.meaning}
+                              <p className="text-xs text-[#636363]">
+                                <span className="text-[#000000] font-medium">Meaning:</span> {item.meaning}
                               </p>
                               <p className="text-[10px] text-[#184131] bg-[#184131]/5 p-2 rounded mt-2">
                                 <span className="font-medium">Verification:</span> {item.verification}
@@ -264,12 +264,12 @@ export default function WhyForensicTraits() {
             </div>
 
             {/* Footer Quote */}
-            <div className="p-4 bg-gradient-to-r from-[#B8860B]/10 to-[#78611D]/10 border-t border-[#78611D]/20">
-              <p className="text-sm text-center text-[#4A453F] italic">
+            <div className="p-4 bg-gradient-to-r from-[#000000]/10 to-[#000000]/10 border-t border-[#000000]/20">
+              <p className="text-sm text-center text-[#636363] italic">
                 &quot;The body never lies. It holds the memory of the stars at birth.
                 Learn to read it, and you hold the key to time itself.&quot;
               </p>
-              <p className="text-xs text-center text-[#5A554F] mt-1">
+              <p className="text-xs text-center text-[#636363] mt-1">
                 — Ancient Vedic Seer
               </p>
             </div>

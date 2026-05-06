@@ -20,7 +20,7 @@ export function ScoreAuditTable({ analysisDetails }: ScoreAuditTableProps) {
             className="rounded-xl p-6 shadow-sm mt-6"
             style={{ backgroundColor: THEME.surface, border: `1px solid ${THEME.border}` }}
         >
-            <h4 className="font-bold mb-4 flex items-center gap-2" style={{ color: THEME.textPrimary }}>
+            <h4 className="font-medium mb-4 flex items-center gap-2" style={{ color: THEME.textPrimary }}>
                 <Award className="w-4 h-4" style={{ color: THEME.gold }} aria-hidden="true" />
                 Verification Audit
             </h4>
@@ -45,7 +45,7 @@ export function ScoreAuditTable({ analysisDetails }: ScoreAuditTableProps) {
                                 <td className="py-2 capitalize" style={{ color: THEME.textPrimary }}>
                                     {key.replace(/([A-Z])/g, ' $1').trim()}
                                 </td>
-                                <td className="py-2 text-right font-bold" style={{ color: THEME.gold }}>+{val as number}</td>
+                                <td className="py-2 text-right font-medium" style={{ color: THEME.gold }}>+{val as number}</td>
                             </tr>
                         ))}
                     </tbody>

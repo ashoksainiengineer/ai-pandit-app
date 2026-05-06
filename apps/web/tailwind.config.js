@@ -8,25 +8,25 @@ module.exports = {
   theme: {
     extend: {
       // ═══════════════════════════════════════════════════════════════
-      // AI Pandit Design System — Warm Sacred Palette
-      // All hex values replaced with semantic tokens.
-      // Use these instead of inline bg-[#...] everywhere.
+      // AI PANDIT DESIGN SYSTEM — DIA BROWSER PALETTE
+      // Clean monochrome with subtle spectrum accents
+      // Single font: DM Sans (weights 300, 400, 500 only)
       // ═══════════════════════════════════════════════════════════════
       colors: {
         // Surface — backgrounds, cards, containers
         surface: {
-          base: '#FFFCF8',      // warm white (page bg)
-          raised: '#FDF8F3',    // card/tile bg
-          elevated: '#F5EFE7',  // accent bg, hover states
-          muted: '#F0E8DE',     // subtle borders, dividers
+          base: '#f8f8f8',      // page bg (dia canvas)
+          raised: '#ffffff',    // card/tile bg
+          elevated: '#efefef',  // accent bg, hover states
+          muted: 'rgba(0,0,0,0.08)', // subtle borders, dividers
         },
 
-        // Primary — amber/gold CTAs, active states
+        // Primary — black CTAs, active states
         primary: {
-          DEFAULT: '#B8860B',   // amber gold
-          light: '#D4A843',     // hover/light
-          dark: '#78611D',      // pressed/dark
-          dim: '#9A7609',       // muted gold
+          DEFAULT: '#000000',   // black
+          light: '#333333',     // hover/light
+          dark: '#000000',      // pressed/dark
+          dim: '#636363',       // muted
         },
 
         // Trust — dark green, encryption/verified badges
@@ -37,27 +37,26 @@ module.exports = {
 
         // Content — text colors
         content: {
-          primary: '#1A1612',   // main text (near black)
-          secondary: '#5A554F', // muted text (warm gray)
-          disabled: '#8A857F',  // placeholder
+          primary: '#000000',   // main text
+          secondary: '#636363', // muted text
+          disabled: '#959595',  // placeholder
         },
 
         // Destructive — errors, warnings, caution
         destructive: {
-          DEFAULT: '#C65D3B',   // terracotta red
+          DEFAULT: '#636363',   // gray (dia style)
         },
 
-        // Legacy gold scale (keep for existing gold-50 → gold-900 usage)
+        // Monochrome scale (replaces gold scale)
         gold: {
-          50: '#fff9e6', 100: '#ffeeb3', 200: '#ffe380',
-          300: '#ffd84d', 400: '#ffcd1a', 500: '#e6b300',
-          600: '#b38a00', 700: '#806200', 800: '#4d3b00',
-          900: '#1a1400',
+          50: '#f8f8f8', 100: '#efefef', 200: '#d9d9d9',
+          300: '#b3b3b3', 400: '#8c8c8c', 500: '#636363',
+          600: '#4d4d4d', 700: '#333333', 800: '#1a1a1a',
+          900: '#000000',
         },
 
         // ═══════════════════════════════════════════════════════════════
         // PRISM DESIGN SYSTEM — "Prism on white stationery"
-        // Light refracts color from a nearly monochrome surface.
         // ═══════════════════════════════════════════════════════════════
         prism: {
           // Neutrals
@@ -100,13 +99,11 @@ module.exports = {
 
       fontFamily: {
         sans: ['var(--font-dm-sans)', 'system-ui', 'sans-serif'],
-        display: ['var(--font-cormorant)', 'Georgia', 'serif'],
-        // Prism design system fonts
-        prism: ['var(--font-inter)', 'var(--font-dm-sans)', 'system-ui', 'sans-serif'],
-        inter: ['var(--font-inter)', 'system-ui', 'sans-serif'],
-        // Dia-inspired fonts
+        display: ['var(--font-dm-sans)', 'system-ui', 'sans-serif'],
+        prism: ['var(--font-dm-sans)', 'system-ui', 'sans-serif'],
+        inter: ['var(--font-dm-sans)', 'system-ui', 'sans-serif'],
         'dia-heading': ['var(--font-dm-sans)', 'system-ui', 'sans-serif'],
-        'dia-serif': ['var(--font-playfair)', 'Georgia', 'serif'],
+        'dia-serif': ['var(--font-dm-sans)', 'system-ui', 'sans-serif'],
         'dia-mono': ['var(--font-mono)', 'monospace'],
       },
 

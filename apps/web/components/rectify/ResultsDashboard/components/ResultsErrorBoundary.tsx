@@ -33,7 +33,7 @@ export class ResultsErrorBoundary extends React.Component<
                 <div className="min-h-screen flex items-center justify-center p-6" style={{ backgroundColor: THEME.bg }}>
                     <div className="rounded-xl p-8 max-w-md text-center shadow-lg" style={{ backgroundColor: THEME.surface, border: `1px solid ${THEME.error}30` }}>
                         <AlertTriangle className="w-12 h-12 mx-auto mb-4" style={{ color: THEME.error }} />
-                        <h2 className="text-xl font-bold mb-2" style={{ color: THEME.textPrimary }}>Something Went Wrong</h2>
+                        <h2 className="text-xl font-medium mb-2" style={{ color: THEME.textPrimary }}>Something Went Wrong</h2>
                         <p className="text-sm mb-4" style={{ color: THEME.textSecondary }}>
                             We encountered an error displaying your results. Please try refreshing the page.
                         </p>

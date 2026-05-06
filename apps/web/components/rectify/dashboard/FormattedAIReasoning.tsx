@@ -110,7 +110,7 @@ export function FormattedAIReasoning({
             style={{ backgroundColor: THEME.bg, border: `1px solid ${THEME.border}` }}
         >
             <div className="flex items-center justify-between mb-4">
-                <h4 className="font-bold flex items-center gap-2" style={{ color: THEME.textPrimary }}>
+                <h4 className="font-medium flex items-center gap-2" style={{ color: THEME.textPrimary }}>
                     <Sparkles className="w-4 h-4" style={{ color: THEME.gold }} aria-hidden="true" />
                     AI Reasoning Transcript
                 </h4>
@@ -120,7 +120,7 @@ export function FormattedAIReasoning({
                     </span>
                     <button
                         onClick={() => setIsExpanded(!isExpanded)}
-                        className="text-[10px] font-bold uppercase tracking-widest px-2 py-1 rounded bg-gold-50/20 hover:bg-gold-50/50"
+                        className="text-[10px] font-medium uppercase tracking-widest px-2 py-1 rounded bg-gold-50/20 hover:bg-gold-50/50"
                         style={{ color: THEME.gold }}
                     >
                         {isExpanded ? 'Show Less' : 'Full Log'}
@@ -134,7 +134,7 @@ export function FormattedAIReasoning({
                         return (
                             <div key={section.key} className="mb-4">
                                 <div
-                                    className="inline-block px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded mb-1.5 shadow-sm"
+                                    className="inline-block px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider rounded mb-1.5 shadow-sm"
                                     style={{
                                         backgroundColor: `${THEME.gold}10`,
                                         color: THEME.gold,

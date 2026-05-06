@@ -41,7 +41,7 @@ export function TabPanels({
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                             <div className="prose max-w-none">
                                 <h3
-                                    className="text-xl font-bold mb-4 flex items-center gap-2"
+                                    className="text-xl font-medium mb-4 flex items-center gap-2"
                                     style={{ color: THEME.textPrimary }}
                                 >
                                     <FileText className="w-5 h-5" style={{ color: THEME.gold }} aria-hidden="true" />
@@ -63,7 +63,7 @@ export function TabPanels({
                                     &ldquo;{cleanSummary(analysisDetails?.summary)}&rdquo;
                                 </div>
                                 <h4
-                                    className="font-bold mt-6 mb-2 text-sm uppercase tracking-wider"
+                                    className="font-medium mt-6 mb-2 text-sm uppercase tracking-wider"
                                     style={{ color: THEME.textPrimary }}
                                 >
                                     Confirmation Factors:
@@ -132,7 +132,7 @@ export function TabPanels({
                         role="tabpanel"
                         id="audit-panel"
                     >
-                        <h3 className="text-lg font-bold mb-4" style={{ color: THEME.textPrimary }}>Boundary Safety Check</h3>
+                        <h3 className="text-lg font-medium mb-4" style={{ color: THEME.textPrimary }}>Boundary Safety Check</h3>
                         {analysisDetails?.boundarySafety ? (
                             <div className="grid grid-cols-2 gap-4">
                                 <div
@@ -168,7 +168,7 @@ export function TabPanels({
                         )}
 
                         <div className="mt-8">
-                            <h3 className="text-lg font-bold mb-4" style={{ color: THEME.textPrimary }}>Runner-Up Candidates</h3>
+                            <h3 className="text-lg font-medium mb-4" style={{ color: THEME.textPrimary }}>Runner-Up Candidates</h3>
                             <div className="space-y-2">
                                 {topCandidates.slice(1, 6).map((alt, i) => (
                                     <div

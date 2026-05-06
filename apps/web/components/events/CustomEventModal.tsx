@@ -145,23 +145,23 @@ export default function CustomEventModal({
             className="w-full max-w-md max-h-[85vh] bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col"
           >
             {/* Header - Compact */}
-            <div className="p-4 border-b border-[#E8E0D5] flex items-center justify-between bg-gradient-to-r from-[#FDF8F3] to-white">
+            <div className="p-4 border-b border-[#E8E0D5] flex items-center justify-between bg-gradient-to-r from-[#ffffff] to-white">
               <div className="flex items-center gap-3">
-                <div className="w-9 h-9 bg-[#B8860B]/10 rounded-xl flex items-center justify-center">
-                  <Sparkles className="w-4 h-4 text-[#B8860B]" />
+                <div className="w-9 h-9 bg-[#000000]/10 rounded-xl flex items-center justify-center">
+                  <Sparkles className="w-4 h-4 text-[#000000]" />
                 </div>
                 <div>
-                  <h2 className="font-semibold text-[#1A1612] text-base">Create Custom Event</h2>
-                  <p className="text-xs text-[#5A554F]">
+                  <h2 className="font-medium text-[#000000] text-base">Create Custom Event</h2>
+                  <p className="text-xs text-[#636363]">
                     Add custom life events
                   </p>
                 </div>
               </div>
               <button
                 onClick={handleClose}
-                className="w-8 h-8 rounded-full hover:bg-[#F5EFE7] flex items-center justify-center transition-colors"
+                className="w-8 h-8 rounded-full hover:bg-[#f8f8f8] flex items-center justify-center transition-colors"
               >
-                <X className="w-5 h-5 text-[#5A554F]" />
+                <X className="w-5 h-5 text-[#636363]" />
               </button>
             </div>
 
@@ -181,7 +181,7 @@ export default function CustomEventModal({
 
               {/* Event Name - Compact */}
               <div className="space-y-1.5">
-                <label className="text-sm font-medium text-[#1A1612]">
+                <label className="text-sm font-medium text-[#000000]">
                   Event Name <span className="text-[#C65D3B]">*</span>
                 </label>
                 <input
@@ -189,10 +189,10 @@ export default function CustomEventModal({
                   value={eventName}
                   onChange={(e) => setEventName(e.target.value)}
                   placeholder="e.g., Started Learning Guitar"
-                  className="w-full h-10 px-3 bg-white border border-[#E8E0D5] rounded-lg text-sm text-[#1A1612] placeholder-[#8A857F] focus:border-[#B8860B] focus:ring-2 focus:ring-[#B8860B]/10 outline-none transition-all"
+                  className="w-full h-10 px-3 bg-white border border-[#E8E0D5] rounded-lg text-sm text-[#000000] placeholder-[#959595] focus:border-[#000000] focus:ring-2 focus:ring-[#000000]/10 outline-none transition-all"
                   autoFocus
                 />
-                <p className="text-xs text-[#5A554F]">
+                <p className="text-xs text-[#636363]">
                   Clear description helps BTR accuracy
                 </p>
               </div>
@@ -200,13 +200,13 @@ export default function CustomEventModal({
               {/* Category Selection - Compact */}
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between">
-                  <label className="text-sm font-medium text-[#1A1612]">
+                  <label className="text-sm font-medium text-[#000000]">
                     Category <span className="text-[#C65D3B]">*</span>
                   </label>
                   <button
                     type="button"
                     onClick={() => setIsCreatingCategory(!isCreatingCategory)}
-                    className="text-xs text-[#B8860B] hover:underline flex items-center gap-1"
+                    className="text-xs text-[#000000] hover:underline flex items-center gap-1"
                   >
                     {isCreatingCategory ? (
                       '← Select Existing'
@@ -220,16 +220,16 @@ export default function CustomEventModal({
                 </div>
 
                 {isCreatingCategory ? (
-                  <div className="space-y-2 p-3 bg-[#F5EFE7] rounded-xl">
+                  <div className="space-y-2 p-3 bg-[#f8f8f8] rounded-xl">
                     <input
                       type="text"
                       value={newCategoryName}
                       onChange={(e) => setNewCategoryName(e.target.value)}
                       placeholder="Category name (e.g., Hobbies)"
-                      className="w-full h-9 px-3 bg-white border border-[#E8E0D5] rounded-lg text-sm text-[#1A1612] placeholder-[#8A857F] focus:border-[#B8860B] outline-none"
+                      className="w-full h-9 px-3 bg-white border border-[#E8E0D5] rounded-lg text-sm text-[#000000] placeholder-[#959595] focus:border-[#000000] outline-none"
                     />
                     <div>
-                      <label className="text-xs text-[#5A554F] mb-1.5 block">
+                      <label className="text-xs text-[#636363] mb-1.5 block">
                         Choose Icon
                       </label>
                       <div className="flex flex-wrap gap-1.5">
@@ -239,7 +239,7 @@ export default function CustomEventModal({
                             type="button"
                             onClick={() => setNewCategoryIcon(emoji)}
                             className={`w-8 h-8 text-lg rounded-md transition-all ${newCategoryIcon === emoji
-                              ? 'bg-[#B8860B] text-white'
+                              ? 'bg-[#000000] text-white'
                               : 'bg-white hover:bg-[#E8E0D5]'
                               }`}
                           >
@@ -253,7 +253,7 @@ export default function CustomEventModal({
                   <select
                     value={selectedCategory}
                     onChange={(e) => setSelectedCategory(e.target.value)}
-                    className="w-full h-10 px-3 bg-white border border-[#E8E0D5] rounded-lg text-sm text-[#1A1612] focus:border-[#B8860B] focus:ring-2 focus:ring-[#B8860B]/10 outline-none appearance-none cursor-pointer"
+                    className="w-full h-10 px-3 bg-white border border-[#E8E0D5] rounded-lg text-sm text-[#000000] focus:border-[#000000] focus:ring-2 focus:ring-[#000000]/10 outline-none appearance-none cursor-pointer"
                   >
                     <option value="">Select a category...</option>
                     {categories.map((category) => (
@@ -274,11 +274,11 @@ export default function CustomEventModal({
             </form>
 
             {/* Footer - Compact */}
-            <div className="p-4 border-t border-[#E8E0D5] bg-[#FDF8F3] flex gap-3">
+            <div className="p-4 border-t border-[#E8E0D5] bg-[#ffffff] flex gap-3">
               <button
                 type="button"
                 onClick={handleClose}
-                className="flex-1 h-10 border-2 border-[#E8E0D5] text-[#4A453F] font-medium rounded-lg hover:border-[#B8860B]/30 transition-all text-sm"
+                className="flex-1 h-10 border-2 border-[#E8E0D5] text-[#636363] font-medium rounded-lg hover:border-[#000000]/30 transition-all text-sm"
               >
                 Cancel
               </button>
@@ -290,7 +290,7 @@ export default function CustomEventModal({
                   (!isCreatingCategory && !selectedCategory) ||
                   (isCreatingCategory && !newCategoryName.trim())
                 }
-                className="flex-1 h-10 bg-gradient-to-r from-[#B8860B] to-[#78611D] text-white font-medium rounded-lg hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-sm"
+                className="flex-1 h-10 bg-gradient-to-r from-[#000000] to-[#000000] text-white font-medium rounded-lg hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-sm"
               >
                 {isSubmitting ? (
                   <>

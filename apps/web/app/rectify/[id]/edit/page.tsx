@@ -68,7 +68,7 @@ function EditPageSkeleton() {
     return (
         <Layout hideFooter>
             <div className="min-h-screen flex items-center justify-center">
-                <div className="w-16 h-16 border-4 border-[#B8860B] border-t-transparent rounded-full animate-spin" />
+                <div className="w-16 h-16 border-4 border-[#000000] border-t-transparent rounded-full animate-spin" />
             </div>
         </Layout>
     );

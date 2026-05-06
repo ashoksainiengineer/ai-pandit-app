@@ -71,7 +71,7 @@ export const UnifiedAIPanel = memo(function UnifiedAIPanel({
     if (!unifiedMode) {
         return (
             <div className="space-y-3" role="region" aria-labelledby={`${panelId}-title`}>
-                <p className="text-sm text-[#5A554F]">Accordion mode not implemented</p>
+                <p className="text-sm text-[#636363]">Accordion mode not implemented</p>
             </div>
         );
     }
@@ -86,18 +86,18 @@ export const UnifiedAIPanel = memo(function UnifiedAIPanel({
                     ? '0 0 30px rgba(184, 134, 11, 0.15)'
                     : '0 0 20px rgba(184, 134, 11, 0.08)'
             }}
-            className={`bg-white rounded-2xl border transition-all duration-500 overflow-hidden ${isActive ? 'border-[#78611D]' : 'border-[#78611D]/40 shadow-sm'}`}
+            className={`bg-white rounded-2xl border transition-all duration-500 overflow-hidden ${isActive ? 'border-[#000000]' : 'border-[#000000]/40 shadow-sm'}`}
             role="region"
             aria-labelledby={`${panelId}-title`}
         >
-            <div className={`px-5 py-4 border-b flex items-center justify-between transition-colors ${isCompleted ? 'bg-[#FAF8F5] border-[#E8E2D9]' : 'bg-gradient-to-r from-[#FAF8F5] to-white border-[#F0E8DE]'}`}>
+            <div className={`px-5 py-4 border-b flex items-center justify-between transition-colors ${isCompleted ? 'bg-[#FAF8F5] border-[#E8E2D9]' : 'bg-gradient-to-r from-[#FAF8F5] to-white border-[rgba(0,0,0,0.08)]'}`}>
                 <div className="flex items-center gap-3">
-                    <div className={`p-2 rounded-lg ${isCompleted ? 'bg-stone-100' : 'bg-[#B8860B]/10'}`}>
-                        <Brain className={`w-5 h-5 ${isCompleted ? 'text-stone-400' : 'text-[#B8860B]'}`} />
+                    <div className={`p-2 rounded-lg ${isCompleted ? 'bg-stone-100' : 'bg-[#000000]/10'}`}>
+                        <Brain className={`w-5 h-5 ${isCompleted ? 'text-stone-400' : 'text-[#000000]'}`} />
                     </div>
                     <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2">
-                            <h3 id={`${panelId}-title`} className={`text-base font-bold truncate ${isCompleted ? 'text-[#4A453F]' : 'text-[#1A1612]'}`}>
+                            <h3 id={`${panelId}-title`} className={`text-base font-medium truncate ${isCompleted ? 'text-[#636363]' : 'text-[#000000]'}`}>
                                 {title || (STAGES[stage ?? 0]?.name || `Stage ${stage} Analysis`)}
                             </h3>
                             {(() => {
@@ -112,7 +112,7 @@ export const UnifiedAIPanel = memo(function UnifiedAIPanel({
                                 }
                                 if (!phaseLabel) return null;
                                 return (
-                                    <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold uppercase tracking-wider shrink-0 ${isCompleted ? 'bg-stone-200 text-stone-500' : 'bg-[#B8860B]/20 text-[#B8860B]'}`}>
+                                    <span className={`text-[9px] px-1.5 py-0.5 rounded font-medium uppercase tracking-wider shrink-0 ${isCompleted ? 'bg-stone-200 text-stone-500' : 'bg-[#000000]/20 text-[#000000]'}`}>
                                         🪐 {phaseLabel}
                                     </span>
                                 );
@@ -121,7 +121,7 @@ export const UnifiedAIPanel = memo(function UnifiedAIPanel({
 
                         {!isCompleted && isActive && candidatesList.length > 0 && (
                             <div className="mt-1.5 max-w-[200px]">
-                                <div className="flex items-center justify-between text-[8px] font-bold text-[#5A554F] mb-0.5 uppercase tracking-tighter">
+                                <div className="flex items-center justify-between text-[8px] font-medium text-[#636363] mb-0.5 uppercase tracking-tighter">
                                     <span>Batch Progress</span>
                                     <span>{candidatesList.length} Processed</span>
                                 </div>
@@ -129,13 +129,13 @@ export const UnifiedAIPanel = memo(function UnifiedAIPanel({
                                     <motion.div
                                         initial={{ width: 0 }}
                                         animate={{ width: `${Math.min(100, (candidatesList.length / 100) * 100)}%` }}
-                                        className="h-full bg-gradient-to-r from-[#78611D] to-[#B8860B]"
+                                        className="h-full bg-gradient-to-r from-[#000000] to-[#000000]"
                                     />
                                 </div>
                             </div>
                         )}
 
-                        <p className="text-[10px] text-[#5A554F] mt-0.5 truncate">
+                        <p className="text-[10px] text-[#636363] mt-0.5 truncate">
                             {isCompleted ? 'Stage processing completed' : (isActive ? `Processing ${candidatesList.length} candidates` : 'Multi-stream history')}
                         </p>
                     </div>
@@ -145,7 +145,7 @@ export const UnifiedAIPanel = memo(function UnifiedAIPanel({
                     {isFocused && (
                         <button
                             onClick={() => setIsFocused(false)}
-                            className="text-[10px] font-bold text-amber-700 bg-amber-50 px-2 py-1 rounded-lg border border-amber-200 hover:bg-amber-100 transition-colors flex items-center gap-1"
+                            className="text-[10px] font-medium text-amber-700 bg-amber-50 px-2 py-1 rounded-lg border border-amber-200 hover:bg-amber-100 transition-colors flex items-center gap-1"
                         >
                             ← Back to Grid
                         </button>
@@ -157,7 +157,7 @@ export const UnifiedAIPanel = memo(function UnifiedAIPanel({
                             className="flex items-center gap-1.5 px-2 py-1 bg-[#184131]/10 rounded-full"
                         >
                             <Activity className="w-3 h-3 text-[#184131]" />
-                            <span className="text-[10px] font-bold text-[#184131]">LIVE</span>
+                            <span className="text-[10px] font-medium text-[#184131]">LIVE</span>
                         </motion.div>
                     )}
                     <button
@@ -188,12 +188,12 @@ export const UnifiedAIPanel = memo(function UnifiedAIPanel({
                                     transition={{ duration: 0.2 }}
                                 >
                                     {!isCompleted && thinking?.candidateTime === 'general' && (
-                                        <div className="px-5 py-3 bg-[#FCFBF9] border-b border-[#F0E8DE]">
+                                        <div className="px-5 py-3 bg-[#FCFBF9] border-b border-[rgba(0,0,0,0.08)]">
                                             <div className="flex items-center gap-2 mb-2">
                                                 <div className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
-                                                <span className="text-[10px] font-bold text-amber-700 uppercase tracking-widest">Global Reasoning</span>
+                                                <span className="text-[10px] font-medium text-amber-700 uppercase tracking-widest">Global Reasoning</span>
                                             </div>
-                                            <div className="text-[11px] text-[#4A453F] line-clamp-2 italic font-mono">
+                                            <div className="text-[11px] text-[#636363] line-clamp-2 italic font-mono">
                                                 {thinking.fullText}
                                             </div>
                                         </div>
@@ -223,17 +223,17 @@ export const UnifiedAIPanel = memo(function UnifiedAIPanel({
                                 >
                                     <div className="px-5 py-3 bg-amber-50/30 border-b border-amber-100 flex items-center justify-between">
                                         <div className="flex items-center gap-3">
-                                            <span className="text-xs font-bold text-[#1A1612] font-mono flex items-center gap-2">
-                                                <div className={`w-2 h-2 rounded-full ${thinking?.candidateTime === effectiveSelectedCandidate ? 'bg-green-500 animate-pulse' : 'bg-[#B8860B]'}`} />
+                                            <span className="text-xs font-medium text-[#000000] font-mono flex items-center gap-2">
+                                                <div className={`w-2 h-2 rounded-full ${thinking?.candidateTime === effectiveSelectedCandidate ? 'bg-green-500 animate-pulse' : 'bg-[#000000]'}`} />
                                                 {effectiveSelectedCandidate}
                                             </span>
-                                            <span className="text-[9px] text-amber-700 bg-amber-100 px-1.5 py-0.5 rounded font-bold uppercase">
+                                            <span className="text-[9px] text-amber-700 bg-amber-100 px-1.5 py-0.5 rounded font-medium uppercase">
                                                 Technical Reasoning
                                             </span>
                                         </div>
                                         <button
                                             onClick={() => setIsFocused(false)}
-                                            className="text-[10px] text-[#5A554F] hover:text-[#1A1612] transition-colors"
+                                            className="text-[10px] text-[#636363] hover:text-[#000000] transition-colors"
                                         >
                                             Close Full View ×
                                         </button>
