@@ -35,7 +35,7 @@
         "dotenv": "^16.4.5",
         "drizzle-orm": "^0.45.1",
         "next": "15.5.15",
-        "nyc": "14.1.1",
+        "nyc": "18.0.0",
         "pg": "^8.20.0"
     },
     "devDependencies": {
