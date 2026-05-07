@@ -6,7 +6,7 @@ We take the security of AI-Pandit seriously. If you discover a security vulnerab
 
 **Do not** open public issues for security vulnerabilities. Instead, send an email to:
 
-**app.aipandit@gmail.com**
+**app<!-- -->@<!-- -->aipandit<!-- -->.gmail<!-- -->.com**
 
 You can expect an acknowledgment within 48 hours, and we will work with you to understand the scope and impact of the issue. We aim to release a fix as soon as possible depending on severity.
 
