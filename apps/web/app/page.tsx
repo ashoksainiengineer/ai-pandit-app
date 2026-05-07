@@ -1,13 +1,13 @@
 /**
  * AI Pandit — Landing Page
- * AI Pandit Landing Page — Light Theme
- * Design spec recreation
+ * AI Pandit Landing Page — Premium Redesign
+ * sleek, minimal aesthetic with black pill CTAs
  * 5 sections: Hero, How It Works, Features, Privacy, CTA
  */
 
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { motion, useScroll, useTransform, AnimatePresence } from 'framer-motion';
 import {
@@ -50,7 +50,6 @@ const scaleIn = {
   viewport: { once: true, margin: '-40px' },
   transition: { duration: 0.5, ease: [0.215, 0.61, 0.355, 1] },
 };
-
 
 
 const staggerItem = {
@@ -182,28 +181,32 @@ function Hero() {
   const y1 = useTransform(scrollY, [0, 500], [0, -50]);
   const opacity = useTransform(scrollY, [0, 400], [1, 0]);
 
+  const [wordIndex, setWordIndex] = useState(0);
+  const animatedWords = ['precision', 'accuracy', 'clarity'];
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setWordIndex((prev) => (prev + 1) % animatedWords.length);
+    }, 3000);
+    return () => clearInterval(interval);
+  }, [animatedWords.length]);
+
   return (
-    <section className="relative min-h-screen flex items-center justify-center overflow-hidden bg-[#FAFAFA]">
-      {/* Radial Gradient Background — Radial gradient */}
-      <div className="absolute inset-0 pointer-events-none">
-        <div
-          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[280vw] h-[280vw]"
-          style={{
-            background: `radial-gradient(
-              circle 130vw at center,
-              rgba(0, 0, 0, 0) 54.810%,
-              rgba(255, 172, 227, 0.6) 60.098%,
-              rgba(255, 241, 172, 0.3) 62.983%,
-              rgba(121, 201, 255, 0.6) 68.500%,
-              rgba(74, 96, 209, 0.4) 80.000%,
-              rgba(80, 146, 199, 0.3) 90.000%,
-              rgba(60, 106, 255, 0.2) 93.000%,
-              rgba(86, 86, 86, 0.1) 97.000%,
-              rgba(0, 0, 0, 0) 100.000%
-            )`,
-          }}
-        />
-      </div>
+    <section className="app-hero-gradient relative min-h-[90vh] flex items-center justify-center overflow-hidden">
+      {/* Noise texture overlay */}
+      <div
+        className="absolute inset-0 opacity-[0.025] pointer-events-none"
+        style={{
+          backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")`,
+          backgroundRepeat: 'repeat',
+          backgroundSize: '256px 256px',
+        }}
+      />
+
+      {/* Decorative blobs */}
+      <div className="absolute top-[-10%] left-[5%] w-[500px] h-[500px] rounded-full bg-[#79C9FF]/15 blur-[120px] pointer-events-none" />
+      <div className="absolute bottom-[-5%] right-[10%] w-[400px] h-[400px] rounded-full bg-[#a8c4e8]/20 blur-[100px] pointer-events-none" />
+      <div className="absolute top-[40%] right-[5%] w-[300px] h-[300px] rounded-full bg-[#b8d3ee]/25 blur-[80px] pointer-events-none" />
 
       {/* Floating UI Cards — 4 absolute-positioned, frosted glass, staggered */}
       <motion.div style={{ y: y1 }} className="absolute inset-0 pointer-events-none">
@@ -214,8 +217,8 @@ function Hero() {
           style={{ left: '8%', top: '18%' }}
         >
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#79C9FF] to-[#0358F7] flex items-center justify-center">
-              <Moon className="w-5 h-5 text-white" />
+            <div className="w-10 h-10 rounded-full bg-black/5 flex items-center justify-center">
+              <Moon className="w-5 h-5 text-black/60" />
             </div>
             <div>
               <div className="text-sm font-medium text-black">Dasha Analysis</div>
@@ -231,8 +234,8 @@ function Hero() {
           style={{ right: '10%', top: '15%' }}
         >
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#FA3D1D] to-[#FFB005] flex items-center justify-center">
-              <Activity className="w-5 h-5 text-white" />
+            <div className="w-10 h-10 rounded-full bg-black/5 flex items-center justify-center">
+              <Activity className="w-5 h-5 text-black/60" />
             </div>
             <div>
               <div className="text-sm font-medium text-black">Transit Check</div>
@@ -248,8 +251,8 @@ function Hero() {
           style={{ left: '5%', bottom: '25%' }}
         >
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#FD02F5] to-[#C679C4] flex items-center justify-center">
-              <Star className="w-5 h-5 text-white" />
+            <div className="w-10 h-10 rounded-full bg-black/5 flex items-center justify-center">
+              <Star className="w-5 h-5 text-black/60" />
             </div>
             <div>
               <div className="text-sm font-medium text-black">97% Confidence</div>
@@ -265,8 +268,8 @@ function Hero() {
           style={{ right: '8%', bottom: '30%' }}
         >
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#0358F7] to-[#79C9FF] flex items-center justify-center">
-              <Calendar className="w-5 h-5 text-white" />
+            <div className="w-10 h-10 rounded-full bg-black/5 flex items-center justify-center">
+              <Calendar className="w-5 h-5 text-black/60" />
             </div>
             <div>
               <div className="text-sm font-medium text-black">Birth Chart</div>
@@ -288,7 +291,7 @@ function Hero() {
           transition={{ duration: 0.6, delay: 0.2 }}
         >
           <span className="inline-flex items-center gap-2 px-4 py-2 bg-white/80 backdrop-blur-sm border border-black/5 rounded-full text-xs font-medium text-black/60 uppercase tracking-wider mb-8">
-            <span className="w-2 h-2 rounded-full bg-[#79C9FF] animate-pulse" />
+            <span className="w-2 h-2 rounded-full bg-black/20" />
             Vedic Birth Time Rectification
           </span>
         </motion.div>
@@ -302,7 +305,23 @@ function Hero() {
         >
           <span className="font-light">Your </span>
           <span className="font-medium">birth time</span>
-          <span className="font-light">, with divine precision</span>
+          <span className="font-light">, with divine </span>
+          <span className="relative inline-block font-medium">
+            <AnimatePresence mode="wait">
+              <motion.span
+                key={wordIndex}
+                initial={{ opacity: 0, y: 12, filter: 'blur(4px)' }}
+                animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+                exit={{ opacity: 0, y: -12, filter: 'blur(4px)' }}
+                transition={{ duration: 0.3, ease: [0.215, 0.61, 0.355, 1] }}
+                className="absolute left-0 whitespace-nowrap"
+              >
+                {animatedWords[wordIndex]}
+              </motion.span>
+            </AnimatePresence>
+            {/* Invisible placeholder to reserve space */}
+            <span className="invisible">{animatedWords[0]}</span>
+          </span>
         </motion.h1>
 
         {/* Subheading — 18px, text-black/50, max-w-2xl, centered */}
@@ -322,10 +341,10 @@ function Hero() {
           transition={{ duration: 0.6, delay: 0.7 }}
           className="flex flex-col sm:flex-row items-center justify-center gap-4"
         >
-          {/* Primary CTA — rounded-[30px] bg-[#D9D9D9] text-black/85 */}
+          {/* Primary CTA — black pill button */}
           <Link
             href="/rectify"
-            className="group inline-flex items-center gap-3 px-8 py-4 bg-[#D9D9D9] text-black/85 rounded-[30px] text-base font-medium hover:bg-black hover:text-white transition-all duration-200"
+            className="app-btn group inline-flex items-center gap-3"
           >
             Start Your Analysis
             <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
@@ -333,8 +352,8 @@ function Hero() {
 
           {/* Secondary link — ChevronDown */}
           <Link
-            href="/#how-it-works"
-            className="inline-flex items-center gap-2 px-8 py-4 text-black/60 hover:text-black transition-colors"
+            href="#how-it-works"
+            className="inline-flex items-center gap-2 px-8 py-4 text-black/60 hover:text-black transition-colors text-sm font-medium"
           >
             See how it works
             <ChevronDown className="w-5 h-5" />
@@ -375,7 +394,7 @@ function Hero() {
           transition={{ duration: 2, repeat: Infinity }}
           className="w-6 h-10 border-2 border-black/20 rounded-full flex justify-center pt-2"
         >
-          <div className="w-1.5 h-1.5 bg-black/40 rounded-full" />
+          <div className="w-1.5 h-1.5 bg-black/30 rounded-full" />
         </motion.div>
       </motion.div>
     </section>
@@ -391,8 +410,8 @@ function HowItWorks() {
   const [activeFeature, setActiveFeature] = useState(0);
 
   return (
-    <section id="how-it-works" className="relative py-32 bg-[#FAFAFA]">
-      <div className="max-w-[1200px] mx-auto px-6">
+    <section id="how-it-works" className="py-32 relative bg-[#FAFAFA]">
+      <div className="app-container">
         {/* Section Header */}
         <motion.div {...fadeIn} className="text-center mb-20">
           <span className="inline-flex items-center gap-2 px-4 py-2 bg-black/5 rounded-full text-xs font-medium text-black/60 uppercase tracking-wider mb-6">
@@ -406,50 +425,49 @@ function HowItWorks() {
         {/* Two-column layout */}
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-16 items-start">
           {/* Left Side — Feature List (60% = 3/5 cols) */}
-          <div className="lg:col-span-3 space-y-2">
+          <div className="lg:col-span-3">
             {FEATURES_LIST.map((feature, index) => (
               <motion.div
                 key={feature.number}
                 {...staggerItem}
                 transition={{ ...staggerItem.transition, delay: index * 0.1 }}
-                className={`p-6 rounded-2xl cursor-pointer transition-all duration-300 ${
-                  activeFeature === index
-                    ? 'bg-white shadow-lg border border-black/5'
-                    : 'hover:bg-white/50'
-                }`}
+                data-number={feature.number}
                 onClick={() => setActiveFeature(index)}
+                className={`relative pl-8 py-5 pr-6 rounded-r-2xl cursor-pointer group transition-all duration-300 border-l ${
+                  activeFeature === index
+                    ? 'border-black/20 bg-white shadow-sm'
+                    : 'border-black/[0.06] hover:border-black/15'
+                }`}
               >
-                <div className="flex items-start gap-4">
-                  {/* Number — font-mono, active=black, inactive=black/30 */}
-                  <span className={`text-sm font-mono font-medium mt-1 ${
-                    activeFeature === index ? 'text-black' : 'text-black/30'
+                {/* Number positioned over the thin left border */}
+                <span className={`absolute left-0 top-5 -translate-x-1/2 w-5 text-center text-xs font-mono transition-colors duration-300 ${
+                  activeFeature === index ? 'text-black' : 'text-black/30'
+                }`}>
+                  {feature.number}
+                </span>
+                <div>
+                  {/* Title — active=black, inactive=black/50 */}
+                  <h3 className={`text-lg font-medium mb-2 transition-colors duration-300 ${
+                    activeFeature === index ? 'text-black' : 'text-black/50'
                   }`}>
-                    {feature.number}
-                  </span>
-                  <div className="flex-1">
-                    {/* Title — active=black, inactive=black/50 */}
-                    <h3 className={`text-lg font-medium mb-2 transition-colors duration-300 ${
-                      activeFeature === index ? 'text-black' : 'text-black/50'
-                    }`}>
-                      {feature.title}
-                    </h3>
-                    {/* Description — animated expand on click */}
-                    <AnimatePresence>
-                      {activeFeature === index && (
-                        <motion.div
-                          initial={{ opacity: 0, height: 0 }}
-                          animate={{ opacity: 1, height: 'auto' }}
-                          exit={{ opacity: 0, height: 0 }}
-                          transition={{ duration: 0.3, ease: [0.215, 0.61, 0.355, 1] }}
-                          className="overflow-hidden"
-                        >
-                          <p className="text-black/50 text-sm leading-relaxed pt-1">
-                            {feature.description}
-                          </p>
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
-                  </div>
+                    {feature.title}
+                  </h3>
+                  {/* Description — animated expand on click */}
+                  <AnimatePresence>
+                    {activeFeature === index && (
+                      <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        exit={{ opacity: 0, height: 0 }}
+                        transition={{ duration: 0.3, ease: [0.215, 0.61, 0.355, 1] }}
+                        className="overflow-hidden"
+                      >
+                        <p className="text-black/50 text-sm leading-relaxed pt-1">
+                          {feature.description}
+                        </p>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </div>
               </motion.div>
             ))}
@@ -482,13 +500,13 @@ function HowItWorks() {
 
 /* ═══════════════════════════════════════════════════════════════════════════════
    COMPONENT — Features Section (id="features")
-   2x3 card grid — rounded-3xl, hover effects, gradient borders
+   2x3 card grid — clean white cards, subtle borders, no colored gradients
    ═══════════════════════════════════════════════════════════════════════════════ */
 
 function Features() {
   return (
-    <section id="features" className="relative py-32 bg-white">
-      <div className="max-w-[1200px] mx-auto px-6">
+    <section id="features" className="relative bg-white py-32">
+      <div className="app-container">
         {/* Section Header */}
         <motion.div {...fadeIn} className="text-center mb-20">
           <span className="inline-flex items-center gap-2 px-4 py-2 bg-black/5 rounded-full text-xs font-medium text-black/60 uppercase tracking-wider mb-6">
@@ -508,37 +526,23 @@ function Features() {
                 key={card.title}
                 {...staggerItem}
                 transition={{ ...staggerItem.transition, delay: index * 0.08 }}
-                className="group relative bg-[#FAFAFA] rounded-[30px] p-8 hover:bg-white hover:shadow-lg border border-transparent hover:border-black/5 transition-all duration-500 hover:-translate-y-0.5"
+                className="group relative bg-white rounded-[20px] p-8 border border-black/5 hover:shadow-md hover:-translate-y-0.5 transition-all duration-300"
               >
                 {/* Tag + Icon row */}
                 <div className="flex items-start justify-between mb-6">
-                  {/* Tag pill — colored bg at 15% opacity */}
-                  <span
-                    className="px-3 py-1 rounded-full text-xs font-medium uppercase tracking-wider"
-                    style={{ backgroundColor: `${card.color}15`, color: card.color }}
-                  >
+                  {/* Tag pill — subtle gray */}
+                  <span className="px-3 py-1 rounded-full text-xs font-medium uppercase tracking-wider bg-black/5 text-black/50">
                     {card.tag}
                   </span>
-                  {/* Icon — 48x48 rounded-2xl, colored bg at 15% */}
-                  <div
-                    className="w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0"
-                    style={{ backgroundColor: `${card.color}15` }}
-                  >
-                    <Icon className="w-6 h-6" style={{ color: card.color }} />
+                  {/* Icon — 48x48 rounded-2xl, subtle gray bg */}
+                  <div className="w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0 bg-black/5">
+                    <Icon className="w-5 h-5 text-black/40" />
                   </div>
                 </div>
 
                 {/* Title + Description */}
                 <h3 className="text-2xl font-medium text-black mb-3">{card.title}</h3>
                 <p className="text-black/50 leading-relaxed">{card.description}</p>
-
-                {/* Hover gradient border — linear gradient at 20% opacity */}
-                <div
-                  className="absolute inset-0 rounded-[30px] opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"
-                  style={{
-                    background: `linear-gradient(90deg, ${card.color}20 0%, transparent 50%)`,
-                  }}
-                />
               </motion.div>
             );
           })}
@@ -555,7 +559,7 @@ function Features() {
 
 function Privacy() {
   return (
-    <section className="relative py-32 bg-[#FAFAFA]">
+    <section className="py-32 bg-[#FAFAFA]">
       <div className="max-w-[800px] mx-auto px-6">
         <motion.div {...fadeIn} className="text-center">
           {/* Dashed border box */}
@@ -580,7 +584,7 @@ function Privacy() {
               with you in control
             </p>
 
-            {/* Toggle Pills — flex-wrap, justify-center, gap-3 */}
+            {/* Toggle Pills — clean black active / gray inactive */}
             <div className="flex flex-wrap justify-center gap-3 mb-8">
               {PRIVACY_FEATURES.map((feature) => (
                 <div
@@ -591,12 +595,11 @@ function Privacy() {
                       : 'bg-black/5 text-black/40'
                   }`}
                 >
-                  {/* Dot indicator — green=on, gray=off */}
-                  <span className={`w-2 h-2 rounded-full ${feature.active ? 'bg-green-400' : 'bg-black/20'}`} />
+                  {/* Dot indicator — clean on/off */}
+                  <span className={`w-2 h-2 rounded-full ${
+                    feature.active ? 'bg-white/60' : 'bg-black/15'
+                  }`} />
                   {feature.label}
-                  <span className="text-xs opacity-60">
-                    {feature.active ? 'On' : 'Off'}
-                  </span>
                 </div>
               ))}
             </div>
@@ -607,10 +610,10 @@ function Privacy() {
               Each user gets a unique encryption key — we cannot read your data.
             </p>
 
-            {/* Learn more link — pill button bg-black/5 */}
+            {/* Learn more link — subtle text link */}
             <Link
               href="/privacy"
-              className="inline-flex items-center gap-2 px-6 py-3 bg-black/5 hover:bg-black/10 rounded-full text-sm font-medium text-black/60 hover:text-black transition-all duration-300"
+              className="inline-flex items-center gap-2 px-6 py-3 bg-black/5 hover:bg-black/10 rounded-full text-sm font-medium text-black/60 transition-all duration-300"
             >
               Learn more about privacy
               <ArrowRight className="w-4 h-4" />
@@ -624,12 +627,12 @@ function Privacy() {
 
 /* ═══════════════════════════════════════════════════════════════════════════════
    COMPONENT — CTA Section
-   Centered heading + pebble-gray button + free subtext
+   Centered heading + black pill button + free subtext
    ═══════════════════════════════════════════════════════════════════════════════ */
 
 function CTA() {
   return (
-    <section className="relative py-32 bg-white">
+    <section className="app-section py-32 relative bg-white">
       <div className="max-w-[800px] mx-auto px-6 text-center">
         <motion.div {...fadeIn}>
           {/* Heading — 50px+ font-light */}
@@ -637,10 +640,10 @@ function CTA() {
             Ready for a better<br />birth time?
           </h2>
 
-          {/* Primary CTA — rounded-[30px] bg-[#D9D9D9] text-black/85 */}
+          {/* Primary CTA — black pill button */}
           <Link
             href="/rectify"
-            className="group inline-flex items-center gap-3 px-10 py-5 bg-[#D9D9D9] text-black/85 rounded-[30px] text-lg font-medium hover:bg-black hover:text-white transition-all duration-200 mb-6"
+            className="app-btn group inline-flex items-center gap-3 px-10 py-5 text-lg mb-6"
           >
             Start Your Analysis
             <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />

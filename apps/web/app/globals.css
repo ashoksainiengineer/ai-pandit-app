@@ -4,6 +4,8 @@
    Light Theme Variant — Clean, Minimal, Premium
    ═══════════════════════════════════════════════════════════════════════════════ */
 
+@import './prism-design-system.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -132,6 +134,26 @@
     --font-primary: 'DM Sans', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     --font-mono: 'JetBrains Mono', 'SF Mono', 'Fira Code', monospace;
     --font-display: 'DM Sans', 'Inter', -apple-system, sans-serif;
+
+    /* ── App-specific design tokens (Prism-compatible) ────────────────────── */
+    --app-hero-blue-start: #a8c4e8;
+    --app-hero-blue-end: #c8ddf5;
+    --app-hero-blue-mid: #b8d3ee;
+
+    --app-text-caption: 0.8125rem;
+    --app-text-body: 1.125rem;
+    --app-text-body-lg: 1.375rem;
+    --app-text-heading: 3.125rem;
+    --app-text-display: 4.5rem;
+    --app-text-display-lg: 7.2rem;
+
+    --app-space-section: 7.5rem;
+    --app-space-section-sm: 5rem;
+
+    --app-shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.04);
+    --app-shadow-md: 0 4px 24px rgba(0, 0, 0, 0.06);
+    --app-shadow-lg: 0 8px 40px rgba(0, 0, 0, 0.08);
+    --app-shadow-float: 0 12px 48px rgba(0, 0, 0, 0.10);
   }
 }
 
@@ -482,7 +504,7 @@
      CONTAINERS
      ═══════════════════════════════════════════════════════════════════════════ */
 
-  .container-dia {
+  .container-app {
     width: 100%;
     max-width: 1200px;
     margin: 0 auto;

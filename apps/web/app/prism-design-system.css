@@ -113,36 +113,36 @@
     /* ═══════════════════════════════════════════════════════════════════════
        PRISM TOKENS
        ═══════════════════════════════════════════════════════════════════════ */
-    --dia-bg: #F8F8F8;
-    --dia-bg-warm: #FAFAFA;
-    --dia-ink: #000000;
-    --dia-ink-muted: rgba(0, 0, 0, 0.6);
-    --dia-ink-subtle: rgba(0, 0, 0, 0.4);
-    --dia-ink-faint: rgba(0, 0, 0, 0.15);
-    --dia-border: rgba(0, 0, 0, 0.08);
-    --dia-border-strong: rgba(0, 0, 0, 0.12);
-    --dia-card: #FFFFFF;
-    --dia-hero-blue-start: #a8c4e8;
-    --dia-hero-blue-end: #c8ddf5;
-    --dia-hero-blue-mid: #b8d3ee;
+    --app-bg: #F8F8F8;
+    --app-bg-warm: #FAFAFA;
+    --app-ink: #000000;
+    --app-ink-muted: rgba(0, 0, 0, 0.6);
+    --app-ink-subtle: rgba(0, 0, 0, 0.4);
+    --app-ink-faint: rgba(0, 0, 0, 0.15);
+    --app-border: rgba(0, 0, 0, 0.08);
+    --app-border-strong: rgba(0, 0, 0, 0.12);
+    --app-card: #FFFFFF;
+    --app-hero-blue-start: #a8c4e8;
+    --app-hero-blue-end: #c8ddf5;
+    --app-hero-blue-mid: #b8d3ee;
 
     /* Typography */
-    --dia-text-caption: 0.8125rem;    /* 13px */
-    --dia-text-body: 1.125rem;        /* 18px */
-    --dia-text-body-lg: 1.375rem;     /* 22px */
-    --dia-text-heading: 3.125rem;     /* 50px */
-    --dia-text-display: 4.5rem;       /* 72px */
-    --dia-text-display-lg: 7.2rem;    /* 115px */
+    --app-text-caption: 0.8125rem;    /* 13px */
+    --app-text-body: 1.125rem;        /* 18px */
+    --app-text-body-lg: 1.375rem;     /* 22px */
+    --app-text-heading: 3.125rem;     /* 50px */
+    --app-text-display: 4.5rem;       /* 72px */
+    --app-text-display-lg: 7.2rem;    /* 115px */
 
     /* Spacing */
-    --dia-space-section: 7.5rem;      /* 120px */
-    --dia-space-section-sm: 5rem;     /* 80px */
+    --app-space-section: 7.5rem;      /* 120px */
+    --app-space-section-sm: 5rem;     /* 80px */
 
     /* Shadows */
-    --dia-shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.04);
-    --dia-shadow-md: 0 4px 24px rgba(0, 0, 0, 0.06);
-    --dia-shadow-lg: 0 8px 40px rgba(0, 0, 0, 0.08);
-    --dia-shadow-float: 0 12px 48px rgba(0, 0, 0, 0.10);
+    --app-shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.04);
+    --app-shadow-md: 0 4px 24px rgba(0, 0, 0, 0.06);
+    --app-shadow-lg: 0 8px 40px rgba(0, 0, 0, 0.08);
+    --app-shadow-float: 0 12px 48px rgba(0, 0, 0, 0.10);
   }
 }
 
@@ -498,39 +498,39 @@
      ═══════════════════════════════════════════════════════════════════════════ */
 
   /* ── Hero Gradient ──────────────────────────────────────────────────── */
-  .dia-hero-gradient {
-    background: linear-gradient(180deg, var(--dia-hero-blue-start) 0%, var(--dia-hero-blue-mid) 60%, var(--dia-hero-blue-end) 100%);
+  .app-hero-gradient {
+    background: linear-gradient(180deg, var(--app-hero-blue-start) 0%, var(--app-hero-blue-mid) 60%, var(--app-hero-blue-end) 100%);
   }
 
   /* ── Card ───────────────────────────────────────────────────────────── */
-  .dia-card {
-    background: var(--dia-card);
-    border: 1px solid var(--dia-border);
+  .app-card {
+    background: var(--app-card);
+    border: 1px solid var(--app-border);
     border-radius: 20px;
     padding: 2rem;
-    box-shadow: var(--dia-shadow-sm);
+    box-shadow: var(--app-shadow-sm);
     transition: box-shadow 0.2s ease, transform 0.2s ease;
   }
 
-  .dia-card:hover {
-    box-shadow: var(--dia-shadow-md);
+  .app-card:hover {
+    box-shadow: var(--app-shadow-md);
   }
 
-  .dia-card-sm {
-    background: var(--dia-card);
-    border: 1px solid var(--dia-border);
+  .app-card-sm {
+    background: var(--app-card);
+    border: 1px solid var(--app-border);
     border-radius: 16px;
     padding: 1.5rem;
-    box-shadow: var(--dia-shadow-sm);
+    box-shadow: var(--app-shadow-sm);
   }
 
   /* ── Button (Primary) ───────────────────────────────────────────────── */
-  .dia-btn {
+  .app-btn {
     display: inline-flex;
     align-items: center;
     justify-content: center;
     gap: 0.625rem;
-    background: var(--dia-ink);
+    background: var(--app-ink);
     color: #ffffff;
     border-radius: 9999px;
     padding: 0.875rem 1.75rem;
@@ -544,63 +544,63 @@
     white-space: nowrap;
   }
 
-  .dia-btn:hover {
+  .app-btn:hover {
     background: rgba(0, 0, 0, 0.85);
   }
 
-  .dia-btn:active {
+  .app-btn:active {
     transform: scale(0.98);
   }
 
   /* ── Ghost Button ───────────────────────────────────────────────────── */
-  .dia-btn-ghost {
+  .app-btn-ghost {
     display: inline-flex;
     align-items: center;
     justify-content: center;
     gap: 0.625rem;
     background: transparent;
-    color: var(--dia-ink);
+    color: var(--app-ink);
     border-radius: 9999px;
     padding: 0.875rem 1.75rem;
     font-family: var(--font-dm-sans), system-ui, sans-serif;
     font-size: 0.9375rem;
     font-weight: 500;
     line-height: 1.5;
-    border: 1px solid var(--dia-border-strong);
+    border: 1px solid var(--app-border-strong);
     cursor: pointer;
     transition: background 0.2s ease, border-color 0.2s ease;
     white-space: nowrap;
   }
 
-  .dia-btn-ghost:hover {
+  .app-btn-ghost:hover {
     background: rgba(0, 0, 0, 0.04);
-    border-color: var(--dia-ink-faint);
+    border-color: var(--app-ink-faint);
   }
 
   /* ── Floating Widget ────────────────────────────────────────────────── */
-  .dia-float-widget {
+  .app-float-widget {
     background: rgba(255, 255, 255, 0.95);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
-    border: 1px solid var(--dia-border);
+    border: 1px solid var(--app-border);
     border-radius: 16px;
     padding: 1rem 1.25rem;
-    box-shadow: var(--dia-shadow-float);
+    box-shadow: var(--app-shadow-float);
   }
 
   /* ── Section ────────────────────────────────────────────────────────── */
-  .dia-section {
-    padding-top: var(--dia-space-section);
-    padding-bottom: var(--dia-space-section);
+  .app-section {
+    padding-top: var(--app-space-section);
+    padding-bottom: var(--app-space-section);
   }
 
-  .dia-section-sm {
-    padding-top: var(--dia-space-section-sm);
-    padding-bottom: var(--dia-space-section-sm);
+  .app-section-sm {
+    padding-top: var(--app-space-section-sm);
+    padding-bottom: var(--app-space-section-sm);
   }
 
   /* ── Container ──────────────────────────────────────────────────────── */
-  .dia-container {
+  .app-container {
     width: 100%;
     max-width: 1200px;
     margin-left: auto;
@@ -610,13 +610,13 @@
   }
 
   /* ── Numbered Item ──────────────────────────────────────────────────── */
-  .dia-numbered-item {
+  .app-numbered-item {
     position: relative;
     padding-left: 1.5rem;
-    border-left: 1px solid var(--dia-border-strong);
+    border-left: 1px solid var(--app-border-strong);
   }
 
-  .dia-numbered-item::before {
+  .app-numbered-item::before {
     content: attr(data-number);
     position: absolute;
     left: -0.5rem;
@@ -624,47 +624,47 @@
     font-family: var(--font-mono), monospace;
     font-size: 0.75rem;
     font-weight: 400;
-    color: var(--dia-ink-subtle);
-    background: var(--dia-bg);
+    color: var(--app-ink-subtle);
+    background: var(--app-bg);
     padding: 0 0.25rem;
     line-height: 1;
   }
 
   /* ── Pill Badge ─────────────────────────────────────────────────────── */
-  .dia-pill {
+  .app-pill {
     display: inline-flex;
     align-items: center;
     gap: 0.5rem;
     padding: 0.5rem 1rem;
-    background: var(--dia-card);
-    border: 1px solid var(--dia-border);
+    background: var(--app-card);
+    border: 1px solid var(--app-border);
     border-radius: 9999px;
     font-family: var(--font-dm-sans), system-ui, sans-serif;
     font-size: 0.8125rem;
     font-weight: 400;
-    color: var(--dia-ink-muted);
-    box-shadow: var(--dia-shadow-sm);
+    color: var(--app-ink-muted);
+    box-shadow: var(--app-shadow-sm);
   }
 
   /* ── FAQ Item ───────────────────────────────────────────────────────── */
-  .dia-faq-item {
-    background: var(--dia-card);
-    border: 1px solid var(--dia-border);
+  .app-faq-item {
+    background: var(--app-card);
+    border: 1px solid var(--app-border);
     border-radius: 20px;
     overflow: hidden;
     transition: box-shadow 0.2s ease;
   }
 
-  .dia-faq-item:hover {
-    box-shadow: var(--dia-shadow-sm);
+  .app-faq-item:hover {
+    box-shadow: var(--app-shadow-sm);
   }
 
-  .dia-faq-item summary {
+  .app-faq-item summary {
     padding: 1.5rem 2rem;
     font-family: var(--font-dm-sans), system-ui, sans-serif;
     font-size: 1.125rem;
     font-weight: 400;
-    color: var(--dia-ink);
+    color: var(--app-ink);
     cursor: pointer;
     list-style: none;
     display: flex;
@@ -673,19 +673,19 @@
     transition: background 0.2s ease;
   }
 
-  .dia-faq-item summary:hover {
+  .app-faq-item summary:hover {
     background: rgba(0, 0, 0, 0.02);
   }
 
-  .dia-faq-item > div {
+  .app-faq-item > div {
     padding: 0 2rem 1.5rem;
     font-family: var(--font-dm-sans), system-ui, sans-serif;
     font-size: 1rem;
     line-height: 1.6;
-    color: var(--dia-ink-muted);
+    color: var(--app-ink-muted);
   }
 
-  .dia-faq-item summary::-webkit-details-marker {
+  .app-faq-item summary::-webkit-details-marker {
     display: none;
   }
 }
@@ -826,7 +826,7 @@
   .prism-stagger-children > *:nth-child(8) { animation-delay: 0.4s; }
 
   /* ── Float ──────────────────────────────────────────────────────────── */
-  @keyframes dia-float {
+  @keyframes app-float {
     0%, 100% {
       transform: translateY(0) rotate(0deg);
     }
@@ -835,20 +835,20 @@
     }
   }
 
-  .dia-animate-float {
-    animation: dia-float 6s ease-in-out infinite;
+  .app-animate-float {
+    animation: app-float 6s ease-in-out infinite;
   }
 
-  .dia-animate-float-slow {
-    animation: dia-float 8s ease-in-out infinite;
+  .app-animate-float-slow {
+    animation: app-float 8s ease-in-out infinite;
   }
 
-  .dia-animate-float-delayed {
-    animation: dia-float 6s ease-in-out infinite 2s;
+  .app-animate-float-delayed {
+    animation: app-float 6s ease-in-out infinite 2s;
   }
 
   /* ── Float Alt ──────────────────────────────────────────────────────── */
-  @keyframes dia-float-alt {
+  @keyframes app-float-alt {
     0%, 100% {
       transform: translateY(0) rotate(0deg);
     }
@@ -857,8 +857,8 @@
     }
   }
 
-  .dia-animate-float-alt {
-    animation: dia-float-alt 7s ease-in-out infinite 1s;
+  .app-animate-float-alt {
+    animation: app-float-alt 7s ease-in-out infinite 1s;
   }
 
   /* ── Reduced Motion ─────────────────────────────────────────────────────── */
@@ -871,10 +871,10 @@
     .prism-animate-gradient-sweep,
     .prism-animate-shimmer,
     .prism-stagger-children > *,
-    .dia-animate-float,
-    .dia-animate-float-slow,
-    .dia-animate-float-delayed,
-    .dia-animate-float-alt {
+    .app-animate-float,
+    .app-animate-float-slow,
+    .app-animate-float-delayed,
+    .app-animate-float-alt {
       animation: none;
       opacity: 1;
       transform: none;
@@ -911,13 +911,13 @@
    MESH GRADIENT & AURORA BACKGROUND
    ═══════════════════════════════════════════════════════════════════════════════ */
 
-.dia-mesh-gradient {
+.app-mesh-gradient {
   position: relative;
-  background: linear-gradient(180deg, var(--dia-hero-blue-start) 0%, var(--dia-hero-blue-mid) 40%, var(--dia-hero-blue-end) 100%);
+  background: linear-gradient(180deg, var(--app-hero-blue-start) 0%, var(--app-hero-blue-mid) 40%, var(--app-hero-blue-end) 100%);
   overflow: hidden;
 }
 
-.dia-mesh-gradient::before {
+.app-mesh-gradient::before {
   content: '';
   position: absolute;
   inset: 0;
@@ -927,12 +927,12 @@
     radial-gradient(ellipse 70% 50% at 50% 80%, rgba(184, 211, 238, 0.5) 0%, transparent 60%),
     radial-gradient(ellipse 50% 40% at 10% 80%, rgba(168, 196, 232, 0.4) 0%, transparent 50%),
     radial-gradient(ellipse 60% 50% at 90% 60%, rgba(200, 221, 245, 0.5) 0%, transparent 55%);
-  animation: dia-mesh-shift 20s ease-in-out infinite;
+  animation: app-mesh-shift 20s ease-in-out infinite;
   z-index: 0;
   pointer-events: none;
 }
 
-.dia-mesh-gradient::after {
+.app-mesh-gradient::after {
   content: '';
   position: absolute;
   inset: 0;
@@ -943,7 +943,7 @@
   pointer-events: none;
 }
 
-@keyframes dia-mesh-shift {
+@keyframes app-mesh-shift {
   0%, 100% {
     transform: translate(0, 0) scale(1);
   }
@@ -962,7 +962,7 @@
    GLASSMORPHISM
    ═══════════════════════════════════════════════════════════════════════════════ */
 
-.dia-glass {
+.app-glass {
   background: rgba(255, 255, 255, 0.65);
   backdrop-filter: blur(40px) saturate(180%);
   -webkit-backdrop-filter: blur(40px) saturate(180%);
@@ -970,7 +970,7 @@
   box-shadow: 0 0 40px rgba(168, 196, 232, 0.15);
 }
 
-.dia-glass-strong {
+.app-glass-strong {
   background: rgba(255, 255, 255, 0.8);
   backdrop-filter: blur(60px) saturate(200%);
   -webkit-backdrop-filter: blur(60px) saturate(200%);
@@ -978,7 +978,7 @@
   box-shadow: 0 0 60px rgba(168, 196, 232, 0.2);
 }
 
-.dia-glass-subtle {
+.app-glass-subtle {
   background: rgba(255, 255, 255, 0.5);
   backdrop-filter: blur(24px) saturate(150%);
   -webkit-backdrop-filter: blur(24px) saturate(150%);
@@ -989,11 +989,11 @@
    RADIAL GLOW EFFECTS
    ═══════════════════════════════════════════════════════════════════════════════ */
 
-.dia-glow-hero {
+.app-glow-hero {
   position: relative;
 }
 
-.dia-glow-hero::before {
+.app-glow-hero::before {
   content: '';
   position: absolute;
   top: 50%;
@@ -1006,12 +1006,12 @@
   z-index: 0;
 }
 
-.dia-glow-card {
+.app-glow-card {
   position: relative;
   overflow: hidden;
 }
 
-.dia-glow-card::before {
+.app-glow-card::before {
   content: '';
   position: absolute;
   top: var(--mouse-y, 50%);
@@ -1026,7 +1026,7 @@
   z-index: 0;
 }
 
-.dia-glow-card:hover::before {
+.app-glow-card:hover::before {
   opacity: 1;
 }
 
@@ -1034,11 +1034,11 @@
    NOISE TEXTURE OVERLAY
    ═══════════════════════════════════════════════════════════════════════════════ */
 
-.dia-noise {
+.app-noise {
   position: relative;
 }
 
-.dia-noise::after {
+.app-noise::after {
   content: '';
   position: absolute;
   inset: 0;
@@ -1053,16 +1053,16 @@
    MORPHING BLOB SHAPES
    ═══════════════════════════════════════════════════════════════════════════════ */
 
-.dia-blob {
+.app-blob {
   position: absolute;
   border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%;
-  animation: dia-blob-morph 8s ease-in-out infinite;
+  animation: app-blob-morph 8s ease-in-out infinite;
   filter: blur(60px);
   opacity: 0.5;
   pointer-events: none;
 }
 
-@keyframes dia-blob-morph {
+@keyframes app-blob-morph {
   0%, 100% {
     border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%;
     transform: rotate(0deg) scale(1);
@@ -1085,15 +1085,15 @@
    MAGNETIC BUTTON HOVER
    ═══════════════════════════════════════════════════════════════════════════════ */
 
-.dia-btn-magnetic {
+.app-btn-magnetic {
   transition: transform 0.2s cubic-bezier(0.23, 1, 0.32, 1);
 }
 
-.dia-btn-magnetic:hover {
+.app-btn-magnetic:hover {
   transform: scale(1.02);
 }
 
-.dia-btn-magnetic:active {
+.app-btn-magnetic:active {
   transform: scale(0.98);
 }
 
@@ -1101,7 +1101,7 @@
    TEXT GRADIENT
    ═══════════════════════════════════════════════════════════════════════════════ */
 
-.dia-text-gradient {
+.app-text-gradient {
   background: linear-gradient(90deg, var(--prism-rose-quartz) 0%, var(--prism-crimson) 25%, var(--prism-marigold) 50%, var(--prism-lavender) 75%, var(--prism-signal-blue) 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -1112,32 +1112,32 @@
    CUSTOM SCROLLBAR
    ═══════════════════════════════════════════════════════════════════════════════ */
 
-.dia-scrollbar::-webkit-scrollbar {
+.app-scrollbar::-webkit-scrollbar {
   width: 6px;
 }
 
-.dia-scrollbar::-webkit-scrollbar-track {
+.app-scrollbar::-webkit-scrollbar-track {
   background: transparent;
 }
 
-.dia-scrollbar::-webkit-scrollbar-thumb {
-  background: var(--dia-ink-faint);
+.app-scrollbar::-webkit-scrollbar-thumb {
+  background: var(--app-ink-faint);
   border-radius: 3px;
 }
 
-.dia-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: var(--dia-ink-subtle);
+.app-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: var(--app-ink-subtle);
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════════
    SPECTRUM BORDER
    ═══════════════════════════════════════════════════════════════════════════════ */
 
-.dia-spectrum-border {
+.app-spectrum-border {
   position: relative;
 }
 
-.dia-spectrum-border::before {
+.app-spectrum-border::before {
   content: '';
   position: absolute;
   inset: 0;
@@ -1154,15 +1154,15 @@
    EASING UTILITIES
    ═══════════════════════════════════════════════════════════════════════════════ */
 
-.dia-ease-out {
+.app-ease-out {
   transition-timing-function: cubic-bezier(0.23, 1, 0.32, 1);
 }
 
-.dia-ease-out-slow {
+.app-ease-out-slow {
   transition-timing-function: cubic-bezier(0.77, 0, 0.175, 1);
 }
 
-.dia-ease-in-out {
+.app-ease-in-out {
   transition-timing-function: cubic-bezier(0.87, 0, 0.13, 1);
 }
 
@@ -1170,15 +1170,15 @@
    WILL-CHANGE OPTIMIZATION
    ═══════════════════════════════════════════════════════════════════════════════ */
 
-.dia-will-change-transform {
+.app-will-change-transform {
   will-change: transform;
 }
 
-.dia-will-change-opacity {
+.app-will-change-opacity {
   will-change: opacity;
 }
 
-.dia-will-change-filter {
+.app-will-change-filter {
   will-change: filter;
 }
 
@@ -1186,19 +1186,19 @@
    MIX-BLEND-MODE UTILITIES
    ═══════════════════════════════════════════════════════════════════════════════ */
 
-.dia-blend-multiply {
+.app-blend-multiply {
   mix-blend-mode: multiply;
 }
 
-.dia-blend-overlay {
+.app-blend-overlay {
   mix-blend-mode: overlay;
 }
 
-.dia-blend-screen {
+.app-blend-screen {
   mix-blend-mode: screen;
 }
 
-.dia-blend-soft-light {
+.app-blend-soft-light {
   mix-blend-mode: soft-light;
 }
 
@@ -1206,7 +1206,7 @@
    CONTAINER QUERIES
    ═══════════════════════════════════════════════════════════════════════════════ */
 
-.dia-container-query {
+.app-container-query {
   container-type: inline-size;
 }
 
@@ -1214,12 +1214,12 @@
    ANIMATED UNDERLINE
    ═══════════════════════════════════════════════════════════════════════════════ */
 
-.dia-link-underline {
+.app-link-underline {
   position: relative;
   text-decoration: none;
 }
 
-.dia-link-underline::after {
+.app-link-underline::after {
   content: '';
   position: absolute;
   bottom: -2px;
@@ -1232,7 +1232,7 @@
   transition: transform 0.3s cubic-bezier(0.23, 1, 0.32, 1);
 }
 
-.dia-link-underline:hover::after {
+.app-link-underline:hover::after {
   transform: scaleX(1);
   transform-origin: left;
 }
@@ -1241,12 +1241,12 @@
    SHIMMER LOADING EFFECT
    ═══════════════════════════════════════════════════════════════════════════════ */
 
-.dia-shimmer {
+.app-shimmer {
   position: relative;
   overflow: hidden;
 }
 
-.dia-shimmer::after {
+.app-shimmer::after {
   content: '';
   position: absolute;
   inset: 0;
@@ -1257,10 +1257,10 @@
     transparent 100%
   );
   background-size: 200% 100%;
-  animation: dia-shimmer 2s ease-in-out infinite;
+  animation: app-shimmer 2s ease-in-out infinite;
 }
 
-@keyframes dia-shimmer {
+@keyframes app-shimmer {
   0% {
     background-position: -200% 0;
   }
@@ -1273,11 +1273,11 @@
    PULSE GLOW
    ═══════════════════════════════════════════════════════════════════════════════ */
 
-.dia-pulse-glow {
-  animation: dia-pulse-glow 3s ease-in-out infinite;
+.app-pulse-glow {
+  animation: app-pulse-glow 3s ease-in-out infinite;
 }
 
-@keyframes dia-pulse-glow {
+@keyframes app-pulse-glow {
   0%, 100% {
     box-shadow: 0 0 20px rgba(168, 196, 232, 0.2);
   }
@@ -1290,7 +1290,7 @@
    CURVED SECTION DIVIDER
    ═══════════════════════════════════════════════════════════════════════════════ */
 
-.dia-curve-divider {
+.app-curve-divider {
   position: absolute;
   bottom: 0;
   left: 0;
@@ -1299,33 +1299,33 @@
   line-height: 0;
 }
 
-.dia-curve-divider svg {
+.app-curve-divider svg {
   position: relative;
   display: block;
   width: calc(100% + 1.3px);
   height: 80px;
 }
 
-.dia-curve-divider .shape-fill {
-  fill: var(--dia-bg);
+.app-curve-divider .shape-fill {
+  fill: var(--app-bg);
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════════
    SECTION TRANSITION
    ═══════════════════════════════════════════════════════════════════════════════ */
 
-.dia-section-transition {
+.app-section-transition {
   position: relative;
 }
 
-.dia-section-transition::before {
+.app-section-transition::before {
   content: '';
   position: absolute;
   top: -1px;
   left: 0;
   right: 0;
   height: 120px;
-  background: linear-gradient(to bottom, var(--dia-hero-blue-end), var(--dia-bg));
+  background: linear-gradient(to bottom, var(--app-hero-blue-end), var(--app-bg));
   pointer-events: none;
   z-index: 1;
 }
@@ -1334,13 +1334,13 @@
    FLOATING ELEMENT 3D TILT
    ═══════════════════════════════════════════════════════════════════════════════ */
 
-.dia-tilt {
+.app-tilt {
   transition: transform 0.3s cubic-bezier(0.23, 1, 0.32, 1);
   transform-style: preserve-3d;
   perspective: 1000px;
 }
 
-.dia-tilt:hover {
+.app-tilt:hover {
   transform: rotateX(2deg) rotateY(-2deg) scale(1.02);
 }
 
@@ -1348,16 +1348,16 @@
    IMAGE TREATMENT
    ═══════════════════════════════════════════════════════════════════════════════ */
 
-.dia-image {
+.app-image {
   border-radius: 10px;
   overflow: hidden;
 }
 
-.dia-image img {
+.app-image img {
   transition: transform 0.5s cubic-bezier(0.23, 1, 0.32, 1), filter 0.5s ease;
 }
 
-.dia-image:hover img {
+.app-image:hover img {
   transform: scale(1.03);
   filter: brightness(1.02);
 }
@@ -1366,29 +1366,29 @@
    BADGE / PILL VARIANTS
    ═══════════════════════════════════════════════════════════════════════════════ */
 
-.dia-badge {
+.app-badge {
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
   padding: 0.5rem 1rem;
-  background: var(--dia-card);
-  border: 1px solid var(--dia-border);
+  background: var(--app-card);
+  border: 1px solid var(--app-border);
   border-radius: 9999px;
   font-family: var(--font-dm-sans), system-ui, sans-serif;
   font-size: 0.8125rem;
   font-weight: 500;
-  color: var(--dia-ink-muted);
-  box-shadow: var(--dia-shadow-sm);
+  color: var(--app-ink-muted);
+  box-shadow: var(--app-shadow-sm);
 }
 
-.dia-badge-glass {
+.app-badge-glass {
   background: rgba(255, 255, 255, 0.7);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   border: 1px solid rgba(255, 255, 255, 0.5);
 }
 
-.dia-badge-spectrum {
+.app-badge-spectrum {
   background: linear-gradient(90deg, var(--prism-rose-quartz) 0%, var(--prism-crimson) 50%, var(--prism-marigold) 100%);
   color: white;
   border: none;
@@ -1398,7 +1398,7 @@
    HEADER VARIANTS
    ═══════════════════════════════════════════════════════════════════════════════ */
 
-.dia-header-glass {
+.app-header-glass {
   background: rgba(248, 248, 248, 0.8);
   backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);
@@ -1409,16 +1409,16 @@
    FOOTER
    ═══════════════════════════════════════════════════════════════════════════════ */
 
-.dia-footer {
-  background: var(--dia-bg);
-  border-top: 1px solid var(--dia-border);
+.app-footer {
+  background: var(--app-bg);
+  border-top: 1px solid var(--app-border);
 }
 
-.dia-footer-link {
-  color: var(--dia-ink-muted);
+.app-footer-link {
+  color: var(--app-ink-muted);
   transition: color 0.2s ease;
 }
 
-.dia-footer-link:hover {
-  color: var(--dia-ink);
+.app-footer-link:hover {
+  color: var(--app-ink);
 }

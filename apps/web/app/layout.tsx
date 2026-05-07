@@ -52,7 +52,7 @@ export const viewport: Viewport = {
   maximumScale: 5,
   userScalable: true,
   viewportFit: 'cover',
-  themeColor: '#FAFAFA',
+  themeColor: '#F8F8F8',
   colorScheme: 'light',
 };
 
@@ -72,7 +72,7 @@ export default function RootLayout({
           colorTextSecondary: '#636363',
           colorInputBackground: '#FAFAFA',
           colorInputText: '#000000',
-          borderRadius: '20px',
+          borderRadius: '30px',
         },
         elements: {
           formButtonPrimary: 'bg-black hover:bg-black/80 text-white font-medium py-3 rounded-xl transition-all',
@@ -92,9 +92,9 @@ export default function RootLayout({
           <link rel="preconnect" href="https://nominatim.openstreetmap.org" />
           <link rel="preconnect" href="https://tile.openstreetmap.org" />
         </head>
-        <body className={`${dmSans.variable} ${jetbrainsMono.variable} min-h-screen bg-[#FAFAFA] text-black antialiased overflow-x-hidden`}>
+        <body className={`${dmSans.variable} ${jetbrainsMono.variable} font-sans min-h-screen bg-[var(--prism-canvas)] text-black antialiased overflow-x-hidden`}>
           {/* Light Background Base */}
-          <div className="fixed inset-0 pointer-events-none z-0 bg-[#FAFAFA]" />
+          <div className="fixed inset-0 pointer-events-none z-0 bg-[var(--prism-canvas)]" />
 
           {/* Main Content */}
           <DebugProvider>

@@ -32,7 +32,7 @@ export default function Navbar({ transparent: _transparent = false }: NavbarProp
 
   if (!mounted) {
     return (
-      <nav className="fixed top-0 w-full z-[100] h-[3.25rem] bg-[#EFEFEF]/90 backdrop-blur-[24px] border-b border-black/5">
+      <nav className="fixed top-0 w-full z-[100] h-[3.5rem] bg-white/80 backdrop-blur-[24px] saturate-180 border-b border-black/5">
         <div className="max-w-[1200px] mx-auto px-6 flex items-center justify-between h-full">
           <div className="flex items-center gap-2">
             <div className="w-7 h-7 bg-black/10 rounded-lg" />
@@ -45,8 +45,8 @@ export default function Navbar({ transparent: _transparent = false }: NavbarProp
 
   return (
     <nav
-      className={`fixed top-0 w-full z-[100] h-[3.25rem] bg-[#EFEFEF]/90 backdrop-blur-[24px] border-b border-black/5 transition-all duration-300 ${
-        scrolled ? 'shadow-sm' : ''
+      className={`fixed top-0 w-full z-[100] h-[3.5rem] bg-white/80 backdrop-blur-[24px] saturate-180 border-b transition-all duration-300 ${
+        scrolled ? 'border-black/5 shadow-sm' : 'border-transparent'
       }`}
     >
       <div className="max-w-[1200px] mx-auto px-6 h-full">
@@ -67,7 +67,7 @@ export default function Navbar({ transparent: _transparent = false }: NavbarProp
               <Link
                 key={link.href}
                 href={link.href}
-                className="text-sm font-normal text-black hover:opacity-70 transition-opacity duration-200"
+                className="text-[0.875rem] font-medium text-black/60 hover:text-black transition-colors duration-300"
               >
                 {link.label}
               </Link>
@@ -79,7 +79,7 @@ export default function Navbar({ transparent: _transparent = false }: NavbarProp
             {isLoaded && isSignedIn ? (
               <>
                 <Link href="/dashboard">
-                  <button className="px-5 py-2 text-sm font-medium text-black/85 rounded-[30px] bg-[#D9D9D9] hover:bg-black hover:text-white transition-all duration-200">
+                  <button className="px-5 py-2 text-sm font-medium text-white rounded-full bg-black hover:bg-black/85 transition-all duration-300">
                     Dashboard
                   </button>
                 </Link>
@@ -95,7 +95,7 @@ export default function Navbar({ transparent: _transparent = false }: NavbarProp
                   </button>
                 </Link>
                 <Link href="/rectify">
-                  <button className="px-5 py-2 text-sm font-medium text-black/85 rounded-[30px] bg-[#D9D9D9] hover:bg-black hover:text-white transition-all duration-200">
+                  <button className="px-5 py-2 text-sm font-medium text-white rounded-full bg-black hover:bg-black/85 transition-all duration-300">
                     Start Analysis
                   </button>
                 </Link>
@@ -137,7 +137,7 @@ export default function Navbar({ transparent: _transparent = false }: NavbarProp
             <div className="pt-3 border-t border-black/5 mt-3 space-y-2">
               {isLoaded && isSignedIn ? (
                 <Link href="/dashboard" onClick={() => setIsOpen(false)}>
-                  <button className="w-full px-4 py-3 text-sm font-medium text-black/85 rounded-[16px] bg-[#D9D9D9] hover:bg-black hover:text-white transition-all duration-200">
+                  <button className="w-full px-4 py-3 text-sm font-medium text-white rounded-full bg-black hover:bg-black/85 transition-all duration-300">
                     Dashboard
                   </button>
                 </Link>
@@ -149,7 +149,7 @@ export default function Navbar({ transparent: _transparent = false }: NavbarProp
                     </button>
                   </Link>
                   <Link href="/rectify" onClick={() => setIsOpen(false)}>
-                    <button className="w-full px-4 py-3 text-sm font-medium text-black/85 rounded-[16px] bg-[#D9D9D9] hover:bg-black hover:text-white transition-all duration-200">
+                    <button className="w-full px-4 py-3 text-sm font-medium text-white rounded-full bg-black hover:bg-black/85 transition-all duration-300">
                       Start Analysis
                     </button>
                   </Link>

@@ -15,7 +15,7 @@ module.exports = {
       colors: {
         // Surface — backgrounds, cards, containers
         surface: {
-          base: '#f8f8f8',      // page bg (dia canvas)
+          base: '#f8f8f8',      // page bg (app canvas)
           raised: '#ffffff',    // card/tile bg
           elevated: '#efefef',  // accent bg, hover states
           muted: 'rgba(0,0,0,0.08)', // subtle borders, dividers
@@ -44,7 +44,7 @@ module.exports = {
 
         // Destructive — errors, warnings, caution
         destructive: {
-          DEFAULT: '#636363',   // gray (dia style)
+          DEFAULT: '#636363',   // gray (app style)
         },
 
         // Monochrome scale (replaces gold scale)
@@ -81,7 +81,7 @@ module.exports = {
         // ═══════════════════════════════════════════════════════════════
         // Clean minimal light theme
         // ═══════════════════════════════════════════════════════════════
-        dia: {
+        app: {
           bg: '#F8F8F8',
           'bg-warm': '#FAFAFA',
           ink: '#000000',
@@ -102,9 +102,9 @@ module.exports = {
         display: ['var(--font-dm-sans)', 'system-ui', 'sans-serif'],
         prism: ['var(--font-dm-sans)', 'system-ui', 'sans-serif'],
         inter: ['var(--font-dm-sans)', 'system-ui', 'sans-serif'],
-        'dia-heading': ['var(--font-dm-sans)', 'system-ui', 'sans-serif'],
-        'dia-serif': ['var(--font-dm-sans)', 'system-ui', 'sans-serif'],
-        'dia-mono': ['var(--font-mono)', 'monospace'],
+        'app-heading': ['var(--font-dm-sans)', 'system-ui', 'sans-serif'],
+        'app-serif': ['var(--font-dm-sans)', 'system-ui', 'sans-serif'],
+        'app-mono': ['var(--font-mono)', 'monospace'],
       },
 
       borderRadius: {
@@ -113,20 +113,20 @@ module.exports = {
         'prism-lg': '1.25rem',     // 20px — cards, containers
         'prism-xl': '1.875rem',    // 30px — cards, filled buttons
         'prism-2xl': '2.5rem',     // 40px — large containers
-        'dia-sm': '12px',
-        'dia-md': '16px',
-        'dia-lg': '20px',
-        'dia-xl': '24px',
-        'dia-2xl': '32px',
+        'app-sm': '12px',
+        'app-md': '16px',
+        'app-lg': '20px',
+        'app-xl': '24px',
+        'app-2xl': '32px',
       },
 
       boxShadow: {
         'prism-sm': '0 0 8px 0 rgba(0, 0, 0, 0.08)',
         'prism-none': 'none',
-        'dia-sm': '0 2px 8px rgba(0,0,0,0.04)',
-        'dia-md': '0 4px 24px rgba(0,0,0,0.06)',
-        'dia-lg': '0 8px 40px rgba(0,0,0,0.08)',
-        'dia-float': '0 12px 48px rgba(0,0,0,0.10)',
+        'app-sm': '0 2px 8px rgba(0,0,0,0.04)',
+        'app-md': '0 4px 24px rgba(0,0,0,0.06)',
+        'app-lg': '0 8px 40px rgba(0,0,0,0.08)',
+        'app-float': '0 12px 48px rgba(0,0,0,0.10)',
       },
 
       spacing: {
@@ -156,9 +156,9 @@ module.exports = {
         'prism-gentle-float': 'prismGentleFloat 4s ease-in-out infinite',
         'prism-gradient-sweep': 'prismGradientSweep 3s ease infinite',
         'prism-shimmer': 'prismShimmer 2s ease-in-out infinite',
-        'dia-float': 'diaFloat 6s ease-in-out infinite',
-        'dia-float-slow': 'diaFloatSlow 8s ease-in-out infinite',
-        'dia-float-delayed': 'diaFloat 6s ease-in-out infinite 2s',
+        'app-float': 'appFloat 6s ease-in-out infinite',
+        'app-float-slow': 'appFloatSlow 8s ease-in-out infinite',
+        'app-float-delayed': 'appFloat 6s ease-in-out infinite 2s',
       },
 
       keyframes: {
@@ -199,11 +199,11 @@ module.exports = {
           '0%': { backgroundPosition: '-200% 0' },
           '100%': { backgroundPosition: '200% 0' },
         },
-        diaFloat: {
+        appFloat: {
           '0%, 100%': { transform: 'translateY(0) rotate(0deg)' },
           '50%': { transform: 'translateY(-16px) rotate(1deg)' },
         },
-        diaFloatSlow: {
+        appFloatSlow: {
           '0%, 100%': { transform: 'translateY(0) rotate(0deg)' },
           '50%': { transform: 'translateY(-12px) rotate(-1deg)' },
         },
@@ -214,181 +214,181 @@ module.exports = {
       // ═══════════════════════════════════════════════════════════════
 
       backdropBlur: {
-        'dia-xs': '4px',
-        'dia-sm': '8px',
-        'dia-md': '16px',
-        'dia-lg': '24px',
-        'dia-xl': '40px',
-        'dia-2xl': '60px',
-        'dia-3xl': '80px',
+        'app-xs': '4px',
+        'app-sm': '8px',
+        'app-md': '16px',
+        'app-lg': '24px',
+        'app-xl': '40px',
+        'app-2xl': '60px',
+        'app-3xl': '80px',
       },
 
       transitionTimingFunction: {
-        'dia-out': 'cubic-bezier(0.23, 1, 0.32, 1)',
-        'dia-out-slow': 'cubic-bezier(0.77, 0, 0.175, 1)',
-        'dia-in-out': 'cubic-bezier(0.87, 0, 0.13, 1)',
+        'app-out': 'cubic-bezier(0.23, 1, 0.32, 1)',
+        'app-out-slow': 'cubic-bezier(0.77, 0, 0.175, 1)',
+        'app-in-out': 'cubic-bezier(0.87, 0, 0.13, 1)',
       },
 
       fontSize: {
-        'dia-caption': ['0.8125rem', { lineHeight: '1.5', letterSpacing: '0em' }],
-        'dia-body': ['1.125rem', { lineHeight: '1.5', letterSpacing: '0em' }],
-        'dia-body-lg': ['1.375rem', { lineHeight: '1.5', letterSpacing: '0em' }],
-        'dia-subheading': ['1.125rem', { lineHeight: '1.33', letterSpacing: '0em' }],
-        'dia-heading-sm': ['1.375rem', { lineHeight: '1.25', letterSpacing: '-0.02em' }],
-        'dia-heading': ['3.125rem', { lineHeight: '1.18', letterSpacing: '-0.04em' }],
-        'dia-heading-lg': ['3.375rem', { lineHeight: '1.17', letterSpacing: '-0.04em' }],
-        'dia-display': ['4.5rem', { lineHeight: '1.11', letterSpacing: '-0.04em' }],
-        'dia-display-lg': ['7.2rem', { lineHeight: '1.05', letterSpacing: '-0.05em' }],
+        'app-caption': ['0.8125rem', { lineHeight: '1.5', letterSpacing: '0em' }],
+        'app-body': ['1.125rem', { lineHeight: '1.5', letterSpacing: '0em' }],
+        'app-body-lg': ['1.375rem', { lineHeight: '1.5', letterSpacing: '0em' }],
+        'app-subheading': ['1.125rem', { lineHeight: '1.33', letterSpacing: '0em' }],
+        'app-heading-sm': ['1.375rem', { lineHeight: '1.25', letterSpacing: '-0.02em' }],
+        'app-heading': ['3.125rem', { lineHeight: '1.18', letterSpacing: '-0.04em' }],
+        'app-heading-lg': ['3.375rem', { lineHeight: '1.17', letterSpacing: '-0.04em' }],
+        'app-display': ['4.5rem', { lineHeight: '1.11', letterSpacing: '-0.04em' }],
+        'app-display-lg': ['7.2rem', { lineHeight: '1.05', letterSpacing: '-0.05em' }],
       },
 
       letterSpacing: {
-        'dia-tight': '-0.04em',
-        'dia-tighter': '-0.05em',
-        'dia-normal': '-0.02em',
-        'dia-wide': '0.02em',
-        'dia-wider': '0.05em',
+        'app-tight': '-0.04em',
+        'app-tighter': '-0.05em',
+        'app-normal': '-0.02em',
+        'app-wide': '0.02em',
+        'app-wider': '0.05em',
       },
 
       opacity: {
-        'dia-3': '0.03',
-        'dia-5': '0.05',
-        'dia-8': '0.08',
-        'dia-10': '0.10',
-        'dia-15': '0.15',
-        'dia-40': '0.40',
-        'dia-60': '0.60',
-        'dia-70': '0.70',
-        'dia-85': '0.85',
+        'app-3': '0.03',
+        'app-5': '0.05',
+        'app-8': '0.08',
+        'app-10': '0.10',
+        'app-15': '0.15',
+        'app-40': '0.40',
+        'app-60': '0.60',
+        'app-70': '0.70',
+        'app-85': '0.85',
       },
 
       backgroundImage: {
-        'dia-mesh': 'radial-gradient(at 40% 20%, rgba(168, 196, 232, 0.6) 0px, transparent 50%), radial-gradient(at 80% 0%, rgba(200, 221, 245, 0.5) 0px, transparent 50%), radial-gradient(at 0% 50%, rgba(184, 211, 238, 0.5) 0px, transparent 50%), radial-gradient(at 80% 50%, rgba(168, 196, 232, 0.4) 0px, transparent 50%), radial-gradient(at 0% 100%, rgba(200, 221, 245, 0.5) 0px, transparent 50%)',
-        'dia-glow': 'radial-gradient(circle at 50% 50%, rgba(168, 196, 232, 0.4) 0%, transparent 70%)',
-        'dia-glow-strong': 'radial-gradient(circle at 50% 50%, rgba(168, 196, 232, 0.6) 0%, transparent 60%)',
-        'dia-spectrum': 'linear-gradient(90deg, #c679c4 0%, #fa3d1d 25%, #ffb005 50%, #e1e1fe 75%, #0358f7 100%)',
+        'app-mesh': 'raappl-gradient(at 40% 20%, rgba(168, 196, 232, 0.6) 0px, transparent 50%), raappl-gradient(at 80% 0%, rgba(200, 221, 245, 0.5) 0px, transparent 50%), raappl-gradient(at 0% 50%, rgba(184, 211, 238, 0.5) 0px, transparent 50%), raappl-gradient(at 80% 50%, rgba(168, 196, 232, 0.4) 0px, transparent 50%), raappl-gradient(at 0% 100%, rgba(200, 221, 245, 0.5) 0px, transparent 50%)',
+        'app-glow': 'raappl-gradient(circle at 50% 50%, rgba(168, 196, 232, 0.4) 0%, transparent 70%)',
+        'app-glow-strong': 'raappl-gradient(circle at 50% 50%, rgba(168, 196, 232, 0.6) 0%, transparent 60%)',
+        'app-spectrum': 'linear-gradient(90deg, #c679c4 0%, #fa3d1d 25%, #ffb005 50%, #e1e1fe 75%, #0358f7 100%)',
       },
 
       scale: {
-        'dia-98': '0.98',
-        'dia-99': '0.99',
-        'dia-101': '1.01',
-        'dia-102': '1.02',
+        'app-98': '0.98',
+        'app-99': '0.99',
+        'app-101': '1.01',
+        'app-102': '1.02',
       },
 
       rotate: {
-        'dia-1': '1deg',
-        'dia-neg1': '-1deg',
-        'dia-2': '2deg',
-        'dia-neg2': '-2deg',
+        'app-1': '1deg',
+        'app-neg1': '-1deg',
+        'app-2': '2deg',
+        'app-neg2': '-2deg',
       },
 
       zIndex: {
-        'dia-header': '50',
-        'dia-overlay': '40',
-        'dia-modal': '30',
-        'dia-tooltip': '20',
-        'dia-content': '10',
-        'dia-bg': '-10',
+        'app-header': '50',
+        'app-overlay': '40',
+        'app-modal': '30',
+        'app-tooltip': '20',
+        'app-content': '10',
+        'app-bg': '-10',
       },
 
       saturate: {
-        'dia-150': '1.5',
-        'dia-180': '1.8',
+        'app-150': '1.5',
+        'app-180': '1.8',
       },
 
       brightness: {
-        'dia-105': '1.05',
-        'dia-110': '1.10',
+        'app-105': '1.05',
+        'app-110': '1.10',
       },
 
       maxWidth: {
-        'dia-container': '1200px',
-        'dia-narrow': '900px',
-        'dia-wide': '1400px',
+        'app-container': '1200px',
+        'app-narrow': '900px',
+        'app-wide': '1400px',
       },
 
       gap: {
-        'dia-1': '0.3125rem',
-        'dia-2': '0.375rem',
-        'dia-3': '0.625rem',
-        'dia-4': '0.875rem',
-        'dia-5': '0.9375rem',
-        'dia-6': '1.25rem',
-        'dia-7': '1.5rem',
-        'dia-8': '2rem',
-        'dia-9': '2.125rem',
-        'dia-10': '3rem',
+        'app-1': '0.3125rem',
+        'app-2': '0.375rem',
+        'app-3': '0.625rem',
+        'app-4': '0.875rem',
+        'app-5': '0.9375rem',
+        'app-6': '1.25rem',
+        'app-7': '1.5rem',
+        'app-8': '2rem',
+        'app-9': '2.125rem',
+        'app-10': '3rem',
       },
 
       translate: {
-        'dia-1': '0.25rem',
-        'dia-2': '0.5rem',
-        'dia-4': '1rem',
-        'dia-8': '2rem',
-        'dia-16': '4rem',
+        'app-1': '0.25rem',
+        'app-2': '0.5rem',
+        'app-4': '1rem',
+        'app-8': '2rem',
+        'app-16': '4rem',
       },
 
       ringWidth: {
-        'dia': '1px',
-        'dia-2': '2px',
-        'dia-3': '3px',
+        'app': '1px',
+        'app-2': '2px',
+        'app-3': '3px',
       },
 
       ringColor: {
-        'dia-blue': 'rgba(168, 196, 232, 0.5)',
-        'dia-ink': 'rgba(0, 0, 0, 0.08)',
+        'app-blue': 'rgba(168, 196, 232, 0.5)',
+        'app-ink': 'rgba(0, 0, 0, 0.08)',
       },
 
       ringOffsetWidth: {
-        'dia': '2px',
+        'app': '2px',
       },
 
       width: {
-        'dia-container': '1200px',
+        'app-container': '1200px',
       },
 
       height: {
-        'dia-header': '3.25rem',
-        'dia-section-sm': '80px',
-        'dia-section': '120px',
+        'app-header': '3.25rem',
+        'app-section-sm': '80px',
+        'app-section': '120px',
       },
 
       minHeight: {
-        'dia-screen': '100dvh',
+        'app-screen': '100dvh',
       },
 
       padding: {
-        'dia-1': '0.3125rem',
-        'dia-2': '0.375rem',
-        'dia-3': '0.625rem',
-        'dia-4': '0.875rem',
-        'dia-5': '0.9375rem',
-        'dia-6': '1.25rem',
-        'dia-7': '1.5rem',
-        'dia-8': '2rem',
-        'dia-9': '2.125rem',
-        'dia-10': '3rem',
-        'dia-11': '4rem',
-        'dia-12': '5rem',
-        'dia-13': '6rem',
-        'dia-14': '7.5rem',
+        'app-1': '0.3125rem',
+        'app-2': '0.375rem',
+        'app-3': '0.625rem',
+        'app-4': '0.875rem',
+        'app-5': '0.9375rem',
+        'app-6': '1.25rem',
+        'app-7': '1.5rem',
+        'app-8': '2rem',
+        'app-9': '2.125rem',
+        'app-10': '3rem',
+        'app-11': '4rem',
+        'app-12': '5rem',
+        'app-13': '6rem',
+        'app-14': '7.5rem',
       },
 
       margin: {
-        'dia-1': '0.3125rem',
-        'dia-2': '0.375rem',
-        'dia-3': '0.625rem',
-        'dia-4': '0.875rem',
-        'dia-5': '0.9375rem',
-        'dia-6': '1.25rem',
-        'dia-7': '1.5rem',
-        'dia-8': '2rem',
-        'dia-9': '2.125rem',
-        'dia-10': '3rem',
-        'dia-11': '4rem',
-        'dia-12': '5rem',
-        'dia-13': '6rem',
-        'dia-14': '7.5rem',
+        'app-1': '0.3125rem',
+        'app-2': '0.375rem',
+        'app-3': '0.625rem',
+        'app-4': '0.875rem',
+        'app-5': '0.9375rem',
+        'app-6': '1.25rem',
+        'app-7': '1.5rem',
+        'app-8': '2rem',
+        'app-9': '2.125rem',
+        'app-10': '3rem',
+        'app-11': '4rem',
+        'app-12': '5rem',
+        'app-13': '6rem',
+        'app-14': '7.5rem',
       },
     },
   },

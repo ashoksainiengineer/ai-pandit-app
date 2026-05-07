@@ -30,7 +30,7 @@ export default function TermsPage() {
       {/* Content */}
       <div className="max-w-4xl mx-auto px-6 py-12">
         <div className="text-center mb-12">
-          <div className="w-16 h-16 mx-auto mb-4 rounded-dia-xl bg-black flex items-center justify-center">
+          <div className="w-16 h-16 mx-auto mb-4 rounded-app-xl bg-black flex items-center justify-center">
             <Scale className="w-8 h-8 text-white" />
           </div>
           <h1 className="text-4xl font-light text-black mb-4">
@@ -46,9 +46,9 @@ export default function TermsPage() {
 
         <div className="space-y-8">
           {/* Introduction */}
-          <section className="bg-white/90 backdrop-blur-xl rounded-dia-xl p-8 border border-black/10">
+          <section className="bg-white/90 backdrop-blur-xl rounded-app-xl p-8 border border-black/10">
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-dia-lg bg-black/5 flex items-center justify-center">
+              <div className="w-10 h-10 rounded-app-lg bg-black/5 flex items-center justify-center">
                 <FileText className="w-5 h-5 text-black" />
               </div>
               <h2 className="text-2xl font-light text-black">
@@ -64,16 +64,16 @@ export default function TermsPage() {
           </section>
 
           {/* AI Processing Consent - NEW SECTION */}
-          <section className="bg-white/90 backdrop-blur-xl rounded-dia-xl p-8 border border-black/10">
+          <section className="bg-white/90 backdrop-blur-xl rounded-app-xl p-8 border border-black/10">
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-dia-lg bg-indigo-100 flex items-center justify-center">
+              <div className="w-10 h-10 rounded-app-lg bg-indigo-100 flex items-center justify-center">
                 <Brain className="w-5 h-5 text-indigo-600" />
               </div>
               <h2 className="text-2xl font-light text-black">
                 AI Processing Consent
               </h2>
             </div>
-            <div className="bg-indigo-50 border border-indigo-200 rounded-dia-lg p-4 mb-4">
+            <div className="bg-indigo-50 border border-indigo-200 rounded-app-lg p-4 mb-4">
               <p className="text-indigo-800 font-medium text-sm mb-2">Important Notice About AI Processing</p>
               <p className="text-indigo-700 text-sm">
                 Our birth time rectification service uses Artificial Intelligence to analyze your astrological data. By using our service, you explicitly consent to:
@@ -109,9 +109,9 @@ export default function TermsPage() {
           </section>
 
           {/* What Data is Shared with AI - NEW SECTION */}
-          <section className="bg-white/90 backdrop-blur-xl rounded-dia-xl p-8 border border-black/10">
+          <section className="bg-white/90 backdrop-blur-xl rounded-app-xl p-8 border border-black/10">
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-dia-lg bg-blue-100 flex items-center justify-center">
+              <div className="w-10 h-10 rounded-app-lg bg-blue-100 flex items-center justify-center">
                 <Cpu className="w-5 h-5 text-blue-600" />
               </div>
               <h2 className="text-2xl font-light text-black">
@@ -154,16 +154,16 @@ export default function TermsPage() {
           </section>
 
           {/* Spiritual Guidance Disclaimer */}
-          <section className="bg-white/90 backdrop-blur-xl rounded-dia-xl p-8 border border-black/10">
+          <section className="bg-white/90 backdrop-blur-xl rounded-app-xl p-8 border border-black/10">
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-dia-lg bg-amber-100 flex items-center justify-center">
+              <div className="w-10 h-10 rounded-app-lg bg-amber-100 flex items-center justify-center">
                 <AlertCircle className="w-5 h-5 text-amber-600" />
               </div>
               <h2 className="text-2xl font-light text-black">
                 Spiritual Guidance Disclaimer
               </h2>
             </div>
-            <div className="bg-amber-50 border border-amber-200 rounded-dia-lg p-4 mb-4">
+            <div className="bg-amber-50 border border-amber-200 rounded-app-lg p-4 mb-4">
               <p className="text-amber-800 font-medium text-sm mb-2">Important Notice</p>
               <p className="text-amber-700 text-sm">
                 The birth time rectification and astrological analysis provided by AI Pandit are for spiritual guidance and informational purposes only. They should not be considered as:
@@ -197,9 +197,9 @@ export default function TermsPage() {
           </section>
 
           {/* User Responsibilities */}
-          <section className="bg-white/90 backdrop-blur-xl rounded-dia-xl p-8 border border-black/10">
+          <section className="bg-white/90 backdrop-blur-xl rounded-app-xl p-8 border border-black/10">
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-dia-lg bg-blue-100 flex items-center justify-center">
+              <div className="w-10 h-10 rounded-app-lg bg-blue-100 flex items-center justify-center">
                 <BookOpen className="w-5 h-5 text-blue-600" />
               </div>
               <h2 className="text-2xl font-light text-black">
@@ -242,7 +242,7 @@ export default function TermsPage() {
           </section>
 
           {/* Data Accuracy & Limitations */}
-          <section className="bg-white/90 backdrop-blur-xl rounded-dia-xl p-8 border border-black/10">
+          <section className="bg-white/90 backdrop-blur-xl rounded-app-xl p-8 border border-black/10">
             <h2 className="text-2xl font-light text-black mb-4">
               Data Accuracy & Limitations
             </h2>
@@ -270,9 +270,9 @@ export default function TermsPage() {
           </section>
 
           {/* Limitation of Liability - NEW SECTION */}
-          <section className="bg-white/90 backdrop-blur-xl rounded-dia-xl p-8 border border-black/10">
+          <section className="bg-white/90 backdrop-blur-xl rounded-app-xl p-8 border border-black/10">
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-dia-lg bg-red-100 flex items-center justify-center">
+              <div className="w-10 h-10 rounded-app-lg bg-red-100 flex items-center justify-center">
                 <Shield className="w-5 h-5 text-red-600" />
               </div>
               <h2 className="text-2xl font-light text-black">
@@ -303,9 +303,9 @@ export default function TermsPage() {
           </section>
 
           {/* Refund Policy - NEW SECTION */}
-          <section className="bg-white/90 backdrop-blur-xl rounded-dia-xl p-8 border border-black/10">
+          <section className="bg-white/90 backdrop-blur-xl rounded-app-xl p-8 border border-black/10">
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-dia-lg bg-green-100 flex items-center justify-center">
+              <div className="w-10 h-10 rounded-app-lg bg-green-100 flex items-center justify-center">
                 <DollarSign className="w-5 h-5 text-green-600" />
               </div>
               <h2 className="text-2xl font-light text-black">
@@ -333,9 +333,9 @@ export default function TermsPage() {
           </section>
 
           {/* Termination - NEW SECTION */}
-          <section className="bg-white/90 backdrop-blur-xl rounded-dia-xl p-8 border border-black/10">
+          <section className="bg-white/90 backdrop-blur-xl rounded-app-xl p-8 border border-black/10">
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-dia-lg bg-orange-100 flex items-center justify-center">
+              <div className="w-10 h-10 rounded-app-lg bg-orange-100 flex items-center justify-center">
                 <Ban className="w-5 h-5 text-orange-600" />
               </div>
               <h2 className="text-2xl font-light text-black">
@@ -351,9 +351,9 @@ export default function TermsPage() {
           </section>
 
           {/* Governing Law - NEW SECTION */}
-          <section className="bg-white/90 backdrop-blur-xl rounded-dia-xl p-8 border border-black/10">
+          <section className="bg-white/90 backdrop-blur-xl rounded-app-xl p-8 border border-black/10">
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-dia-lg bg-black/5 flex items-center justify-center">
+              <div className="w-10 h-10 rounded-app-lg bg-black/5 flex items-center justify-center">
                 <Globe className="w-5 h-5 text-black" />
               </div>
               <h2 className="text-2xl font-light text-black">
@@ -366,7 +366,7 @@ export default function TermsPage() {
           </section>
 
           {/* Service Availability */}
-          <section className="bg-white/90 backdrop-blur-xl rounded-dia-xl p-8 border border-black/10">
+          <section className="bg-white/90 backdrop-blur-xl rounded-app-xl p-8 border border-black/10">
             <h2 className="text-2xl font-light text-black mb-4">
               Service Availability
             </h2>
@@ -376,7 +376,7 @@ export default function TermsPage() {
           </section>
 
           {/* Modifications */}
-          <section className="bg-white rounded-dia-xl p-8 border border-black/10">
+          <section className="bg-white rounded-app-xl p-8 border border-black/10">
             <h2 className="text-2xl font-light text-black mb-4">
               Modifications to Terms
             </h2>

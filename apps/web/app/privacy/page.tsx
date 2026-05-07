@@ -28,7 +28,7 @@ export default function PrivacyPage() {
       {/* Content */}
       <div className="max-w-4xl mx-auto px-6 py-12">
         <div className="text-center mb-12">
-          <div className="w-16 h-16 mx-auto mb-4 rounded-dia-xl bg-black flex items-center justify-center">
+          <div className="w-16 h-16 mx-auto mb-4 rounded-app-xl bg-black flex items-center justify-center">
             <Shield className="w-8 h-8 text-white" />
           </div>
           <h1 className="text-4xl font-light text-black mb-4">
@@ -41,9 +41,9 @@ export default function PrivacyPage() {
 
         <div className="space-y-8">
           {/* End-to-End Encryption */}
-          <section className="bg-white/90 backdrop-blur-xl rounded-dia-xl p-8 border border-black/10">
+          <section className="bg-white/90 backdrop-blur-xl rounded-app-xl p-8 border border-black/10">
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-dia-lg bg-emerald-100 flex items-center justify-center">
+              <div className="w-10 h-10 rounded-app-lg bg-emerald-100 flex items-center justify-center">
                 <Lock className="w-5 h-5 text-emerald-600" />
               </div>
               <h2 className="text-2xl font-light text-black">
@@ -74,9 +74,9 @@ export default function PrivacyPage() {
           </section>
 
           {/* AI Processing & Anonymization */}
-          <section className="bg-white rounded-dia-xl p-8 border border-black/10">
+          <section className="bg-white rounded-app-xl p-8 border border-black/10">
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-dia-lg bg-black/5 flex items-center justify-center">
+              <div className="w-10 h-10 rounded-app-lg bg-black/5 flex items-center justify-center">
                 <Cpu className="w-5 h-5 text-black" />
               </div>
               <h2 className="text-2xl font-light text-black">
@@ -147,9 +147,9 @@ export default function PrivacyPage() {
           </section>
 
           {/* Data Shared with AI Systems */}
-          <section className="bg-white/90 backdrop-blur-xl rounded-dia-xl p-8 border border-black/10">
+          <section className="bg-white/90 backdrop-blur-xl rounded-app-xl p-8 border border-black/10">
             <div className="flex items-center gap-3 mb-6">
-              <div className="w-10 h-10 rounded-dia-lg bg-indigo-100 flex items-center justify-center">
+              <div className="w-10 h-10 rounded-app-lg bg-indigo-100 flex items-center justify-center">
                 <Database className="w-5 h-5 text-indigo-600" />
               </div>
               <h2 className="text-2xl font-light text-black">
@@ -162,7 +162,7 @@ export default function PrivacyPage() {
 
             <div className="grid md:grid-cols-2 gap-6">
               {/* SHARED WITH AI */}
-              <div className="bg-emerald-50 rounded-dia-lg p-5 border border-emerald-200">
+              <div className="bg-emerald-50 rounded-app-lg p-5 border border-emerald-200">
                 <h3 className="font-medium text-emerald-900 mb-4 flex items-center gap-2">
                   <CheckCircle className="w-5 h-5" />
                   Data Sent to AI (Anonymized)
@@ -200,7 +200,7 @@ export default function PrivacyPage() {
               </div>
 
               {/* NOT SHARED WITH AI */}
-              <div className="bg-red-50 rounded-dia-lg p-5 border border-red-200">
+              <div className="bg-red-50 rounded-app-lg p-5 border border-red-200">
                 <h3 className="font-medium text-red-900 mb-4 flex items-center gap-2">
                   <XCircle className="w-5 h-5" />
                   Data NEVER Sent to AI
@@ -246,9 +246,9 @@ export default function PrivacyPage() {
           </section>
 
           {/* Third-Party AI Providers */}
-          <section className="bg-white/90 backdrop-blur-xl rounded-dia-xl p-8 border border-black/10">
+          <section className="bg-white/90 backdrop-blur-xl rounded-app-xl p-8 border border-black/10">
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-dia-lg bg-cyan-100 flex items-center justify-center">
+              <div className="w-10 h-10 rounded-app-lg bg-cyan-100 flex items-center justify-center">
                 <Server className="w-5 h-5 text-cyan-600" />
               </div>
               <h2 className="text-2xl font-light text-black">
@@ -300,9 +300,9 @@ export default function PrivacyPage() {
           </section>
 
           {/* Data We Collect - Detailed Table */}
-          <section className="bg-white/90 backdrop-blur-xl rounded-dia-xl p-8 border border-black/10">
+          <section className="bg-white/90 backdrop-blur-xl rounded-app-xl p-8 border border-black/10">
             <div className="flex items-center gap-3 mb-6">
-              <div className="w-10 h-10 rounded-dia-lg bg-blue-100 flex items-center justify-center">
+              <div className="w-10 h-10 rounded-app-lg bg-blue-100 flex items-center justify-center">
                 <Database className="w-5 h-5 text-blue-600" />
               </div>
               <h2 className="text-2xl font-light text-black">
@@ -401,9 +401,9 @@ export default function PrivacyPage() {
           </section>
 
           {/* How We Use Your Data */}
-          <section className="bg-white/90 backdrop-blur-xl rounded-dia-xl p-8 border border-black/10">
+          <section className="bg-white/90 backdrop-blur-xl rounded-app-xl p-8 border border-black/10">
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-dia-lg bg-indigo-100 flex items-center justify-center">
+              <div className="w-10 h-10 rounded-app-lg bg-indigo-100 flex items-center justify-center">
                 <Eye className="w-5 h-5 text-indigo-600" />
               </div>
               <h2 className="text-2xl font-light text-black">
@@ -431,9 +431,9 @@ export default function PrivacyPage() {
           </section>
 
           {/* Technical Security */}
-          <section className="bg-white/90 backdrop-blur-xl rounded-dia-xl p-8 border border-black/10">
+          <section className="bg-white/90 backdrop-blur-xl rounded-app-xl p-8 border border-black/10">
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-dia-lg bg-black/5 flex items-center justify-center">
+              <div className="w-10 h-10 rounded-app-lg bg-black/5 flex items-center justify-center">
                 <Server className="w-5 h-5 text-black" />
               </div>
               <h2 className="text-2xl font-light text-black">
@@ -473,9 +473,9 @@ export default function PrivacyPage() {
           </section>
 
           {/* Data Retention */}
-          <section className="bg-white/90 backdrop-blur-xl rounded-dia-xl p-8 border border-black/10">
+          <section className="bg-white/90 backdrop-blur-xl rounded-app-xl p-8 border border-black/10">
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-dia-lg bg-orange-100 flex items-center justify-center">
+              <div className="w-10 h-10 rounded-app-lg bg-orange-100 flex items-center justify-center">
                 <FileText className="w-5 h-5 text-orange-600" />
               </div>
               <h2 className="text-2xl font-light text-black">
@@ -514,9 +514,9 @@ export default function PrivacyPage() {
           </section>
 
           {/* Your Rights */}
-          <section className="bg-white/90 backdrop-blur-xl rounded-dia-xl p-8 border border-black/10">
+          <section className="bg-white/90 backdrop-blur-xl rounded-app-xl p-8 border border-black/10">
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-dia-lg bg-red-100 flex items-center justify-center">
+              <div className="w-10 h-10 rounded-app-lg bg-red-100 flex items-center justify-center">
                 <Trash2 className="w-5 h-5 text-red-600" />
               </div>
               <h2 className="text-2xl font-light text-black">
@@ -566,9 +566,9 @@ export default function PrivacyPage() {
           </section>
 
           {/* Legal Compliance */}
-          <section className="bg-white/90 backdrop-blur-xl rounded-dia-xl p-8 border border-black/10">
+          <section className="bg-white/90 backdrop-blur-xl rounded-app-xl p-8 border border-black/10">
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-dia-lg bg-gray-100 flex items-center justify-center">
+              <div className="w-10 h-10 rounded-app-lg bg-gray-100 flex items-center justify-center">
                 <Shield className="w-5 h-5 text-gray-600" />
               </div>
               <h2 className="text-2xl font-light text-black">
@@ -595,7 +595,7 @@ export default function PrivacyPage() {
           </section>
 
           {/* Contact */}
-          <section className="bg-white rounded-dia-xl p-8 border border-black/10">
+          <section className="bg-white rounded-app-xl p-8 border border-black/10">
             <h2 className="text-2xl font-light text-black mb-4">
               Questions About Privacy?
             </h2>
