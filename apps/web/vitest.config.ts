@@ -29,6 +29,17 @@ export default defineConfig({
             singleFork: true,
         },
         retry: 2,
+        coverage: {
+            provider: 'v8',
+            reporter: ['text', 'json-summary', 'lcov'],
+            thresholds: {
+                branches: 50,
+                functions: 60,
+                lines: 65,
+                statements: 65,
+            },
+            exclude: ['node_modules', '.next', '**/*.test.*', '**/*.spec.*', '**/__tests__/**'],
+        },
     },
     resolve: {
         alias: {
