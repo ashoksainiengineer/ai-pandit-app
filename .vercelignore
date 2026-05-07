@@ -15,10 +15,8 @@ deploy/
 local/
 logs/
 .claude/
-.desloppify/
 .sisyphus/
 .github/
-.venv-desloppify/
 
 # Build artifacts
 node_modules/

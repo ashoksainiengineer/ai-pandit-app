@@ -2,7 +2,6 @@
 # =============================================================================
 *~
 *$py.class
-a11y-report.json
 .agents/
 # AI PANDIT - COMPREHENSIVE .gitignore
 !apps/api/ephe/.gitkeep
@@ -51,8 +50,8 @@ debug-*.ts
 # --- DEPENDENCIES ---
 .d esloppify/
 .desloppify/
-# --- DESLOPPIFY (Code Quality Scanner) ---
-# Development artifacts
+# --- CODE QUALITY SCANNER ---
+scorecard.png
 diabrowser-*
 dist/
 .docker/
@@ -79,7 +78,6 @@ extract-diabrowser.js
 .firebase/
 .firebaserc
 # Following industry best practices
-gandhi-*.sql
 .gemini/
 *.h5
 htmlcov/
@@ -164,7 +162,6 @@ __snapshots__/
 *.sqlite
 *.sqlite3
 .stylelintcache
-subjective_*.json
 *.sublime-project
 *.sublime-workspace
 sweph.tar.gz
@@ -215,3 +212,12 @@ yarn.lock
 .yarn/unplugged
 *.zip
 apps/api/logs/
+
+# AI TOOL WORKSPACES (private)
+.claude/
+.sisyphus/
+.cursorrules
+
+# LOCAL DEV
+local/
+
