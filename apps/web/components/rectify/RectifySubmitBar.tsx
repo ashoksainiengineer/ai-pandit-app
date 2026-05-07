@@ -24,13 +24,13 @@ export default function RectifySubmitBar({
     return (
         <>
             {error && (
-                <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-xl text-red-700 text-sm">{error}</div>
+                <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">{error}</div>
             )}
-            <div className="flex justify-between items-center mt-12 pt-6 border-t border-[rgba(0,0,0,0.08)]">
+            <div className="flex justify-between items-center mt-12 pt-6 border-t border-black/[0.08]">
                 <button
                     onClick={onBack}
                     disabled={step === 1}
-                    className={`px-6 py-3 rounded-xl font-medium transition-colors ${step === 1 ? 'opacity-0' : 'border-2 border-[#000000]/50 text-[#000000] hover:bg-[#000000]/10'}`}
+                    className={`px-6 py-3 rounded-full font-medium transition-all duration-200 ${step === 1 ? 'opacity-0 pointer-events-none' : 'border border-black/[0.12] text-black/60 hover:bg-black/5 hover:text-black'}`}
                 >
                     ← Back
                 </button>
@@ -38,7 +38,7 @@ export default function RectifySubmitBar({
                     <button
                         onClick={onNext}
                         disabled={isSubmitting}
-                        className="px-8 py-3 bg-gradient-to-r from-[#000000] to-[#000000] text-white rounded-xl font-medium hover:shadow-lg transition-all"
+                        className="px-8 py-3 bg-black text-white rounded-full font-medium hover:bg-black/85 transition-all duration-200 disabled:opacity-50"
                     >
                         Next Step →
                     </button>
@@ -46,7 +46,7 @@ export default function RectifySubmitBar({
                     <button
                         onClick={onSubmit}
                         disabled={isSubmitting}
-                        className="px-8 py-3 bg-gradient-to-r from-[#184131] to-[#2d6b4f] text-white rounded-xl font-medium hover:shadow-lg transition-all flex items-center gap-2"
+                        className="px-8 py-3 bg-black text-white rounded-full font-medium hover:bg-black/85 transition-all duration-200 disabled:opacity-50 flex items-center gap-2"
                     >
                         {isSubmitting ? (
                             <>

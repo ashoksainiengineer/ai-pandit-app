@@ -29,9 +29,7 @@ export default function Layout({
   transparentNavbar = false,
 }: LayoutProps) {
   return (
-    <div className="min-h-screen bg-[#FAFAFA] text-black flex flex-col">
-      {/* Light Background */}
-      <div className="fixed inset-0 pointer-events-none z-0 bg-[#FAFAFA]" />
+    <div className="min-h-screen bg-[var(--prism-canvas)] text-black flex flex-col">
 
       {/* Navigation */}
       {!hideNavbar && <Navbar transparent={transparentNavbar} />}
@@ -63,9 +61,7 @@ export function CenteredLayout({
   hideFooter = false,
 }: Omit<LayoutProps, 'fullWidth'>) {
   return (
-    <div className="min-h-screen bg-[#FAFAFA] text-black flex flex-col relative">
-      <div className="fixed inset-0 pointer-events-none z-0 bg-[#FAFAFA]" />
-
+    <div className="min-h-screen bg-[var(--prism-canvas)] text-black flex flex-col relative">
       {!hideNavbar && <Navbar />}
 
       <main className={`flex-1 flex items-center justify-center p-4 relative z-10 ${className}`}>
@@ -92,9 +88,7 @@ export function DashboardLayout({
   sidebar?: React.ReactNode;
 }) {
   return (
-    <div className="min-h-screen bg-[#FAFAFA] text-black flex flex-col relative">
-      <div className="fixed inset-0 pointer-events-none z-0 bg-[#FAFAFA]" />
-
+    <div className="min-h-screen bg-[var(--prism-canvas)] text-black flex flex-col relative">
       <Navbar />
 
       <div className="flex-1 flex relative z-10">
