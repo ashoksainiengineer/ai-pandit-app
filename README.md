@@ -381,4 +381,16 @@ This repository is publicly visible for transparency and portfolio purposes. No 
 
 ---
 
+## Trademarks
+
+All trademarks, service marks, trade names, and logos referenced in this
+project are the property of their respective owners. AI-Pandit is not
+affiliated with, endorsed by, or sponsored by any third-party
+organization mentioned. References are for factual and informational
+purposes only.
+
+See [NOTICE](NOTICE) for full third-party attributions and licenses.
+
+---
+
 **Built with ❤️ for the Vedic astrology community**
