@@ -26,7 +26,7 @@ Please open a [Bug Fix issue](https://github.com/ashoksainiengineer/ai-pandit-ap
 - Environment details (OS, Node version, browser)
 - Relevant logs or screenshots (if safe to share)
 
-For security vulnerabilities, **do not** open a public issue. Email **app.aipandit@gmail.com** instead.
+For security vulnerabilities, **do not** open a public issue. Email `app [at] aipandit [dot] gmail [dot] com` instead.
 
 ---
 
