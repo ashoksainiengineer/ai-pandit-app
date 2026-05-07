@@ -221,3 +221,6 @@ apps/api/logs/
 # LOCAL DEV
 local/
 
+a11y-report.json
+subjective_*.json
+gandhi-*.sql
