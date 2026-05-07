@@ -385,8 +385,8 @@ export default function TermsPage() {
             </p>
             <p className="text-black/60">
               For questions about these terms, please contact us at{' '}
-              <a href="mailto:legal@aipandit.app" className="text-black hover:text-black/60 transition-colors font-medium">
-                legal@aipandit.app
+              <a href="mailto:legalapp.aipandit@gmail.com" className="text-black hover:text-black/60 transition-colors font-medium">
+                legalapp.aipandit@gmail.com
               </a>
             </p>
           </section>

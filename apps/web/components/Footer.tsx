@@ -36,7 +36,7 @@ const footerLinks = {
 const socialLinks = [
   { label: 'GitHub', href: '#', icon: Github },
   { label: 'Twitter', href: '#', icon: Twitter },
-  { label: 'Email', href: 'mailto:hello@aipandit.app', icon: Mail },
+  { label: 'Email', href: 'mailto:app.aipandit@gmail.com', icon: Mail },
 ];
 
 export default memo(function Footer() {

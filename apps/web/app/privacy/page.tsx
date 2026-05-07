@@ -561,7 +561,7 @@ export default function PrivacyPage() {
               </div>
             </div>
             <p className="mt-4 text-sm text-black/60">
-              To exercise any of these rights, contact us at <a href="mailto:privacy@aipandit.app" className="text-black hover:underline">privacy@aipandit.app</a> or use the delete option in your dashboard.
+              To exercise any of these rights, contact us at <a href="mailto:app.aipandit@gmail.com" className="text-black hover:underline">app.aipandit@gmail.com</a> or use the delete option in your dashboard.
             </p>
           </section>
 
@@ -603,10 +603,10 @@ export default function PrivacyPage() {
               If you have any questions about our privacy practices, AI data processing, or would like to exercise your data rights, please contact our Data Protection Officer:
             </p>
             <a
-              href="mailto:privacy@aipandit.app"
+              href="mailto:app.aipandit@gmail.com"
               className="inline-flex items-center gap-2 text-black hover:text-black/60 transition-colors font-medium"
             >
-              privacy@aipandit.app
+              app.aipandit@gmail.com
             </a>
           </section>
         </div>
