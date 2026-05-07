@@ -3,6 +3,10 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
 import { ErrorDisplay } from '../../components/rectify/analysis/ErrorDisplay';
 
+vi.mock('next/navigation', () => ({
+    useRouter: () => ({ push: vi.fn() }),
+}));
+
 vi.mock('lucide-react', () => ({
     AlertCircle: () => <div data-testid="icon" />,
     RefreshCw: () => <div data-testid="icon" />,

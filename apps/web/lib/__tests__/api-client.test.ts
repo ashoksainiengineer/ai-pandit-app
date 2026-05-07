@@ -1,3 +1,11 @@
+// Mock auth-utils to avoid retry loop timeouts
+vi.mock('../auth-utils', () => ({
+    getTokenWithRetry: vi.fn(async (getToken: any) => {
+        const token = await getToken();
+        return token;
+    }),
+}));
+
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { APIClient } from '../api-client';
 

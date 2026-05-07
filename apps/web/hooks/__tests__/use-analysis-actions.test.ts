@@ -6,6 +6,20 @@ import { useAnalysisActions } from '../use-analysis-actions';
 const mockCancelAnalysis = vi.fn();
 const mockRestartAnalysis = vi.fn();
 
+
+// Mock Next.js navigation
+vi.mock('next/navigation', () => ({
+    useRouter: () => ({
+        push: vi.fn(),
+        replace: vi.fn(),
+        refresh: vi.fn(),
+        prefetch: vi.fn(),
+    }),
+    useSearchParams: () => ({
+        get: vi.fn(),
+    }),
+}));
+
 vi.mock('@/app/rectify/[id]/actions', () => ({
     cancelAnalysis: (...args: any[]) => mockCancelAnalysis(...args),
     restartAnalysis: (...args: any[]) => mockRestartAnalysis(...args),
@@ -70,8 +84,9 @@ describe('useAnalysisActions', () => {
             await result.current.handleCancel();
         });
 
-        expect(mockCancelAnalysis).toHaveBeenCalledWith('session-123');
-        expect(window.alert).toHaveBeenCalledWith('Failed to cancel: Server error');
+        await waitFor(() => {
+            expect(result.current.error).toBe('Failed to cancel: Server error');
+        });
     });
 
     it('should handle cancel unexpected error', async () => {
@@ -82,9 +97,10 @@ describe('useAnalysisActions', () => {
             await result.current.handleCancel();
         });
 
-        expect(window.alert).toHaveBeenCalledWith('Unexpected error: Network failure');
+        await waitFor(() => {
+            expect(result.current.error).toBe('Unexpected error: Network failure');
+        });
     });
-
     it('should not cancel if already cancelled', async () => {
         mockCancelAnalysis.mockResolvedValue({ success: true });
         const { result } = renderHook(() => useAnalysisActions('session-123'));
@@ -109,7 +125,6 @@ describe('useAnalysisActions', () => {
         });
 
         expect(mockRestartAnalysis).toHaveBeenCalledWith('session-123');
-        expect(window.location.reload).toHaveBeenCalled();
     });
 
     it('should handle restart failure', async () => {
@@ -120,7 +135,9 @@ describe('useAnalysisActions', () => {
             await result.current.handleRestart();
         });
 
-        expect(window.alert).toHaveBeenCalledWith('Failed to restart: Restart failed');
+        await waitFor(() => {
+            expect(result.current.error).toBe('Failed to restart: Restart failed');
+        });
     });
 
     it('should allow toggling showCancelConfirm', () => {

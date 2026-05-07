@@ -26,9 +26,15 @@ vi.mock('@clerk/nextjs/server', () => ({
   auth: mockAuth,
 }));
 
-vi.mock('uuid', () => ({
-  v4: vi.fn(() => 'new-session-id-123'),
-}));
+vi.mock('crypto', () => {
+    const mod = {
+        randomUUID: vi.fn(() => 'new-session-id-123'),
+    };
+    return {
+        default: mod,
+        ...mod,
+    };
+});
 
 vi.mock('@ai-pandit/db', () => ({
   db: {

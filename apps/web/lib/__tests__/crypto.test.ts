@@ -169,21 +169,21 @@ describe('Frontend Crypto - isEncrypted', () => {
 
 describe('Frontend Crypto - parseSensitiveField', () => {
     it('should return default for null/undefined', () => {
-        expect(parseSensitiveField(null, undefined, TEST_USER_ID)).toBeNull();
-        expect(parseSensitiveField(undefined, undefined, TEST_USER_ID)).toBeNull();
-        expect(parseSensitiveField('', 'default', TEST_USER_ID)).toBe('default');
+        expect(parseSensitiveField(null, TEST_USER_ID)).toBeNull();
+        expect(parseSensitiveField(undefined, TEST_USER_ID)).toBeNull();
+        expect(parseSensitiveField('', TEST_USER_ID, 'default')).toBe('default');
     });
 
     it('should decrypt and parse encrypted JSON', () => {
         const data = { events: ['marriage'] };
         const encrypted = encrypt(JSON.stringify(data), TEST_USER_ID);
-        expect(parseSensitiveField(encrypted, undefined, TEST_USER_ID)).toEqual(data);
+        expect(parseSensitiveField(encrypted, TEST_USER_ID)).toEqual(data);
     });
 
     it('should decrypt plain encrypted string', () => {
         const name = 'Ashok Kumar';
         const encrypted = encrypt(name, TEST_USER_ID);
-        expect(parseSensitiveField(encrypted, undefined, TEST_USER_ID)).toBe(name);
+        expect(parseSensitiveField(encrypted, TEST_USER_ID)).toBe(name);
     });
 
     it('should parse unencrypted JSON (legacy)', () => {

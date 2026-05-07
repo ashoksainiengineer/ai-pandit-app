@@ -94,7 +94,6 @@ describe('useRectifyForm', () => {
         expect(result.current.draftSessionId).toBeNull();
         expect(result.current.cloudSaveStatus).toBe('idle');
         expect(typeof result.current.draftLoaded).toBe('boolean');
-        expect(result.current.completedSteps).toBeInstanceOf(Set);
         expect(result.current.maxUnlockedStep).toBe(1);
         expect(typeof result.current.validateStep1).toBe('function');
         expect(typeof result.current.validateStep3).toBe('function');
@@ -160,7 +159,7 @@ describe('useRectifyForm', () => {
         const validation = result.current.validateStep1();
         expect(validation.isValid).toBe(false);
         expect(validation.errors.length).toBeGreaterThan(0);
-        expect(validation.progress).toBe(20); // gender defaults to 'male' so 1/5 fields filled
+        expect(validation.progress).toBe(29); // gender+timezone default → 2/7 fields filled
     });
 
     it('should validate step 1 as valid when all fields filled', async () => {
@@ -180,6 +179,8 @@ describe('useRectifyForm', () => {
                 dateOfBirth: '1990-01-01',
                 tentativeTime: '12:00',
                 birthPlace: 'Delhi',
+                latitude: 28.6139,
+                longitude: 77.209,
                 gender: 'male',
             });
         });
@@ -223,6 +224,8 @@ describe('useRectifyForm', () => {
                 dateOfBirth: '1990-01-01',
                 tentativeTime: '12:00',
                 birthPlace: 'Delhi',
+                latitude: 28.6139,
+                longitude: 77.209,
                 gender: 'male',
             });
         });
@@ -232,10 +235,8 @@ describe('useRectifyForm', () => {
         });
 
         expect(result.current.step).toBe(2);
-        expect(result.current.completedSteps.has(1)).toBe(true);
         expect(result.current.maxUnlockedStep).toBe(2);
     });
-
     it('should not advance step via handleNext when validation fails', async () => {
         const { result } = renderHook(() => useRectifyForm());
 
@@ -273,6 +274,8 @@ describe('useRectifyForm', () => {
                 dateOfBirth: '1990-01-01',
                 tentativeTime: '12:00',
                 birthPlace: 'Delhi',
+                latitude: 28.6139,
+                longitude: 77.209,
                 gender: 'male',
             });
         });

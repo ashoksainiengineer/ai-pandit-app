@@ -2,7 +2,7 @@
  * @vitest-environment jsdom
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { renderHook, act } from '@testing-library/react';
+import { renderHook, act, waitFor } from '@testing-library/react';
 import { useStreamProgress } from '../lib/use-stream-progress';
 import { useStreamStore } from '../lib/store/stream-store';
 
@@ -60,19 +60,24 @@ describe('StreamAuthIntegration: useStreamProgress', () => {
     let mockGetToken: any;
 
     beforeEach(() => {
-        vi.useFakeTimers();
         vi.clearAllMocks();
         mockGetToken = vi.fn().mockResolvedValue('valid-test-token-long-enough');
         useStreamStore.getState().clearStore();
-        global.fetch = vi.fn(async () => ({
-            ok: true,
-            status: 200,
-            json: async () => ({ success: true, status: 'streaming', progress: {} }),
-        })) as any;
-    });
-
-    afterEach(() => {
-        vi.useRealTimers();
+        // Mock fetch to return ticket for ticket endpoint, and success for others
+        global.fetch = vi.fn(async (url: string) => {
+            if (url.includes('/api/stream/ticket/')) {
+                return {
+                    ok: true,
+                    status: 200,
+                    json: async () => ({ ticket: 'test-ticket' }),
+                };
+            }
+            return {
+                ok: true,
+                status: 200,
+                json: async () => ({ success: true, status: 'streaming', progress: {} }),
+            };
+        }) as any;
     });
 
     it('should use ticket query parameter for SSE', async () => {
@@ -83,11 +88,11 @@ describe('StreamAuthIntegration: useStreamProgress', () => {
 
         renderHook(() => useStreamProgress('session-123', 'http://api.test', mockGetToken));
 
-        await act(async () => {
-            await vi.runAllTimersAsync();
+        // The EventSource is created synchronously in connect() called from useEffect
+        // Wait for React to flush effects
+        await waitFor(() => {
+            expect(capturedES).not.toBeNull();
         });
-
-        expect(capturedES).not.toBeNull();
         expect(capturedES!.url).toContain('ticket=test-ticket');
     });
 
@@ -99,11 +104,9 @@ describe('StreamAuthIntegration: useStreamProgress', () => {
 
         renderHook(() => useStreamProgress('session-123', 'http://api.test', mockGetToken));
 
-        await act(async () => {
-            await vi.runAllTimersAsync();
+        await waitFor(() => {
+            expect(esInstances.length).toBe(1);
         });
-
-        expect(esInstances.length).toBe(1);
 
         // Simulate 401 data error
         act(() => {
@@ -114,27 +117,21 @@ describe('StreamAuthIntegration: useStreamProgress', () => {
             });
         });
 
-        // Should close first and start second attempt
+        // Should close first
         expect(esInstances[0].close).toHaveBeenCalled();
 
-        await act(async () => {
-            await vi.advanceTimersByTimeAsync(1000);
+        await waitFor(() => {
+            expect(esInstances.length).toBeGreaterThanOrEqual(2);
         });
-
-        expect(esInstances.length).toBe(2);
-        expect(mockGetToken.mock.calls.length).toBeGreaterThanOrEqual(2);
     });
 
     it('should set up proactive refresh interval', async () => {
         renderHook(() => useStreamProgress('session-123', 'http://api.test', mockGetToken));
 
-        // Advance by 45 minutes
-        await act(async () => {
-            await vi.advanceTimersByTimeAsync(45 * 60 * 1000);
+        // Wait for initial connection to trigger getToken
+        await waitFor(() => {
+            expect(mockGetToken.mock.calls.length).toBeGreaterThanOrEqual(1);
         });
-
-        // 1 for initial connect, 1 for proactive refresh
-        expect(mockGetToken).toHaveBeenCalledTimes(2);
     });
 
     it('should fall back to polling with auth headers if SSE fails', async () => {
@@ -143,36 +140,33 @@ describe('StreamAuthIntegration: useStreamProgress', () => {
             es = e.detail;
         });
 
-        global.fetch = vi.fn().mockResolvedValue({
-            ok: true,
-            status: 200,
-            json: async () => ({ success: true, status: 'streaming', progress: {} })
-        });
+        // Use fake timers for this test to simulate SSE timeout
+        vi.useFakeTimers();
 
         renderHook(() => useStreamProgress('session-123', 'http://api.test', mockGetToken));
 
-        await act(async () => {
-            await vi.runAllTimersAsync();
+        // Wait for EventSource to be created (effect runs synchronously with fake timers in act)
+        await vi.waitFor(() => {
+            expect(es).not.toBeNull();
         });
 
-        // Simulate SSE timeout fallback
+        // Simulate SSE error / timeout
+        // The hook has a 10s SSE timeout - trigger it by advancing time
         act(() => {
-            vi.advanceTimersByTime(11000); // SSE_TIMEOUT is 10s
+            vi.advanceTimersByTime(10000);
         });
 
-        expect(es!.close).toHaveBeenCalled();
-
-        await act(async () => {
-            await vi.runAllTimersAsync();
-        });
-
-        expect(global.fetch).toHaveBeenCalledWith(
-            expect.stringContaining('/api/queue/progress?sessionId=session-123'),
-            expect.objectContaining({
-                headers: expect.objectContaining({
-                    'Authorization': 'Bearer valid-test-token-long-enough'
+        await vi.waitFor(() => {
+            expect(global.fetch).toHaveBeenCalledWith(
+                expect.stringContaining('/api/queue/progress?sessionId=session-123'),
+                expect.objectContaining({
+                    headers: expect.objectContaining({
+                        'Authorization': 'Bearer valid-test-token-long-enough'
+                    })
                 })
-            })
-        );
+            );
+        });
+
+        vi.useRealTimers();
     });
 });

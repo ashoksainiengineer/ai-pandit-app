@@ -175,7 +175,7 @@ describe('Fuzzy Date Parser - Approximate', () => {
 describe('Fuzzy Date Parser - Edge Cases', () => {
     it('should return undefined for unparseable input', () => {
         const result = parseFuzzyDate('completely random text', BIRTH_DATE);
-        expect(result).toBeUndefined();
+        expect(result).toBeNull();
     });
 
     it('should handle extra whitespace', () => {

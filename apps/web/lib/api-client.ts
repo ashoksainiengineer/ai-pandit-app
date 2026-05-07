@@ -27,9 +27,12 @@ export class APIClient {
         body: JSON.stringify(body),
         credentials: 'include'
       });
-
       const data = await res.json();
       logger.debug('[APIClient] POST completed', { path: url, status: res.status });
+      if (!res.ok) {
+        const errMsg = data?.error || res.statusText || 'Request failed';
+        throw new Error(errMsg);
+      }
       return data;
     } catch (error) {
       logger.error('[APIClient] POST failed', { path: url, error });
@@ -56,9 +59,12 @@ export class APIClient {
         headers,
         credentials: 'include'
       });
-
       const data = await res.json();
       logger.debug('[APIClient] GET completed', { path: url, status: res.status });
+      if (!res.ok) {
+        const errMsg = data?.error || res.statusText || 'Request failed';
+        throw new Error(errMsg);
+      }
       return data;
     } catch (error) {
       logger.error('[APIClient] GET failed', { path: url, error });

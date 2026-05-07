@@ -4,18 +4,37 @@ import { SessionCard } from './SessionCard';
 import React from 'react';
 
 const mockRouterPush = vi.fn();
+const mockRouterRefresh = vi.fn();
 
 // Mock Clerk useAuth
 vi.mock('@clerk/nextjs', () => ({
     useAuth: () => ({
-        getToken: vi.fn().mockResolvedValue('mock-token'),
+        getToken: () => Promise.resolve('mock-token'),
     }),
 }));
 
 vi.mock('next/navigation', () => ({
     useRouter: () => ({
         push: mockRouterPush,
+        refresh: mockRouterRefresh,
     }),
+}));
+
+// Mock next/dynamic to resolve synchronously in tests
+vi.mock('next/dynamic', () => ({
+    __esModule: true,
+    default: (importCallback: any) => {
+        const LazyComponent = (props: any) => {
+            const [Component, setComponent] = React.useState<any>(null);
+            React.useEffect(() => {
+                importCallback().then((mod: any) => {
+                    setComponent(() => mod.default || mod);
+                });
+            }, []);
+            return Component ? <Component {...props} /> : null;
+        };
+        return LazyComponent;
+    },
 }));
 
 // Mock Lucide icons
@@ -31,8 +50,13 @@ vi.mock('lucide-react', () => ({
     Loader2: () => <div data-testid="icon-loader" />,
     CopyPlus: () => <div data-testid="icon-copy" />,
     Sparkles: () => <div data-testid="icon-sparkles" />,
+    X: () => <div data-testid="icon-x" />,
+    AlertTriangle: () => <div data-testid="icon-alert-triangle" />,
+    Shield: () => <div data-testid="icon-shield" />,
+    User: () => <div data-testid="icon-user" />,
+    FileText: () => <div data-testid="icon-file-text" />,
+    Database: () => <div data-testid="icon-database" />,
 }));
-
 // Mock APIClient
 vi.mock('@/lib/api-client', () => ({
     APIClient: {
@@ -54,7 +78,6 @@ vi.mock('./DeleteConfirmModal', () => ({
 vi.mock('@/components/ui/ClientOnly', () => ({
     ClientOnly: ({ children }: any) => <>{children}</>,
 }));
-
 const mockSession = {
     id: 'test-session-123',
     fullName: 'John Doe',
@@ -75,8 +98,7 @@ describe('SessionCard', () => {
 
     beforeEach(() => {
         vi.clearAllMocks();
-        // Global fetch mock
-        global.fetch = vi.fn() as any;
+        // Don't set global.fetch here - set in individual tests
     });
 
     it('triggers favorite action when star is clicked', () => {
@@ -94,7 +116,7 @@ describe('SessionCard', () => {
         expect(mockOnFavorite).toHaveBeenCalledWith(mockSession.id);
     });
 
-    it('opens delete confirmation modal when delete is clicked', () => {
+    it('opens delete confirmation modal when delete is clicked', async () => {
         render(
             <SessionCard
                 session={mockSession as any}
@@ -106,14 +128,17 @@ describe('SessionCard', () => {
         const deleteBtn = screen.getByTestId('icon-trash').closest('button');
         fireEvent.click(deleteBtn!);
 
-        expect(screen.getByTestId('delete-modal')).toBeInTheDocument();
+        await waitFor(() => {
+            expect(screen.getByTestId('delete-modal')).toBeInTheDocument();
+        });
     });
 
     it('handles successful deletion', async () => {
-        (global.fetch as any).mockResolvedValueOnce({
+        const fetchMock = vi.fn().mockResolvedValue({
             ok: true,
             json: async () => ({ success: true }),
         });
+        globalThis.fetch = fetchMock;
 
         render(
             <SessionCard
@@ -126,19 +151,18 @@ describe('SessionCard', () => {
         // Open modal
         fireEvent.click(screen.getByTestId('icon-trash').closest('button')!);
 
-        // Confirm delete
-        const confirmBtn = screen.getByText('Confirm Delete');
+        // Wait for modal to appear and confirm
+        const confirmBtn = await screen.findByText('Confirm Delete');
         fireEvent.click(confirmBtn);
 
         await waitFor(() => {
-            expect(global.fetch).toHaveBeenCalledWith(
+            expect(fetchMock).toHaveBeenCalledWith(
                 expect.stringContaining('/api/sessions/test-session-123'),
                 expect.objectContaining({ method: 'DELETE' })
             );
             expect(mockOnDelete).toHaveBeenCalledWith(mockSession.id);
         });
     });
-
     it('handles successful duplication (clone)', async () => {
         const { APIClient } = await import('@/lib/api-client');
         (APIClient.post as any).mockResolvedValueOnce({
