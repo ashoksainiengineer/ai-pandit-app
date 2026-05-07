@@ -1,9 +1,15 @@
 # AI-Pandit 🌟
 
+> **⚠️ PROPRIETARY SOFTWARE — ALL RIGHTS RESERVED**  
+> This repository is publicly visible for transparency and portfolio purposes only.  
+> No license is granted to use, copy, modify, or distribute this code.  
+> See [LICENSE](LICENSE) for full terms.
+
+
 **AI-Powered Vedic Birth Time Rectification with Seconds-Level Precision**
 
 [![TypeScript](https://img.shields.io/badge/TypeScript-96.5%25-blue)](https://www.typescriptlang.org/)
-[![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+[![License](https://img.shields.io/badge/License-Proprietary-red.svg)](LICENSE)
 [![Cloud Run](https://img.shields.io/badge/Google%20Cloud%20Run-Active-blue)](https://cloud.google.com/run)
 [![Desloppify](https://img.shields.io/badge/Code%20Quality-Desloppify-purple)](https://github.com/peteromallet/desloppify)
 

@@ -243,3 +243,4 @@ logs/*.md
 
 # Downloaded reference assets (not for production)
 apps/web/public/dia-assets/
+.playwright-mcp/
