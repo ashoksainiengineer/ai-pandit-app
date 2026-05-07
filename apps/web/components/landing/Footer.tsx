@@ -76,7 +76,7 @@ export default function Footer() {
 
             <div className="space-y-4">
               <a
-                href="mailto:support@aipandit.app"
+                href="mailto:app.aipandit@gmail.com"
                 className="flex items-center gap-3 text-[#636363] hover:text-[#000000] 
                            transition-colors duration-300 text-sm group"
               >
@@ -84,7 +84,7 @@ export default function Footer() {
                                 flex items-center justify-center group-hover:border-[#000000]/50 transition-colors">
                   <Mail className="w-4 h-4" />
                 </div>
-                <span>support@aipandit.app</span>
+                <span>app.aipandit@gmail.com</span>
               </a>
 
               <div className="pt-4 border-t border-[rgba(0,0,0,0.08)]">

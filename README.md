@@ -11,7 +11,6 @@
 [![License](https://img.shields.io/badge/License-Proprietary-red.svg)](LICENSE)
 [![Cloud Run](https://img.shields.io/badge/Google%20Cloud%20Run-Active-blue)](https://cloud.google.com/run)
 [![Next.js](https://img.shields.io/badge/Next.js-15-black)](https://nextjs.org/)
-[![Desloppify](https://img.shields.io/badge/Code%20Quality-Desloppify-purple)](https://github.com/peteromallet/desloppify)
 
 ---
 

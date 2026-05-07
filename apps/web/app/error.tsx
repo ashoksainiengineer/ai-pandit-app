@@ -112,7 +112,7 @@ export default function ErrorBoundary({ error, reset }: ErrorBoundaryProps) {
             </Link>
 
             <a
-              href={`mailto:support@aipandit.app?subject=Error%20Report%20-%20${errorId}`}
+              href={`mailto:app.aipandit@gmail.com?subject=Error%20Report%20-%20${errorId}`}
               className="w-full flex items-center justify-center gap-2 px-6 py-3 text-black/60 hover:text-black transition-colors"
             >
               <Mail className="w-4 h-4" />

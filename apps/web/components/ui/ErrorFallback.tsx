@@ -27,7 +27,7 @@ export default function ErrorFallback({
   errorId,
   homeHref = '/',
   homeLabel = 'Return Home',
-  supportHref = 'mailto:support@aipandit.app',
+  supportHref = 'mailto:app.aipandit@gmail.com',
 }: ErrorFallbackProps) {
   const copyErrorId = () => {
     if (errorId) {

@@ -211,10 +211,10 @@ export default function NotFoundPage() {
           <p className="text-xs text-black/40">
             If you believe this is an error, please contact{' '}
             <a 
-              href="mailto:support@aipandit.app" 
+              href="mailto:app.aipandit@gmail.com" 
               className="text-black hover:underline"
             >
-              support@aipandit.app
+              app.aipandit@gmail.com
             </a>
           </p>
         </div>
