@@ -9,9 +9,9 @@
 
 [![TypeScript](https://img.shields.io/badge/TypeScript-96.5%25-blue)](https://www.typescriptlang.org/)
 [![License](https://img.shields.io/badge/License-Proprietary-red.svg)](LICENSE)
+[![CI](https://img.shields.io/github/actions/workflow/status/ashoksainiengineer/ai-pandit-app/ci.yml?branch=main&label=CI)](https://github.com/ashoksainiengineer/ai-pandit-app/actions)
 [![Cloud Run](https://img.shields.io/badge/Google%20Cloud%20Run-Active-blue)](https://cloud.google.com/run)
 [![Next.js](https://img.shields.io/badge/Next.js-15-black)](https://nextjs.org/)
-
 ---
 
 ## Project Overview
