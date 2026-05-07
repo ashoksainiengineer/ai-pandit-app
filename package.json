@@ -63,8 +63,7 @@
     "deploy:staging:sequence": "sh ./scripts/deploy-staging-sequence.sh",
     "deploy:cloudrun:idle-guards": "sh ./scripts/enforce-idle-cost-guards.sh",
     "deploy:cloudrun:prod-worker": "sh ./scripts/enable-production-worker-mode.sh",
-    "cleanup:artifacts": "sh ./scripts/cleanup-artifact-images.sh",
-    "prepare": "husky"
+    "cleanup:artifacts": "sh ./scripts/cleanup-artifact-images.sh"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.11.1",
