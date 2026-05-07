@@ -1,7 +1,7 @@
 import type { MetadataRoute } from 'next';
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const baseUrl = 'https://aipandit.com';
+  const baseUrl = 'https://aipandit.app';
 
   return [
     { url: baseUrl, lastModified: new Date(), changeFrequency: 'weekly', priority: 1 },

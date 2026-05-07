@@ -121,7 +121,7 @@ export default function DashboardLayout({ children, user }: DashboardLayoutProps
                 {user?.name || 'Admin User'}
               </p>
               <p className="text-xs text-[#636363] truncate">
-                {user?.email || 'admin@aipandit.com'}
+                {user?.email || 'admin@aipandit.app'}
               </p>
             </div>
             <button className="p-2 rounded-lg hover:bg-[rgba(0,0,0,0.08)]/50 text-[#636363] hover:text-[#000000] transition-colors">
