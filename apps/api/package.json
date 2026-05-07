@@ -52,7 +52,7 @@
     "dependencies": {
         "@ai-pandit/db": "*",
         "@ai-pandit/shared": "*",
-        "@clerk/backend": "^2.33.3",
+        "@clerk/backend": "^3.4.6",
         "@clerk/clerk-react": "5.61.6",
         "@google-cloud/storage": "^5.20.4",
         "@stryker-mutator/core": "9.6.1",
