@@ -13,7 +13,7 @@ import { logger } from '@/lib/secure-logger';
 const InteractiveMap = dynamic(() => import('./InteractiveMap'), {
   ssr: false,
   loading: () => (
-    <div className="w-full h-48 bg-[#f8f8f8] rounded-lg flex items-center justify-center border border-[#E8E0D5]">
+    <div className="w-full h-48 bg-[#FAFAFA] rounded-lg flex items-center justify-center border border-[#E8E0D5]">
       <div className="text-center">
         <div className="w-6 h-6 border-2 border-[#000000] border-t-transparent rounded-full animate-spin mx-auto" />
         <p className="text-[#636363] text-xs mt-2">Loading map...</p>
@@ -232,7 +232,7 @@ export default function BirthPlacePicker({ birthPlace, latitude, longitude, time
   return (
     <div className="space-y-3">
       {/* Mode Selector - Compact Tabs */}
-      <div className="flex gap-1 p-1 bg-[#f8f8f8] rounded-lg border border-[#E8E0D5]">
+      <div className="flex gap-1 p-1 bg-[#FAFAFA] rounded-lg border border-[#E8E0D5]">
         {[
           { id: 'search', label: 'Search', icon: Search },
           { id: 'manual', label: 'Manual Coordinates', icon: Crosshair },
@@ -266,7 +266,7 @@ export default function BirthPlacePicker({ birthPlace, latitude, longitude, time
                 <button
                   type="button"
                   onClick={clearSearch}
-                  className="p-1 hover:bg-[#f8f8f8] rounded-full transition-colors"
+                  className="p-1 hover:bg-[#FAFAFA] rounded-full transition-colors"
                 >
                   <X className="w-4 h-4 text-[#959595]" />
                 </button>
@@ -291,7 +291,7 @@ export default function BirthPlacePicker({ birthPlace, latitude, longitude, time
                   key={result.id}
                   type="button"
                   onClick={() => updateBirthLocation(result)}
-                  className="w-full text-left px-4 py-3 hover:bg-[#f8f8f8] transition-colors border-b border-[rgba(0,0,0,0.08)] last:border-0"
+                  className="w-full text-left px-4 py-3 hover:bg-[#FAFAFA] transition-colors border-b border-[rgba(0,0,0,0.08)] last:border-0"
                 >
                   <div className="font-medium text-[#000000] text-sm">{result.city || 'Unknown Location'}{result.district && <span className="text-[#636363]"> • {result.district}</span>}</div>
                   <div className="text-xs text-[#636363]">{[result.state, result.country].filter(Boolean).join(', ')}</div>
@@ -413,7 +413,7 @@ export default function BirthPlacePicker({ birthPlace, latitude, longitude, time
 
       {/* Current Selection */}
       {(latitude && longitude && mode !== 'search') && (
-        <div className="p-3 bg-[#f8f8f8] rounded-lg border border-[#E8E0D5]">
+        <div className="p-3 bg-[#FAFAFA] rounded-lg border border-[#E8E0D5]">
           <div className="text-[10px] text-[#636363] mb-1 uppercase tracking-wider">Selected Location</div>
           <div className="text-sm text-[#000000] font-medium">{birthPlace || 'Not set'}</div>
           <div className="text-xs text-[#000000] font-mono mt-1">{latitude.toFixed(4)}°N, {longitude.toFixed(4)}°E • UTC{timezone >= 0 ? '+' : ''}{timezone}</div>

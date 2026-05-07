@@ -161,7 +161,7 @@ export default function WhyEventsMatter({ currentEventCount, categoriesCovered }
     >
       {/* Header - Always Visible */}
       <div 
-        className="p-5 cursor-pointer hover:bg-[#f8f8f8]/50 transition-colors"
+        className="p-5 cursor-pointer hover:bg-[#FAFAFA]/50 transition-colors"
         onClick={() => setIsExpanded(!isExpanded)}
       >
         <div className="flex items-start justify-between gap-4">
@@ -183,7 +183,7 @@ export default function WhyEventsMatter({ currentEventCount, categoriesCovered }
           </div>
           <motion.div
             animate={{ rotate: isExpanded ? 180 : 0 }}
-            className="p-2 rounded-lg bg-[#f8f8f8] text-[#636363]"
+            className="p-2 rounded-lg bg-[#FAFAFA] text-[#636363]"
           >
             <ChevronDown className="w-5 h-5" />
           </motion.div>
@@ -224,7 +224,7 @@ export default function WhyEventsMatter({ currentEventCount, categoriesCovered }
             className="border-t border-[rgba(0,0,0,0.08)]"
           >
             {/* Tab Navigation */}
-            <div className="flex p-1 bg-[#f8f8f8] mx-4 mt-4 rounded-xl">
+            <div className="flex p-1 bg-[#FAFAFA] mx-4 mt-4 rounded-xl">
               {[
                 { id: 'overview', label: 'Overview', icon: Clock },
                 { id: 'categories', label: 'Categories', icon: Calendar },
@@ -354,7 +354,7 @@ export default function WhyEventsMatter({ currentEventCount, categoriesCovered }
                             <p className="text-[10px] text-[#184131] mt-1">Planets: {cat.planets}</p>
                             <div className="mt-2 flex flex-wrap gap-1">
                               {cat.examples.map((ex, i) => (
-                                <span key={i} className="text-[10px] bg-[#f8f8f8] text-[#636363] px-2 py-0.5 rounded">
+                                <span key={i} className="text-[10px] bg-[#FAFAFA] text-[#636363] px-2 py-0.5 rounded">
                                   {ex}
                                 </span>
                               ))}

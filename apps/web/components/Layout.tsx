@@ -2,25 +2,11 @@
 
 /**
  * AI Pandit - Shared Layout Component
- * Dia Browser Design System — Clean, minimal, monochrome
- * 
- * Usage:
- * ```tsx
- * import Layout from '@/components/Layout';
- * 
- * export default function Page() {
- *   return (
- *     <Layout>
- *       <YourContent />
- *     </Layout>
- *   );
- * }
- * ```
+ * Design System — Light Theme
  */
 
 import React from 'react';
 import dynamic from 'next/dynamic';
-import '@/app/prism-design-system.css';
 
 const Navbar = dynamic(() => import('./Navbar'), { ssr: false });
 import Footer from './Footer';
@@ -43,9 +29,9 @@ export default function Layout({
   transparentNavbar = false,
 }: LayoutProps) {
   return (
-    <div className="min-h-screen bg-dia-bg text-dia-ink flex flex-col">
-      {/* Dia Browser Clean Background */}
-      <div className="fixed inset-0 pointer-events-none z-0 bg-dia-bg" />
+    <div className="min-h-screen bg-[#FAFAFA] text-black flex flex-col">
+      {/* Light Background */}
+      <div className="fixed inset-0 pointer-events-none z-0 bg-[#FAFAFA]" />
 
       {/* Navigation */}
       {!hideNavbar && <Navbar transparent={transparentNavbar} />}
@@ -55,7 +41,7 @@ export default function Layout({
         {fullWidth ? (
           children
         ) : (
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="max-w-[1200px] mx-auto px-6">
             {children}
           </div>
         )}
@@ -77,9 +63,8 @@ export function CenteredLayout({
   hideFooter = false,
 }: Omit<LayoutProps, 'fullWidth'>) {
   return (
-    <div className="min-h-screen bg-dia-bg text-dia-ink flex flex-col relative">
-      {/* Dia Browser Clean Background */}
-      <div className="fixed inset-0 pointer-events-none z-0 bg-dia-bg" />
+    <div className="min-h-screen bg-[#FAFAFA] text-black flex flex-col relative">
+      <div className="fixed inset-0 pointer-events-none z-0 bg-[#FAFAFA]" />
 
       {!hideNavbar && <Navbar />}
 
@@ -107,21 +92,20 @@ export function DashboardLayout({
   sidebar?: React.ReactNode;
 }) {
   return (
-    <div className="min-h-screen bg-dia-bg text-dia-ink flex flex-col relative">
-      {/* Dia Browser Clean Background */}
-      <div className="fixed inset-0 pointer-events-none z-0 bg-dia-bg" />
+    <div className="min-h-screen bg-[#FAFAFA] text-black flex flex-col relative">
+      <div className="fixed inset-0 pointer-events-none z-0 bg-[#FAFAFA]" />
 
       <Navbar />
 
       <div className="flex-1 flex relative z-10">
         {sidebar && (
-          <aside className="hidden lg:block w-64 border-r border-dia-border bg-dia-card">
+          <aside className="hidden lg:block w-64 border-r border-black/5 bg-white">
             {sidebar}
           </aside>
         )}
 
         <main className={`flex-1 ${className}`}>
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="max-w-[1200px] mx-auto px-6">
             {children}
           </div>
         </main>

@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import '@/app/prism-design-system.css';
+import '@/app/globals.css';
 import ModalOverlay from './ModalOverlay';
 import ModalHeader from './ModalHeader';
 import ModalFooter from './ModalFooter';

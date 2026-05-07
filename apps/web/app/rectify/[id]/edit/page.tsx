@@ -9,7 +9,7 @@ import Layout from '@/components/Layout';
 import { env } from '@/lib/config/env';
 import { initializeEncryption, parseSensitiveField } from '@/lib/crypto';
 import { logger } from '@/lib/secure-logger';
-import '@/app/prism-design-system.css';
+import '@/app/globals.css';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;

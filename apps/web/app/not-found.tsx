@@ -1,7 +1,7 @@
 /**
  * Not Found Page (404)
  * Custom error page for unmatched routes
- * Follows Dia Browser design system
+ * Follows Light Theme design system
  */
 
 import Link from 'next/link';
@@ -107,13 +107,13 @@ function CTALink({ href, label, description, icon: Icon, variant }: CTALinkProps
         group flex items-center gap-4 p-4 rounded-xl border transition-all duration-300
         ${isPrimary 
           ? 'bg-black text-white border-transparent shadow-lg shadow-black/10 hover:shadow-xl hover:shadow-black/15 hover:-translate-y-0.5' 
-          : 'bg-white border-black/8 hover:border-black/20 hover:bg-[#f8f8f8]'
+          : 'bg-white border-black/8 hover:border-black/20 hover:bg-[#FAFAFA]'
         }
       `}
     >
       <div className={`
         w-12 h-12 rounded-xl flex items-center justify-center transition-colors
-        ${isPrimary ? 'bg-white/20' : 'bg-[#f8f8f8] group-hover:bg-white'}
+        ${isPrimary ? 'bg-white/20' : 'bg-[#FAFAFA] group-hover:bg-white'}
       `}>
         <Icon className={`w-6 h-6 ${isPrimary ? 'text-white' : 'text-black'}`} />
       </div>
@@ -174,7 +174,7 @@ function SearchSuggestions() {
  */
 export default function NotFoundPage() {
   return (
-    <main className="min-h-screen bg-[#f8f8f8] flex items-center justify-center px-6 py-16">
+    <main className="min-h-screen bg-[#FAFAFA] flex items-center justify-center px-6 py-16">
       <div className="max-w-lg w-full">
         {/* Illustration */}
         <NotFoundIllustration />

@@ -4,28 +4,28 @@
  */
 export default function ResultsLoading() {
   return (
-    <div className="min-h-screen bg-[#f8f8f8]">
+    <div className="min-h-screen bg-[#FAFAFA]">
       <div className="max-w-7xl mx-auto px-6 py-6">
         {/* Breadcrumbs */}
         <div className="flex items-center gap-2 mb-6">
           {[...Array(3)].map((_, i) => (
-            <div key={i} className="h-4 bg-[#f8f8f8] rounded-lg animate-pulse w-16" />
+            <div key={i} className="h-4 bg-[#FAFAFA] rounded-lg animate-pulse w-16" />
           ))}
         </div>
 
         {/* Header */}
         <div className="mb-8 space-y-3">
-          <div className="h-9 bg-[#f8f8f8] rounded-xl animate-pulse w-72" />
-          <div className="h-4 bg-[#f8f8f8] rounded-lg animate-pulse w-96" />
+          <div className="h-9 bg-[#FAFAFA] rounded-xl animate-pulse w-72" />
+          <div className="h-4 bg-[#FAFAFA] rounded-lg animate-pulse w-96" />
         </div>
 
         {/* Stats Cards */}
         <div className="grid md:grid-cols-3 gap-6 mb-8">
           {[...Array(3)].map((_, i) => (
             <div key={i} className="bg-white border border-[rgba(0,0,0,0.08)] rounded-2xl p-6 space-y-3">
-              <div className="h-4 bg-[#f8f8f8] rounded-lg animate-pulse w-20" />
-              <div className="h-8 bg-[#f8f8f8] rounded-xl animate-pulse w-32" />
-              <div className="h-3 bg-[#f8f8f8] rounded-lg animate-pulse w-16" />
+              <div className="h-4 bg-[#FAFAFA] rounded-lg animate-pulse w-20" />
+              <div className="h-8 bg-[#FAFAFA] rounded-xl animate-pulse w-32" />
+              <div className="h-3 bg-[#FAFAFA] rounded-lg animate-pulse w-16" />
             </div>
           ))}
         </div>
@@ -33,13 +33,13 @@ export default function ResultsLoading() {
         {/* Charts + Analysis */}
         <div className="grid lg:grid-cols-2 gap-6">
           <div className="bg-white border border-[rgba(0,0,0,0.08)] rounded-2xl p-6 space-y-4">
-            <div className="h-5 bg-[#f8f8f8] rounded-lg animate-pulse w-36" />
-            <div className="h-64 bg-[#f8f8f8] rounded-xl animate-pulse w-full" />
+            <div className="h-5 bg-[#FAFAFA] rounded-lg animate-pulse w-36" />
+            <div className="h-64 bg-[#FAFAFA] rounded-xl animate-pulse w-full" />
           </div>
           <div className="bg-white border border-[rgba(0,0,0,0.08)] rounded-2xl p-6 space-y-3">
-            <div className="h-5 bg-[#f8f8f8] rounded-lg animate-pulse w-40" />
+            <div className="h-5 bg-[#FAFAFA] rounded-lg animate-pulse w-40" />
             {[...Array(5)].map((_, i) => (
-              <div key={i} className="h-12 bg-[#f8f8f8] rounded-xl animate-pulse w-full" />
+              <div key={i} className="h-12 bg-[#FAFAFA] rounded-xl animate-pulse w-full" />
             ))}
           </div>
         </div>

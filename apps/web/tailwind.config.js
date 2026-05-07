@@ -8,7 +8,7 @@ module.exports = {
   theme: {
     extend: {
       // ═══════════════════════════════════════════════════════════════
-      // AI PANDIT DESIGN SYSTEM — DIA BROWSER PALETTE
+      // AI PANDIT DESIGN SYSTEM — LIGHT THEME PALETTE
       // Clean monochrome with subtle spectrum accents
       // Single font: DM Sans (weights 300, 400, 500 only)
       // ═══════════════════════════════════════════════════════════════
@@ -79,7 +79,7 @@ module.exports = {
         },
 
         // ═══════════════════════════════════════════════════════════════
-        // DIA BROWSER INSPIRED — Clean minimal light theme
+        // Clean minimal light theme
         // ═══════════════════════════════════════════════════════════════
         dia: {
           bg: '#F8F8F8',
@@ -210,7 +210,7 @@ module.exports = {
       },
 
       // ═══════════════════════════════════════════════════════════════
-      // DIA BROWSER EXTENSIONS
+      // DESIGN SYSTEM EXTENSIONS
       // ═══════════════════════════════════════════════════════════════
 
       backdropBlur: {

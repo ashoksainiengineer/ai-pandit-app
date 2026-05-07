@@ -195,20 +195,20 @@ const componentExamples = [
     content: (
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card padding="sm">
-          <h4 className="font-medium text-prism-ink mb-2">Small Padding</h4>
-          <p className="text-sm text-prism-graphite">
+          <h4 className="font-medium text-black mb-2">Small Padding</h4>
+          <p className="text-sm text-black/60">
             Compact card for tight spaces and dense layouts.
           </p>
         </Card>
         <Card padding="md" hover>
-          <h4 className="font-medium text-prism-ink mb-2">Medium + Hover</h4>
-          <p className="text-sm text-prism-graphite">
+          <h4 className="font-medium text-black mb-2">Medium + Hover</h4>
+          <p className="text-sm text-black/60">
             Standard card with subtle lift on hover interaction.
           </p>
         </Card>
         <Card padding="lg">
-          <h4 className="font-medium text-prism-ink mb-2">Large Padding</h4>
-          <p className="text-sm text-prism-graphite">
+          <h4 className="font-medium text-black mb-2">Large Padding</h4>
+          <p className="text-sm text-black/60">
             Spacious card for featured content and highlights.
           </p>
         </Card>
@@ -265,16 +265,16 @@ const componentExamples = [
 
 export default function PrismShowcasePage() {
   return (
-    <div className="min-h-screen bg-prism-canvas font-prism">
+    <div className="min-h-screen bg-[#FAFAFA] font-sans">
       {/* Import design system styles */}
       <style jsx global>{`
-        @import url('./prism-design-system.css');
+        @import url('./globals.css');
       `}</style>
 
       {/* Header */}
       <Header
         logo={
-          <span className="text-xl font-medium text-prism-ink tracking-tight">
+          <span className="text-xl font-medium text-black tracking-tight">
             Prism
           </span>
         }
@@ -324,10 +324,10 @@ export default function PrismShowcasePage() {
         <Section size="lg">
           <Container>
             <div className="text-center mb-prism-12">
-              <h2 className="text-[3.125rem] font-light text-prism-ink leading-[1.18] tracking-[-0.04em]">
+              <h2 className="text-[3.125rem] font-light text-black leading-[1.18] tracking-[-0.04em]">
                 Component Library
               </h2>
-              <p className="mt-4 text-lg font-normal text-prism-graphite max-w-2xl mx-auto">
+              <p className="mt-4 text-lg font-normal text-black/60 max-w-2xl mx-auto">
                 Explore the full set of primitives, layouts, and patterns that
                 make up the Prism design system.
               </p>
@@ -337,10 +337,10 @@ export default function PrismShowcasePage() {
               {componentExamples.map((example) => (
                 <Card key={example.title} padding="lg">
                   <div className="mb-6">
-                    <h3 className="text-[1.375rem] font-medium text-prism-ink leading-[1.25] tracking-[-0.02em]">
+                    <h3 className="text-[1.375rem] font-medium text-black leading-[1.25] tracking-[-0.02em]">
                       {example.title}
                     </h3>
-                    <p className="mt-1 text-base font-normal text-prism-graphite">
+                    <p className="mt-1 text-base font-normal text-black/60">
                       {example.description}
                     </p>
                   </div>

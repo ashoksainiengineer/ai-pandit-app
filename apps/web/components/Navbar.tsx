@@ -4,18 +4,17 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Menu, X } from 'lucide-react';
 import { UserButton, useUser } from '@clerk/nextjs';
-import '@/app/prism-design-system.css';
 
 interface NavbarProps {
   transparent?: boolean;
 }
 
 const navLinks = [
-  { href: '/rectify', label: 'Start Analysis' },
-  { href: '/dashboard', label: 'Dashboard' },
+  { href: '/#how-it-works', label: 'How It Works' },
+  { href: '/#features', label: 'Features' },
 ];
 
-export default function Navbar({ transparent = false }: NavbarProps) {
+export default function Navbar({ transparent: _transparent = false }: NavbarProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -33,11 +32,11 @@ export default function Navbar({ transparent = false }: NavbarProps) {
 
   if (!mounted) {
     return (
-      <nav className={`fixed top-0 w-full z-50 h-16 sm:h-20 ${transparent ? 'bg-transparent' : 'bg-prism-canvas/80'}`}>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between h-full">
+      <nav className="fixed top-0 w-full z-[100] h-[3.25rem] bg-[#EFEFEF]/90 backdrop-blur-[24px] border-b border-black/5">
+        <div className="max-w-[1200px] mx-auto px-6 flex items-center justify-between h-full">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 sm:w-10 sm:h-10 bg-prism-ink rounded-lg" />
-            <div className="h-6 w-24 bg-prism-pebble/30 rounded" />
+            <div className="w-7 h-7 bg-black/10 rounded-lg" />
+            <div className="h-5 w-20 bg-black/10 rounded" />
           </div>
         </div>
       </nav>
@@ -45,71 +44,75 @@ export default function Navbar({ transparent = false }: NavbarProps) {
   }
 
   return (
-    <nav className={`fixed top-0 w-full z-50 transition-all duration-500 ${scrolled
-      ? 'bg-prism-snow/90 backdrop-blur-xl border-b border-prism-pebble shadow-prism-sm'
-      : transparent ? 'bg-transparent' : 'bg-prism-canvas/80 backdrop-blur-sm'
-      }`}>
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16 sm:h-20">
-          {/* Brand */}
-          <Link href="/" className="flex items-center gap-2 sm:gap-3 group">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-br from-prism-ink to-prism-graphite rounded-lg flex items-center justify-center flex-shrink-0">
-                <span className="text-prism-snow text-sm sm:text-lg font-medium">ॐ</span>
-              </div>
-              <div>
-                <span className="font-prism text-xl sm:text-2xl font-medium text-prism-ink">
-                  AI Pandit
-                </span>
-                <span className="hidden sm:block text-[10px] text-prism-graphite uppercase tracking-[0.2em]">
-                  VEDIC ASTRO MASTER
-                </span>
-              </div>
+    <nav
+      className={`fixed top-0 w-full z-[100] h-[3.25rem] bg-[#EFEFEF]/90 backdrop-blur-[24px] border-b border-black/5 transition-all duration-300 ${
+        scrolled ? 'shadow-sm' : ''
+      }`}
+    >
+      <div className="max-w-[1200px] mx-auto px-6 h-full">
+        <div className="flex items-center justify-between h-full">
+          {/* Brand / Logo */}
+          <Link href="/" className="flex items-center gap-2 flex-1">
+            <div className="w-7 h-7 bg-black rounded-lg flex items-center justify-center flex-shrink-0">
+              <span className="text-white text-[10px] font-medium">ॐ</span>
             </div>
+            <span className="text-lg font-medium text-black tracking-[-0.02em]">
+              AI Pandit
+            </span>
           </Link>
 
-          {/* Desktop Navigation */}
+          {/* Desktop Navigation - Centered */}
           <div className="hidden md:flex items-center gap-8">
             {navLinks.map((link) => (
               <Link
                 key={link.href}
                 href={link.href}
-                className="text-prism-graphite hover:text-prism-ink transition-colors duration-300 
-                           text-sm font-medium relative group"
+                className="text-sm font-normal text-black hover:opacity-70 transition-opacity duration-200"
               >
                 {link.label}
-                <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-prism-ink 
-                                 group-hover:w-full transition-all duration-300" />
               </Link>
             ))}
           </div>
 
-          {/* CTA & Auth */}
-          <div className="hidden md:flex items-center gap-4">
-            <Link href="/dashboard">
-              <button
-                className="px-6 py-2.5 bg-prism-ink text-prism-snow 
-                           font-medium text-sm rounded-prism-xl shadow-prism-sm
-                           hover:bg-prism-graphite transition-colors duration-300"
-              >
-                Dashboard
-              </button>
-            </Link>
-            {isLoaded && isSignedIn && (
-              <div className="border border-prism-pebble rounded-prism-lg p-1 bg-prism-snow">
-                <UserButton afterSignOutUrl="/" />
-              </div>
+          {/* Desktop CTA & Auth */}
+          <div className="hidden md:flex items-center gap-3 flex-1 justify-end">
+            {isLoaded && isSignedIn ? (
+              <>
+                <Link href="/dashboard">
+                  <button className="px-5 py-2 text-sm font-medium text-black/85 rounded-[30px] bg-[#D9D9D9] hover:bg-black hover:text-white transition-all duration-200">
+                    Dashboard
+                  </button>
+                </Link>
+                <div className="border border-black/10 rounded-full p-0.5">
+                  <UserButton afterSignOutUrl="/" />
+                </div>
+              </>
+            ) : (
+              <>
+                <Link href="/sign-in">
+                  <button className="px-5 py-2 text-sm font-normal text-black/60 hover:text-black transition-colors duration-200">
+                    Sign In
+                  </button>
+                </Link>
+                <Link href="/rectify">
+                  <button className="px-5 py-2 text-sm font-medium text-black/85 rounded-[30px] bg-[#D9D9D9] hover:bg-black hover:text-white transition-all duration-200">
+                    Start Analysis
+                  </button>
+                </Link>
+              </>
             )}
           </div>
 
-          {/* Mobile Menu Button */}
-          <div className="md:hidden flex items-center gap-3">
-            {isLoaded && isSignedIn && <UserButton afterSignOutUrl="/" />}
+          {/* Mobile: Auth icon + Hamburger */}
+          <div className="md:hidden flex items-center gap-2">
+            {isLoaded && isSignedIn && (
+              <div className="border border-black/10 rounded-full p-0.5">
+                <UserButton afterSignOutUrl="/" />
+              </div>
+            )}
             <button
               onClick={() => setIsOpen(!isOpen)}
-              className="w-10 h-10 flex items-center justify-center rounded-prism-lg 
-                         bg-prism-snow border border-prism-pebble text-prism-graphite hover:text-prism-ink
-                         hover:border-prism-ash transition-all duration-300"
+              className="w-10 h-10 flex items-center justify-center rounded-[16px] bg-black/[0.04] border border-black/5 text-black transition-all duration-200"
             >
               {isOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             </button>
@@ -117,33 +120,41 @@ export default function Navbar({ transparent = false }: NavbarProps) {
         </div>
       </div>
 
-      {/* Mobile Menu */}
+      {/* Mobile Drawer */}
       {isOpen && (
-        <div
-          className="md:hidden bg-prism-snow/98 backdrop-blur-xl border-t border-prism-pebble"
-        >
-          <div className="px-6 py-6 space-y-4">
+        <div className="md:hidden mx-4 mt-2 bg-white rounded-3xl shadow-lg border border-black/5 overflow-hidden">
+          <div className="px-4 py-4 space-y-1">
             {navLinks.map((link) => (
-              <div
+              <Link
                 key={link.href}
+                href={link.href}
+                onClick={() => setIsOpen(false)}
+                className="block px-4 py-3 text-sm font-normal text-black/70 hover:text-black hover:bg-black/5 rounded-xl transition-all duration-200"
               >
-                <Link
-                  href={link.href}
-                  onClick={() => setIsOpen(false)}
-                  className="block px-4 py-3 text-prism-graphite hover:text-prism-ink 
-                             hover:bg-prism-fog rounded-prism-lg transition-all duration-300"
-                >
-                  {link.label}
-                </Link>
-              </div>
-            ))}
-            <div>
-              <Link href="/dashboard" onClick={() => setIsOpen(false)}>
-                <button className="w-full mt-2 px-4 py-3 bg-prism-ink 
-                                   text-prism-snow font-medium rounded-prism-xl">
-                  Dashboard
-                </button>
+                {link.label}
               </Link>
+            ))}
+            <div className="pt-3 border-t border-black/5 mt-3 space-y-2">
+              {isLoaded && isSignedIn ? (
+                <Link href="/dashboard" onClick={() => setIsOpen(false)}>
+                  <button className="w-full px-4 py-3 text-sm font-medium text-black/85 rounded-[16px] bg-[#D9D9D9] hover:bg-black hover:text-white transition-all duration-200">
+                    Dashboard
+                  </button>
+                </Link>
+              ) : (
+                <>
+                  <Link href="/sign-in" onClick={() => setIsOpen(false)}>
+                    <button className="w-full px-4 py-3 text-sm font-normal text-black/60 hover:text-black transition-colors duration-200">
+                      Sign In
+                    </button>
+                  </Link>
+                  <Link href="/rectify" onClick={() => setIsOpen(false)}>
+                    <button className="w-full px-4 py-3 text-sm font-medium text-black/85 rounded-[16px] bg-[#D9D9D9] hover:bg-black hover:text-white transition-all duration-200">
+                      Start Analysis
+                    </button>
+                  </Link>
+                </>
+              )}
             </div>
           </div>
         </div>

@@ -48,7 +48,7 @@ const StatCard = memo(function StatCard({
   return (
     <div className="bg-white border border-[rgba(0,0,0,0.08)] rounded-xl p-3 sm:p-4">
       <div className="flex items-center gap-2 sm:gap-3">
-        <div className="p-1.5 sm:p-2 bg-[#f8f8f8] rounded-lg">
+        <div className="p-1.5 sm:p-2 bg-[#FAFAFA] rounded-lg">
           {icon}
         </div>
         <div className="min-w-0">
@@ -240,7 +240,7 @@ export function DashboardClient({ initialSessions, userName }: DashboardClientPr
               onClick={() => navigateToPage(page)}
               className={`w-8 h-8 sm:w-10 sm:h-10 rounded-lg text-xs sm:text-sm font-medium transition-colors ${currentPage === page
                 ? 'bg-[#000000] text-white'
-                : 'text-[#636363] hover:bg-[#f8f8f8]'
+                : 'text-[#636363] hover:bg-[#FAFAFA]'
                 }`}
             >
               {page}

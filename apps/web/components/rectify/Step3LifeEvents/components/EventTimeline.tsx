@@ -17,7 +17,7 @@ export function EventTimeline({ sortedEvents, setEditingId }: EventTimelineProps
         <FormCard className="p-5">
             <div className="flex justify-between items-center mb-4">
                 <h3 className=" text-lg font-medium text-[#000000]">📜 Timeline</h3>
-                <span className="text-xs text-[#636363] bg-[#f8f8f8] px-2 py-1 rounded-full">
+                <span className="text-xs text-[#636363] bg-[#FAFAFA] px-2 py-1 rounded-full">
                     {sortedEvents.length} events
                 </span>
             </div>
@@ -26,7 +26,7 @@ export function EventTimeline({ sortedEvents, setEditingId }: EventTimelineProps
                     <motion.div
                         key={event.id}
                         onClick={() => setEditingId(event.id)}
-                        className="flex items-center gap-3 p-3 cursor-pointer hover:bg-[#f8f8f8] transition-colors rounded-lg"
+                        className="flex items-center gap-3 p-3 cursor-pointer hover:bg-[#FAFAFA] transition-colors rounded-lg"
                         whileHover={{ x: 4 }}
                     >
                         <span className="text-2xl">{event.icon}</span>

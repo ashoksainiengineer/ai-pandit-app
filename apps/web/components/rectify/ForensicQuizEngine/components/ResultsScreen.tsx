@@ -88,9 +88,9 @@ export function ResultsScreen({
                             </span>
                         </div>
                         <div className="flex gap-2 text-xs">
-                            <span className="px-2 py-1 bg-[#f8f8f8] rounded">Vata: {results.prakriti.scores.vata}%</span>
-                            <span className="px-2 py-1 bg-[#f8f8f8] rounded">Pitta: {results.prakriti.scores.pitta}%</span>
-                            <span className="px-2 py-1 bg-[#f8f8f8] rounded">Kapha: {results.prakriti.scores.kapha}%</span>
+                            <span className="px-2 py-1 bg-[#FAFAFA] rounded">Vata: {results.prakriti.scores.vata}%</span>
+                            <span className="px-2 py-1 bg-[#FAFAFA] rounded">Pitta: {results.prakriti.scores.pitta}%</span>
+                            <span className="px-2 py-1 bg-[#FAFAFA] rounded">Kapha: {results.prakriti.scores.kapha}%</span>
                         </div>
                     </div>
 
@@ -204,7 +204,7 @@ export function ResultsScreen({
                         </button>
                         <button
                             onClick={handleRetake}
-                            className="flex-1 py-3 border-2 border-[#E8E0D5] text-[#636363] rounded-xl font-medium hover:bg-[#f8f8f8] hover:text-[#D64545] transition-colors flex items-center justify-center gap-2"
+                            className="flex-1 py-3 border-2 border-[#E8E0D5] text-[#636363] rounded-xl font-medium hover:bg-[#FAFAFA] hover:text-[#D64545] transition-colors flex items-center justify-center gap-2"
                         >
                             <RefreshCw className="w-4 h-4" />
                             Start Fresh

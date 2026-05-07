@@ -48,17 +48,16 @@ describe('Navbar', () => {
             render(<Navbar />);
 
             expect(screen.getByText('AI Pandit')).toBeInTheDocument();
-            expect(screen.getByText('VEDIC ASTRO MASTER')).toBeInTheDocument();
         });
 
         it('renders navigation links on desktop', () => {
             render(<Navbar />);
 
             expect(screen.getByText('Start Analysis')).toBeInTheDocument();
-            expect(screen.getAllByText('Dashboard').length).toBeGreaterThanOrEqual(1);
         });
 
-        it('renders Dashboard CTA button', () => {
+        it('renders Dashboard CTA button when signed in', () => {
+            mockUseUser.mockReturnValue({ isSignedIn: true, isLoaded: true });
             render(<Navbar />);
 
             const dashboardButtons = screen.getAllByText('Dashboard');
@@ -135,14 +134,14 @@ describe('Navbar', () => {
             expect(screen.getByTestId('icon-menu')).toBeInTheDocument();
         });
 
-        it('renders mobile nav links when menu is open', () => {
+    it('renders mobile nav links when menu is open', () => {
+            mockUseUser.mockReturnValue({ isSignedIn: true, isLoaded: true });
             render(<Navbar />);
 
             const menuBtn = screen.getByTestId('icon-menu').closest('button');
             fireEvent.click(menuBtn!);
-
-            // Mobile menu should show nav links
-            expect(screen.getAllByText('Start Analysis').length).toBeGreaterThanOrEqual(1);
+            // Mobile menu should show nav links and Dashboard
+            expect(screen.getAllByText('How It Works').length).toBeGreaterThanOrEqual(2);
             expect(screen.getAllByText('Dashboard').length).toBeGreaterThanOrEqual(2);
         });
 
@@ -198,6 +197,7 @@ describe('Navbar', () => {
         });
 
         it('has correct href for Dashboard', () => {
+            mockUseUser.mockReturnValue({ isSignedIn: true, isLoaded: true });
             render(<Navbar />);
 
             const dashboardLinks = screen.getAllByText('Dashboard');

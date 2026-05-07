@@ -33,7 +33,7 @@ interface ErrorBoundaryState {
 // ═══════════════════════════════════════════════════════════════════════════════
 
 const THEME = {
-    bg: '#f8f8f8',
+    bg: '#FAFAFA',
     surface: '#FFFFFF',
     surfaceWarm: '#ffffff',
     border: 'rgba(0,0,0,0.08)',

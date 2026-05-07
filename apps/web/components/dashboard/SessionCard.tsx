@@ -45,7 +45,7 @@ interface SessionCardProps {
 
 // Sacred Ivory Light Theme Colors
 const THEME = {
-  bg: '#f8f8f8',
+  bg: '#FAFAFA',
   surface: 'white',
   textPrimary: '#000000',
   textSecondary: '#636363',
@@ -491,7 +491,7 @@ export const SessionCard = memo(function SessionCard({
           {/* Offset Config */}
           {(session as any).offsetConfig && (
             <div className="flex items-center gap-1 text-[10px] text-[#959595]">
-              <span className="bg-[#f8f8f8] px-1.5 py-0.5 rounded">
+              <span className="bg-[#FAFAFA] px-1.5 py-0.5 rounded">
                 ±{(session as any).offsetConfig.customMinutes || 60}min
               </span>
             </div>

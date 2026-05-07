@@ -15,7 +15,7 @@ import {
 import type { StreamMetadata } from '@/lib/store/stream-types';
 
 const THEME = {
-    bg: '#f8f8f8',
+    bg: '#FAFAFA',
     surface: '#FFFFFF',
     border: 'rgba(0,0,0,0.08)',
     textPrimary: '#000000',

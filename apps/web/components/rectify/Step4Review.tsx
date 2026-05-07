@@ -35,14 +35,14 @@ export default function Step4Review({
 
   return (
     <div className="space-y-6">
-      <div className="bg-[#F5F0E8] rounded-xl p-6 border border-[#E8E0D5]">
-        <h2 className="text-xl font-medium text-[#2A2A2A] mb-4">Review Your Information</h2>
+      <div className="bg-[#FAFAFA] rounded-xl p-6 border border-black/5">
+        <h2 className="text-xl font-medium text-black mb-4">Review Your Information</h2>
         <p className="text-[#636363]">Please review your birth details, life events, and physical traits before submitting.</p>
       </div>
       
       {/* Birth Details */}
-      <div className="bg-white rounded-xl p-6 border border-[#E8E0D5]">
-        <h3 className="text-lg font-medium text-[#2A2A2A] mb-3">Birth Details</h3>
+      <div className="bg-white rounded-xl p-6 border border-black/5">
+        <h3 className="text-lg font-medium text-black mb-3">Birth Details</h3>
         <div className="text-sm text-[#636363] space-y-1">
           <p><strong>Name:</strong> {data.fullName || '—'}</p>
           <p><strong>Date:</strong> {data.dateOfBirth || '—'}</p>
@@ -53,8 +53,8 @@ export default function Step4Review({
       </div>
 
       {/* Life Events */}
-      <div className="bg-white rounded-xl p-6 border border-[#E8E0D5]">
-        <h3 className="text-lg font-medium text-[#2A2A2A] mb-3">Life Events ({events.length})</h3>
+      <div className="bg-white rounded-xl p-6 border border-black/5">
+        <h3 className="text-lg font-medium text-black mb-3">Life Events ({events.length})</h3>
         {events.length === 0 ? (
           <p className="text-sm text-[#636363]">No life events added yet.</p>
         ) : (
@@ -69,10 +69,10 @@ export default function Step4Review({
       </div>
 
       {/* Physical Traits */}
-      <div className="bg-white rounded-xl p-6 border border-[#E8E0D5]">
-        <h3 className="text-lg font-medium text-[#2A2A2A] mb-3">Physical Traits</h3>
+      <div className="bg-white rounded-xl p-6 border border-black/5">
+        <h3 className="text-lg font-medium text-black mb-3">Physical Traits</h3>
         {traits ? (
-          <div className="grid grid-cols-2 gap-3 text-sm text-[#3A3530]">
+          <div className="grid grid-cols-2 gap-3 text-sm text-black/60">
             <div><strong className="text-[#636363] text-xs">Eyes:</strong> <span className="capitalize">{traitLabel('eyeShape' in fs ? fs.eyeShape : undefined)}</span></div>
             <div><strong className="text-[#636363] text-xs">Nose:</strong> <span className="capitalize">{traitLabel('noseShape' in fs ? (fs as Record<string,string>).noseShape : undefined)}</span></div>
             <div><strong className="text-[#636363] text-xs">Forehead:</strong> <span className="capitalize">{traitLabel(fs.forehead)}</span></div>
@@ -94,10 +94,10 @@ export default function Step4Review({
       </div>
 
       {/* Forensic Profile */}
-      <div className="bg-white rounded-xl p-6 border border-[#E8E0D5]">
-        <h3 className="text-lg font-medium text-[#2A2A2A] mb-3">Forensic Profile</h3>
+      <div className="bg-white rounded-xl p-6 border border-black/5">
+        <h3 className="text-lg font-medium text-black mb-3">Forensic Profile</h3>
         {forensicTraits ? (
-          <div className="grid grid-cols-2 gap-3 text-sm text-[#3A3530]">
+          <div className="grid grid-cols-2 gap-3 text-sm text-black/60">
             <div><strong className="text-[#636363] text-xs">Prakriti:</strong> <span className="capitalize">{forensicTraits.biological?.prakriti || '—'}</span></div>
             <div><strong className="text-[#636363] text-xs">Temperament:</strong> <span className="capitalize">{forensicTraits.psychographic?.temperament || '—'}</span></div>
             <div><strong className="text-[#636363] text-xs">Speech Style:</strong> <span className="capitalize">{forensicTraits.psychographic?.speechStyle || '—'}</span></div>
@@ -115,14 +115,14 @@ export default function Step4Review({
       <div className="flex gap-4">
         <button
           onClick={() => onEdit(1)}
-          className="px-6 py-3 border-2 border-[#000000]/50 text-[#000000] rounded-xl font-medium hover:bg-[#000000]/10 transition-colors"
+          className="px-6 py-3 border border-black/10 text-black rounded-xl font-medium hover:bg-black/5 transition-colors"
         >
           Edit Details
         </button>
         <button
           onClick={onSubmit}
           disabled={isSubmitting}
-          className="px-8 py-3 bg-gradient-to-r from-[#000000] to-[#000000] text-white rounded-xl font-medium hover:shadow-lg transition-all disabled:opacity-50"
+          className="px-8 py-3 bg-black text-white rounded-xl font-medium hover:shadow-lg transition-all disabled:opacity-50"
         >
           {isSubmitting ? 'Submitting...' : 'Submit for Analysis'}
         </button>

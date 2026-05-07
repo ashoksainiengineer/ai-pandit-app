@@ -55,7 +55,7 @@ export const DeleteConfirmModal = memo(function DeleteConfirmModal({
           <button
             onClick={onClose}
             disabled={isDeleting}
-            className="absolute top-4 right-4 p-2 rounded-full text-[#959595] hover:text-[#636363] hover:bg-[#f8f8f8] transition-all duration-200"
+            className="absolute top-4 right-4 p-2 rounded-full text-[#959595] hover:text-[#636363] hover:bg-[#FAFAFA] transition-all duration-200"
           >
             <X className="w-5 h-5" />
           </button>
@@ -163,7 +163,14 @@ export const DeleteConfirmModal = memo(function DeleteConfirmModal({
               </div>
             </div>
 
-            {/* Security Badge */}
+            {/* Security Note */}
+            <div className="flex items-center justify-center gap-1.5 mb-6">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="text-black/30 flex-shrink-0">
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+              </svg>
+              <span className="text-[11px] text-black/30">Your data is encrypted</span>
+            </div>
             <div className="flex items-center justify-center gap-2 mb-6 text-xs text-[#636363]">
               <Shield className="w-4 h-4 text-[#000000]" />
               <span>Your data is end-to-end encrypted</span>
@@ -186,7 +193,7 @@ export const DeleteConfirmModal = memo(function DeleteConfirmModal({
               <button
                 onClick={onClose}
                 disabled={isDeleting}
-                className="flex-1 px-4 py-3 border border-[#E8E0D5] text-[#636363] rounded-xl font-medium hover:bg-[#f8f8f8] hover:text-[#636363] transition-all duration-200 disabled:opacity-50"
+                className="flex-1 px-4 py-3 border border-[#E8E0D5] text-[#636363] rounded-xl font-medium hover:bg-[#FAFAFA] hover:text-[#636363] transition-all duration-200 disabled:opacity-50"
               >
                 Keep {isCompleted ? 'Analysis' : 'Draft'}
               </button>

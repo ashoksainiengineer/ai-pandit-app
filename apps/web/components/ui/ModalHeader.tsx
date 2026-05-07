@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { X } from 'lucide-react';
-import '@/app/prism-design-system.css';
+import '@/app/globals.css';
 
 interface ModalHeaderProps {
   title?: string;

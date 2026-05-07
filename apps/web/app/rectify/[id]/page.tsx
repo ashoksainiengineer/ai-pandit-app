@@ -13,7 +13,7 @@ import { useAnalysisSession } from '@/hooks/use-analysis-session';
 import { useAnalysisActions } from '@/hooks/use-analysis-actions';
 import { env } from '@/lib/config/env';
 import dynamic from 'next/dynamic';
-import '@/app/prism-design-system.css';
+import '@/app/globals.css';
 
 const SSEDebugPanel = env.app.isDevelopment
   ? dynamic(() => import('@/components/dev/SSEDebugPanel'), { ssr: false })
@@ -77,7 +77,7 @@ export default function AnalysisPage() {
 
   return (
     <AnalysisErrorBoundary sectionName="Analysis Page">
-      <main className="min-h-screen font-sans bg-prism-canvas" aria-labelledby={pageTitleId}>
+      <main className="min-h-screen font-sans bg-[#FAFAFA]" aria-labelledby={pageTitleId}>
         <RectifySessionHeader
           sessionId={sessionId}
           metadata={session.metadata}

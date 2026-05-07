@@ -54,7 +54,7 @@ export default function ErrorBoundary({ error, reset }: ErrorBoundaryProps) {
   };
 
   return (
-    <div className="min-h-screen bg-[#f8f8f8] flex items-center justify-center p-4">
+    <div className="min-h-screen bg-[#FAFAFA] flex items-center justify-center p-4">
       <div className="max-w-lg w-full">
         {/* Error Card */}
         <div className="bg-white border border-black/8 rounded-2xl p-8 shadow-lg">
@@ -112,7 +112,7 @@ export default function ErrorBoundary({ error, reset }: ErrorBoundaryProps) {
             </Link>
 
             <a
-              href={`mailto:support@aipandit.com?subject=Error%20Report%20-%20${errorId}`}
+              href={`mailto:support@aipandit.app?subject=Error%20Report%20-%20${errorId}`}
               className="w-full flex items-center justify-center gap-2 px-6 py-3 text-black/60 hover:text-black transition-colors"
             >
               <Mail className="w-4 h-4" />

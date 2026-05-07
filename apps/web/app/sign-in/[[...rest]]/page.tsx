@@ -3,7 +3,7 @@ import Link from 'next/link';
 
 export default function SignInPage() {
     return (
-        <main className="min-h-screen bg-[#f8f8f8] flex items-center justify-center relative overflow-hidden">
+        <main className="min-h-screen bg-[#FAFAFA] flex items-center justify-center relative overflow-hidden">
             {/* Logo */}
             <Link href="/" className="absolute top-8 left-1/2 -translate-x-1/2 flex items-center gap-3 group z-20">
                 <span className="font-medium text-2xl text-black">
@@ -17,14 +17,14 @@ export default function SignInPage() {
                         variables: {
                             colorPrimary: '#000000',
                             colorBackground: '#FFFFFF',
-                            colorInputBackground: '#f8f8f8',
+                            colorInputBackground: '#FAFAFA',
                             colorInputText: '#000000',
                             colorText: '#000000',
                             colorTextSecondary: '#636363',
                             colorNeutral: '#d9d9d9',
                             colorDanger: '#C65D3B',
                             colorSuccess: '#184131',
-                            borderRadius: '1rem',
+                            borderRadius: '20px',
                         },
                         elements: {
                             rootBox: 'mx-auto w-full',
@@ -56,12 +56,12 @@ export default function SignInPage() {
                             alert: 'bg-red-50 border border-red-200 rounded-xl p-4 mb-4',
                             
                             // Links
-                            footer: 'p-6 pt-4 bg-[#f8f8f8] border-t border-[#d9d9d9]',
+                            footer: 'p-6 pt-4 bg-[#FAFAFA] border-t border-[#d9d9d9]',
                             footerAction: 'text-center text-sm text-[#636363]',
                             footerActionLink: 'text-black font-medium hover:text-black/70 transition-colors',
                             
                             // Social buttons
-                            socialButtonsBlockButton: 'w-full border border-[#d9d9d9] bg-white text-[#636363] hover:bg-[#f8f8f8] hover:border-black/10 py-3 rounded-xl transition-all font-medium',
+                            socialButtonsBlockButton: 'w-full border border-[#d9d9d9] bg-white text-[#636363] hover:bg-[#FAFAFA] hover:border-black/10 py-3 rounded-xl transition-all font-medium',
                             socialButtonsBlockButtonText: 'text-[#636363] font-medium',
                             socialButtonsProviderIcon: 'w-5 h-5',
                             
@@ -71,7 +71,7 @@ export default function SignInPage() {
                             dividerRow: 'my-4',
                             
                             // Identity preview
-                            identityPreview: 'bg-[#f8f8f8] border border-[#d9d9d9] rounded-xl p-4 mb-4',
+                            identityPreview: 'bg-[#FAFAFA] border border-[#d9d9d9] rounded-xl p-4 mb-4',
                             identityPreviewText: 'text-black',
                             identityPreviewEditButton: 'text-black font-medium hover:text-black/70',
                             

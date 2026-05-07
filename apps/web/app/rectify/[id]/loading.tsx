@@ -4,18 +4,18 @@
  */
 export default function AnalysisLoading() {
   return (
-    <main className="min-h-screen bg-[#f8f8f8]">
+    <main className="min-h-screen bg-[#FAFAFA]">
       {/* Session Header Skeleton */}
       <div className="bg-white border-b border-[rgba(0,0,0,0.08)]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <div className="h-10 w-10 bg-[#f8f8f8] rounded-full animate-pulse" />
+            <div className="h-10 w-10 bg-[#FAFAFA] rounded-full animate-pulse" />
             <div className="space-y-2">
-              <div className="h-5 bg-[#f8f8f8] rounded-lg animate-pulse w-40" />
-              <div className="h-3 bg-[#f8f8f8] rounded-lg animate-pulse w-24" />
+              <div className="h-5 bg-[#FAFAFA] rounded-lg animate-pulse w-40" />
+              <div className="h-3 bg-[#FAFAFA] rounded-lg animate-pulse w-24" />
             </div>
           </div>
-          <div className="h-9 bg-[#f8f8f8] rounded-xl animate-pulse w-28" />
+          <div className="h-9 bg-[#FAFAFA] rounded-xl animate-pulse w-28" />
         </div>
       </div>
 
@@ -23,24 +23,24 @@ export default function AnalysisLoading() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 sm:py-6 space-y-4 sm:space-y-6">
         <div className="bg-white border border-[rgba(0,0,0,0.08)] rounded-2xl p-6">
           <div className="flex items-center gap-4 mb-4">
-            <div className="h-12 w-12 bg-[#f8f8f8] rounded-full animate-pulse" />
+            <div className="h-12 w-12 bg-[#FAFAFA] rounded-full animate-pulse" />
             <div className="flex-1 space-y-2">
-              <div className="h-3 bg-[#f8f8f8] rounded-full animate-pulse w-full" />
-              <div className="h-4 bg-[#f8f8f8] rounded-lg animate-pulse w-48" />
+              <div className="h-3 bg-[#FAFAFA] rounded-full animate-pulse w-full" />
+              <div className="h-4 bg-[#FAFAFA] rounded-lg animate-pulse w-48" />
             </div>
           </div>
           <div className="grid grid-cols-3 gap-4">
             {[...Array(3)].map((_, i) => (
-              <div key={i} className="h-16 bg-[#f8f8f8] rounded-xl animate-pulse" />
+              <div key={i} className="h-16 bg-[#FAFAFA] rounded-xl animate-pulse" />
             ))}
           </div>
         </div>
 
         {/* Results Panel Skeleton */}
         <div className="bg-white border border-[rgba(0,0,0,0.08)] rounded-2xl p-6 space-y-4">
-          <div className="h-6 bg-[#f8f8f8] rounded-lg animate-pulse w-48" />
+          <div className="h-6 bg-[#FAFAFA] rounded-lg animate-pulse w-48" />
           {[...Array(4)].map((_, i) => (
-            <div key={i} className="h-20 bg-[#f8f8f8] rounded-xl animate-pulse w-full" />
+            <div key={i} className="h-20 bg-[#FAFAFA] rounded-xl animate-pulse w-full" />
           ))}
         </div>
       </div>

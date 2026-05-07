@@ -7,7 +7,7 @@
 import { Metadata } from 'next';
 import Link from 'next/link';
 import { ArrowLeft, Scale, FileText, AlertCircle, BookOpen, Shield, Cpu, Globe, Ban, DollarSign, Brain } from 'lucide-react';
-import '@/app/prism-design-system.css';
+import '@/app/globals.css';
 
 export const metadata: Metadata = {
   title: 'Terms of Service | AI Pandit',
@@ -16,7 +16,7 @@ export const metadata: Metadata = {
 
 export default function TermsPage() {
   return (
-    <main className="min-h-screen bg-dia-bg">
+    <main className="min-h-screen bg-[#FAFAFA]">
       {/* Header */}
       <div className="bg-white/90 backdrop-blur-xl border-b border-black/10">
         <div className="max-w-4xl mx-auto px-6 py-6">
@@ -127,23 +127,12 @@ export default function TermsPage() {
                 <h4 className="font-medium text-emerald-800 mb-2">✓ Data That IS Shared</h4>
                 <ul className="text-sm text-emerald-700 space-y-1">
                   <li>• Anonymized data with PII redacted ([REDACTED_NAME])</li>
-                  <li>• Anonymized data with PII redacted ([REDACTED_NAME])</li>
-                  <li>• Birth date, time, coordinates</li>
-                  <li>• Life event dates & descriptions</li>
-                  <li>• Forensic traits (physical/psychological)</li>
-                  <li>• Spouse birth data (DOB/time/coords)</li>
-                  <li>• Skyfield ephemeris calculations</li>
                   <li>• Birth date, time, coordinates</li>
                   <li>• Life event dates & descriptions</li>
                   <li>• Forensic traits (physical/psychological)</li>
                   <li>• Spouse birth data (DOB/time/coords)</li>
                   <li>• Skyfield ephemeris calculations</li>
                   <li>• Anonymous user ID (pseudonym)</li>
-                  <li>• Birth date, time, coordinates</li>
-                  <li>• Life event dates & descriptions</li>
-                  <li>• Forensic traits (physical/psychological)</li>
-                  <li>• Spouse birth data (DOB/time/coords)</li>
-                  <li>• Skyfield ephemeris calculations</li>
                 </ul>
               </div>
               <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
