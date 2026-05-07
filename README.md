@@ -5,195 +5,380 @@
 > No license is granted to use, copy, modify, or distribute this code.  
 > See [LICENSE](LICENSE) for full terms.
 
-
 **AI-Powered Vedic Birth Time Rectification with Seconds-Level Precision**
 
 [![TypeScript](https://img.shields.io/badge/TypeScript-96.5%25-blue)](https://www.typescriptlang.org/)
 [![License](https://img.shields.io/badge/License-Proprietary-red.svg)](LICENSE)
 [![Cloud Run](https://img.shields.io/badge/Google%20Cloud%20Run-Active-blue)](https://cloud.google.com/run)
+[![Next.js](https://img.shields.io/badge/Next.js-15-black)](https://nextjs.org/)
 [![Desloppify](https://img.shields.io/badge/Code%20Quality-Desloppify-purple)](https://github.com/peteromallet/desloppify)
 
-AI-Pandit is a comprehensive platform for precise birth time rectification (BTR) using advanced Vedic astrology algorithms combined with modern AI capabilities.
+---
 
-## ✨ Features
+## Project Overview
 
-- **🔮 Birth Time Rectification** - AI-powered analysis with seconds-level precision
-- **⚡ Real-time Progress Streaming** - Live SSE updates during analysis
-- **🔐 End-to-End Encryption** - AES-256 encryption for sensitive birth data
-- **📊 Interactive Dashboard** - View and manage all your rectification sessions
-- **🎯 Multiple Analysis Methods** - Dasha, Transit, KP Sublords, Shadbala & more
-- **📱 Responsive Design** - Works on desktop, tablet, and mobile
+AI-Pandit is a full-stack Birth Time Rectification (BTR) platform that applies **6-stage tournament-based AI analysis** combined with classical Vedic astrology algorithms and NASA-precision astronomical data to determine accurate birth times down to the **second**.
 
-## 🏗️ Architecture
+Traditional BTR is subjective and manual. AI-Pandit replaces guesswork with a data-driven pipeline: it generates thousands of candidate birth times, runs them through successive AI-supervised elimination rounds (Dasha verification, transit matching, KP Sublord analysis, Shadbala evaluation), and converges on the most astronomically and astrologically consistent time.
 
-### Tech Stack
+The system processes **physical traits questionnaires** (forensic quiz) and **life events** as input constraints, cross-references against **JPL DE440 ephemeris** via Skyfield, and encrypts all PII with **AES-256-GCM** end-to-end.
+
+---
+
+## Features
+
+| Feature | Description |
+|---------|-------------|
+| **6-Stage BTR Pipeline** | Exhaustive Data Generation → Batch Tournament → Refinement Grid → Deep Analysis → Micro Grid → Final Precision verdict |
+| **Real-Time SSE Streaming** | Live progress updates via Server-Sent Events with Zustand + IndexedDB persistence |
+| **End-to-End Encryption** | AES-256-GCM with scrypt KDF, user-isolated encryption keys, multi-version format support |
+| **Interactive Dashboard** | Session management, history, export (PDF via jsPDF), recharts visualizations |
+| **NASA JPL Skyfield Ephemeris** | DE440 kernel via Python FastAPI microservice — arcsecond-precision planetary positions |
+| **AI Reasoning** | DeepSeek (primary) / Groq via configurable provider — multi-prompt ensemble analysis |
+| **Physical Traits Quiz** | Forensic questionnaire + scoring engine — constrains candidate times via physiological markers |
+| **Life Events Integration** | User-provided major life event dates mapped to Dasha periods for cross-validation |
+| **Birth Place Picker** | OpenStreetMap/Leaflet integration for latitude/longitude geocoding |
+| **Clerk Authentication** | OAuth + email/password with Clerk dashboard |
+| **Job Queue** | DB-polling based external worker — max 3 concurrent sessions, per-user limits |
+| **Responsive UI** | Framer Motion animations, Tailwind CSS design system ("Dia" / "Prism"), Lucide icons |
+| **Session Cancellation** | Graceful abort of in-progress BTR analysis via cancellation manager |
+| **OpenTelemetry Tracing** | Optional OTEL tracing, SLO monitoring, warmup pings to prevent cold starts |
+
+---
+
+## Tech Stack
 
 | Layer | Technology |
 |-------|------------|
-│ **Frontend** | Next.js 15, React 18, TypeScript, Tailwind CSS |
-| **Backend** | Node.js, Express, TypeScript |
-| **Database** | Neon Postgres (Serverless PostgreSQL) |
-| **Cache/Queue** | Upstash Redis |
-| **Ephemeris** | Skyfield Python Service |
-| **AI** | Groq API (OpenAI/GPT models) |
-| **Auth** | Clerk |
-| **Deployment** | Google Cloud Run |
+| **Frontend** | Next.js 15, React 18, TypeScript, Tailwind CSS 3.4, Framer Motion 11, Zustand 5, Lucide React, Leaflet (OpenStreetMap), Recharts, jsPDF |
+| **Backend** | Node.js ≥20, Express 4, TypeScript, Drizzle ORM 0.45, Zod 3, Helmet, CORS, Pino logger |
+| **Database** | Neon Postgres (Serverless) — Drizzle schema with 6 BTR domain type modules |
+| **Cache / Queue** | Upstash Redis — via ioredis, DB-polling queue architecture |
+| **AI** | DeepSeek (primary via `DEEPSEEK_API_KEY`), Groq (via `AI_BASE_URL`) — OpenRouter-compatible |
+| **Auth** | Clerk — `@clerk/nextjs` v6, `@clerk/backend` v2 |
+| **Ephemeris** | Python 3, FastAPI, Skyfield (DE440 kernel) — standalone microservice |
+| **Worker** | External Node.js process — DB-polling job execution, max 3 concurrent |
+| **CI/CD** | GitHub Actions — test-pipeline, deploy-cloudrun, ci-quality, warmup |
+| **Deployment** | Vercel (Frontend), Google Cloud Run (API, Worker, Ephemeris) |
 
-### System Architecture
+### Frontend Libraries
+
+`framer-motion`, `zustand` (with `idb-keyval` IndexedDB persistence), `lucide-react`, `leaflet`, `recharts`, `jspdf` + `jspdf-autotable`, `@tanstack/react-virtual`, `date-fns`, `sharp`, `svix`.
+
+### Backend Libraries
+
+`express`, `cors`, `helmet`, `morgan`, `drizzle-orm`, `zod`, `ioredis`, `@clerk/backend`.
+
+---
+
+## Architecture
 
 ```
-┌─────────────┐     ┌──────────────┐     ┌─────────────┐
-│   Next.js   │────▶│  Cloud Run   │────▶│ Neon        │
-│   Frontend  │     │  API         │     │ Postgres    │
-└─────────────┘     └──────────────┘     └─────────────┘
-                           │                    │
-                           ▼                    ▼
-                    ┌──────────────┐    ┌──────────────┐
-                    │  Skyfield    │    │  Upstash     │
-                    │  Python      │    │  Redis       │
-                    │  Service     │    │              │
-                    └──────────────┘    └──────────────┘
+                         ┌─────────────────────────────────────────────────────┐
+                         │                    Vercel                            │
+                         │  ┌───────────────────────────────────────────────┐  │
+                         │  │           Next.js 15 Frontend                │  │
+                         │  │  Clerk Auth │ Zustand Store │ SSE Stream     │  │
+                         │  │  Leaflet Map│ Framer Motion│ Lucide Icons    │  │
+                         │  └──────────┬────────────────────────────────────┘  │
+                         └─────────────┼────────────────────────────────────────┘
+                                       │ HTTPS / SSE
+                                       ▼
+              ┌──────────────────────────────────────────────────────────────┐
+              │                  Google Cloud Run                             │
+              │                                                              │
+              │  ┌──────────────────┐   ┌──────────────────┐                │
+              │  │   Express API    │   │  External Worker  │                │
+              │  │  BTR Pipeline    │   │  Job Processor    │                │
+              │  │  SSE Events      │◀──│  DB polling       │                │
+              │  │  Encryption      │   │  Max 3 concurrent │                │
+              │  │  Drizzle ORM     │   └──────────────────┘                │
+              │  └──────┬───────┬───┘                                       │
+              │         │       │                                            │
+              │         ▼       ▼                                            │
+              │  ┌──────────┐ ┌──────────┐  ┌──────────────────┐           │
+              │  │  Neon    │ │ Upstash  │  │ Skyfield Python   │           │
+              │  │ Postgres │ │ Redis    │  │ FastAPI Service   │           │
+              │  │(Server)  │ │(Cache)   │  │ JPL DE440 Kernel  │           │
+              │  └──────────┘ └──────────┘  └──────────────────┘           │
+              └──────────────────────────────────────────────────────────────┘
 ```
 
-## 🚀 Quick Start
+### Data Flow
 
-### Prerequisites
+1. User authenticates via **Clerk** → lands on dashboard
+2. Fills **forensic physical traits quiz** + **life events** + place of birth (Leaflet OSM picker)
+3. Frontend streams **SSE connection** to `/api/sessions/:id/progress`
+4. API **initializes BTR session** — generates ~hundreds of candidate times around the tentative birth time
+5. **6-stage pipeline** executes: AI evaluates each candidate against Dasha, transit, KP Sublord, Shadbala data from Skyfield
+6. Each stage eliminates weak candidates — survivors advance to finer-grained grids
+7. Stage 6 produces **final verdict** (rectified time, confidence score, supporting evidence)
+8. All **PII is AES-256-GCM encrypted** before DB persistence; decrypted only in-memory during processing
+9. Progress, AI thinking chunks, and candidate scores stream in real-time to the frontend via **EventSource**
+10. Results persist in **Neon Postgres** via Drizzle ORM; session state in **Upstash Redis**
 
-- Node.js 20+
-- npm 10+
-- Git
+### BTR Pipeline Stages
 
-### Local Development
+| Stage | Name | Description |
+|-------|------|-------------|
+| 1 | **Grid Generation** | Generate exhaustive candidate time grid around tentative birth time |
+| 2 | **Batch Tournament** | AI-supervised batch elimination — prune clearly incompatible candidates |
+| 3 | **Refinement Grid** | Sub-second finer grid around remaining survivors |
+| 4 | **Deep Analysis** | Multi-dasha, multi-transit cross-validation with life events |
+| 5 | **Micro Grid** | Seconds-level grid with precision ephemeris data |
+| 6 | **Final Precision** | AI synthesis of all evidence → final rectified time + verdict |
 
-1. **Clone the repository**
-   ```bash
-   git clone https://github.com/ashoksainiengineer/ai-pandit-app.git
-   cd ai-pandit-app
-   ```
+---
 
-2. **Install dependencies**
-   ```bash
-   npm ci
-   ```
-
-3. **Setup environment variables**
-   ```bash
-   cp .env.local.example apps/web/.env.local
-   # Edit apps/web/.env.local with your values
-   ```
-
-4. **Start development server**
-   ```bash
-   cd apps/web
-   npm run dev
-   ```
-
-5. **Open in browser**
-   ```
-   http://localhost:3000
-   ```
-
-## 📁 Project Structure
+## Project Structure
 
 ```
 ai-pandit/
 ├── apps/
-│   ├── web/              # Next.js frontend
-│   ├── api/              # Express backend API
-│   └── worker/           # Background job processor
+│   ├── web/                      # Next.js 15 frontend
+│   │   ├── app/
+│   │   │   ├── rectify/[id]/     # Main BTR analysis page (SSE stream)
+│   │   │   ├── dashboard/        # Session history dashboard
+│   │   │   ├── sign-in/          # Clerk auth pages
+│   │   │   ├── sign-up/
+│   │   │   ├── admin/            # Admin panel
+│   │   │   ├── privacy/          # Legal pages
+│   │   │   └── terms/
+│   │   └── lib/
+│   │       ├── store/            # Zustand stores (stream-store with IndexedDB)
+│   │       ├── use-stream-progress.ts  # SSE stream React hook
+│   │       └── forensic-quiz/    # Physical traits quiz engine
+│   ├── api/                      # Express + TypeScript BTR backend
+│   │   └── src/
+│   │       ├── lib/
+│   │       │   ├── seconds-precision-btr.ts  # 6-stage pipeline orchestrator
+│   │       │   ├── btr/                      # Modular stages, prompts, extractors
+│   │       │   ├── encryption/               # AES-256-GCM with multi-version support
+│   │       │   ├── ephemeris/                # Skyfield client with gold dataset validation
+│   │       │   ├── jobs/                     # Job lifecycle, artifact storage
+│   │       │   ├── progress-tracker.ts       # Real-time DB + SSE progress
+│   │       │   ├── queue-manager.ts          # Job queue (max 3 concurrent)
+│   │       │   ├── session-events.ts         # SSE event emission engine
+│   │       │   └── vedic-astrology-engine.ts # Dasha, transit, KP calculations
+│   │       ├── routes/           # Express route handlers
+│   │       ├── middleware/       # Clerk auth, rate limiting, error handling
+│   │       └── scripts/         # Ephemeris gold dataset, capacity validation, chaos tests
+│   └── worker/                   # External job worker (DB-polling)
 ├── packages/
-│   ├── db/               # Database schema & client
-│   ├── shared/           # Shared types & utilities
-│   └── worker-runtime/   # Worker runtime library
+│   ├── db/                       # Drizzle schema + client for Neon Postgres
+│   ├── shared/                   # Shared TS types, Zod schemas (6 domain modules)
+│   └── worker-runtime/           # Worker runtime library
 ├── services/
-│   └── ephemeris/        # Python Skyfield service
-├── docs/                 # Documentation
-└── scripts/              # Deployment & utility scripts
+│   └── ephemeris/                # Python FastAPI Skyfield microservice (DE440)
+│       ├── app/
+│       │   ├── routes/           # Ephemeris calculation endpoints
+│       │   ├── services/         # Skyfield planetary computations
+│       │   └── models/           # Pydantic request/response models
+│       ├── data/                 # DE440 kernel files
+│       └── tests/                # Pytest test suite
+├── e2e/                          # Playwright end-to-end tests
+├── scripts/                      # Deployment, CI/CD, utility scripts
+├── docs/                         # Architecture, deployment, testing docs
+├── .github/workflows/           # CI/CD pipeline definitions
+├── turbo.json                    # Turborepo pipeline config
+└── AGENTS.md                     # Agent operating manual (for AI coding agents)
 ```
 
-## 🔧 Environment Variables
+---
 
-Key environment variables required (see `.env.example` for full list):
+## Quick Start
+
+### Prerequisites
+
+- Node.js ≥20.19.0, npm ≥10.8.0
+- Git
+- Python 3.10+ (for Skyfield ephemeeris service)
+- A Neon Postgres database (free tier works)
+- An Upstash Redis instance (free tier works)
+- Clerk account (for auth keys)
+
+### Setup
+
+```bash
+# 1. Clone
+git clone https://github.com/ashoksainiengineer/ai-pandit-app.git
+cd ai-pandit-app
+
+# 2. Install all dependencies (monorepo)
+npm ci
+
+# 3. Set up Python ephemeris service
+npm run setup:ephemeris
+npm run ephemeris:download-kernel
+
+# 4. Copy environment templates
+cp .env.example .env.local
+# Edit .env.local with your API keys (see Environment Variables below)
+
+# 5. Push database schema
+npm -w @ai-pandit/api run db:push
+
+# 6. Start all services
+npm run dev
+```
+
+The frontend starts at `http://localhost:3000`, API at `http://localhost:8080`, and ephemeris service at `http://localhost:8000`.
+
+---
+
+## Environment Variables
+
+Key variables from `.env.example`. All required unless marked optional.
 
 | Variable | Description |
 |----------|-------------|
-| `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` | Clerk authentication key |
-| `NEON_DATABASE_URL` | PostgreSQL connection string |
-| `REDIS_URL` | Redis connection string |
-| `AI_API_KEY` | Groq/OpenAI API key |
-| `ENCRYPTION_SECRET` | AES-256 encryption key |
+| `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` | Clerk publishable key (frontend) |
+| `CLERK_SECRET_KEY` | Clerk secret key (backend) |
+| `NEON_DATABASE_URL` | Neon Postgres connection string with `?sslmode=require` |
+| `REDIS_URL` | Upstash Redis connection string (`redis://...`) |
+| `DEEPSEEK_API_KEY` | DeepSeek API key (primary AI provider) |
+| `DEEPSEEK_MODEL` | DeepSeek model name (default: `deepseek-chat`) |
+| `AI_API_KEY` | Fallback/generic AI API key |
+| `AI_BASE_URL` | AI provider base URL (e.g., `https://api.deepseek.com`) |
+| `AI_MODEL` | AI model name override |
+| `ENCRYPTION_SECRET` | AES-256-GCM encryption key (min 32 chars, 64+ recommended) |
+| `ENCRYPTION_SECRET` | AES-256-GCM encryption secret (≥32 characters) |
+| `EPHEMERIS_SERVICE_URL` | Skyfield service URL (`http://localhost:8000`) |
+| `EPHEMERIS_PROVIDER` | `skyfield` (primary) or `algorithmic` (fallback) |
+| `FRONTEND_URL` | Deployed frontend URL (for CORS) |
+| `NEXT_PUBLIC_BACKEND_URL` | API URL (frontend → backend connection) |
+| `ALLOWED_ORIGINS` | Comma-separated CORS origins |
+| `MAX_CONCURRENT_SESSIONS` | Max parallel BTR sessions (default: 3) |
+| `MAX_ACTIVE_JOBS_PER_USER` | Per-user concurrency limit (default: 2) |
+| `JOB_EXECUTION_MODE` | `external_worker` (default) |
+| `QUEUE_ARCHITECTURE` | `db_polling` (default) |
+| `NODE_OPTIONS` | `--max-old-space-size=256` |
 
-## 📝 Documentation
+---
 
-- [Architecture Overview](docs/BACKEND_ARCHITECTURE_IMPACT_ANALYSIS.md)
-- [Environment Variables](docs/ENVIRONMENT_VARIABLES_LIST.md)
-- [Testing Strategy](docs/TESTING_STRATEGY.md)
-- [Production Checklist](docs/PRODUCTION_DEPLOYMENT_CHECKLIST.md)
+## Deployment
 
-## 🧪 Testing
+### Frontend → Vercel
 
 ```bash
-# Run all tests
-npm run test
-
-# Run specific test suite
-npm run test:e2e
-npm run test:e2e:smoke
+# Connect apps/web to Vercel project
+# Set all NEXT_PUBLIC_* env vars in Vercel dashboard
+# Deploy:
+vercel deploy --prod
 ```
 
-## 🚀 Deployment
+Git integration: pushes to `main` auto-deploy the frontend via Vercel.
 
-### Google Cloud Run
+### Backend → Google Cloud Run
 
-1. **Build and deploy**
-   ```bash
-   ./scripts/deploy-cloud-run.sh api
-   ./scripts/deploy-cloud-run.sh worker
-   ```
+Three services deploy in order: **ephemeris → api → worker**, with health gates between each.
 
-2. **Setup environment variables in Cloud Run Console**
-   - Go to: Google Cloud Console > Cloud Run > Your Service > Edit > Variables
-   - Add all required variables from `.env.example`
+```bash
+# Deploy all services
+npm run deploy:cloudrun:ephemeris
+npm run deploy:cloudrun:api
+npm run deploy:cloudrun:worker
 
-### Vercel (Frontend)
+# Or use the script for individual services
+./scripts/deploy-cloud-run.sh api
+```
 
-1. **Connect `apps/web` to the Vercel project**
-2. **Set production environment variables in Vercel Dashboard**
-3. **Deploy from Vercel or run `vercel deploy --prod` from `apps/web`**
+GitHub Actions (`.github/workflows/deploy-cloudrun.yml`) auto-deploys on push to `main`.
 
-### Production automation
+### Production Bootstrap
 
-- Pushes to `main` should auto-deploy `apps/web` through Vercel Git integration.
-- Pushes to `main` also trigger `.github/workflows/deploy-cloudrun.yml` for Cloud Run services.
-- The Cloud Run deployment lane now treats `ephemeris-service`, `api-service`, and `worker-service` as the production backend set.
-- Backend deploy order is `ephemeris -> api -> worker`, with health gates before downstream services continue.
+```bash
+cp .env.production.example .env.production
+# Fill in production values, then:
+sh scripts/sync-production-config.sh --env-file .env.production --apply
+```
 
-### Production bootstrap
+---
 
-- Copy `.env.production.example` to a private file such as `.env.production` and fill in your real production values.
-- Use `sh scripts/sync-production-config.sh` for a dry-run of GitHub, GCP, and Vercel env sync.
-- Add `--env-file .env.production --apply` once that file is your confirmed production source of truth.
-- For Git-triggered Vercel hobby deployments, use a commit author email that GitHub can associate with the connected repository owner.
+## Testing
 
-## 🤝 Contributing
+```bash
+# Full test suite
+npm run test:ci
 
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'feat: add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+# Unit tests (all workspaces)
+npm run test
 
-## 📄 License
+# Integration tests (API + DB + Ephemeris)
+npm run test:integration
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+# E2E smoke tests
+npm run test:e2e:smoke
 
-## 🙏 Acknowledgments
+# Full E2E
+npm run test:e2e
 
-- Vedic astrology algorithms based on traditional texts
-- Skyfield library for astronomical calculations
-- NASA JPL for ephemeris data
+# Coverage
+npm run test:coverage
+
+# Security scan
+npm run test:security
+
+# Mutation testing
+npm run test:mutation
+
+# Chaos resilience
+npm run test:chaos
+
+# API-specific
+npm -w @ai-pandit/api run test
+
+# Web-specific
+npm -w @ai-pandit/web run test
+
+# Python ephemeris service
+cd services/ephemeris && .venv/bin/pytest tests/ -v
+
+# BTR-specific integration
+npm run test:btr
+```
+
+---
+
+## Security
+
+- **AES-256-GCM encryption** for all stored birth data (PII). Key derived via `scrypt` KDF with user-specific salt.
+- **Multi-version encryption format** — supports 3-part and 4-part encrypted payloads. New writes use v4 format; decryption falls back through all known versions.
+- **User-isolated** — encryption tied to `userId`; one user cannot decrypt another's data.
+- **AI anonymization** — birth data and names are stripped from AI prompts; only astrological parameters (planetary positions, Dasha periods) are sent to the model.
+- **Helmet middleware** on all Express routes.
+- **Clerk authentication** required for all session creation and access.
+- **Rate limiting** per user per session.
+- **OpenTelemetry** optional — no PII in trace data.
+
+---
+
+## License
+
+Proprietary. See [LICENSE](LICENSE) for full terms.
+
+This repository is publicly visible for transparency and portfolio purposes. No license is granted to use, copy, modify, or distribute this code.
+
+---
+
+## Contact
+
+**Author:** Ashok Saini  
+**Email:** ashok@sainilab.com  
+**Repository:** [github.com/ashoksainiengineer/ai-pandit-app](https://github.com/ashoksainiengineer/ai-pandit-app)
+
+---
+
+## Acknowledgments
+
+- Vedic astrology algorithms based on classical Jyotish texts (Parashari, Jaimini, KP)
+- NASA JPL for DE440 ephemeris data
+- Skyfield library by Brandon Rhodes for astronomical calculations
+- DeepSeek and Groq for AI inference API
+- Clerk for authentication infrastructure
+- Neon for serverless PostgreSQL
+- Upstash for serverless Redis
 
 ---
 
 **Built with ❤️ for the Vedic astrology community**
-# IAM permissions applied Monday 16 March 2026 11:37:29 PM IST

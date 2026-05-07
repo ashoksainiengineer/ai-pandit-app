@@ -1,39 +1,67 @@
-## Summary
+## Description
 
-What changed and why?
+<!-- Provide a clear, concise description of the change and why it's needed. Max 2-3 sentences. -->
 
-## Issue Link
+## Type of Change
+
+<!-- Delete options that do not apply. Must follow conventional commit types. -->
+
+- `feat` — New feature
+- `fix` — Bug fix
+- `refactor` — Code change that neither fixes nor adds
+- `test` — Adding or updating tests
+- `docs` — Documentation only
+- `chore` — Maintenance, deps, config, build
+- `perf` — Performance improvement
+
+## Related Issue
 
 Closes #
 
 ## Scope Check
 
-- [ ] This PR is limited to one behavior change (or one bounded cleanup task)
-- [ ] No unrelated refactor was included
-- [ ] No secret/env values were added to code
+- [ ] This PR addresses exactly **one** behavior change (or one bounded cleanup task)
+- [ ] No unrelated refactoring or scope creep
+- [ ] No secret, token, or env values added to code (use env vars only)
+- [ ] No schema changes without corresponding migration
+
+## Quality Checklist
+
+- [ ] **TypeScript strict mode** — No `strict: false` overrides
+- [ ] **No `any` types** — `unknown` + type guards preferred
+- [ ] **ESLint passes** — Zero warnings, zero errors (`npm run lint`)
+- [ ] **Tests pass** — All tests green (`npm run test`)
+- [ ] **Build passes** — Production build succeeds (`npm run build`)
+- [ ] **Conventional commit format** — PR title follows `type(scope): description`
+- [ ] **No `console.log`** in backend code (use Pino logger)
+- [ ] **No `as` casts or `@ts-ignore`** comments
 
 ## Verification Evidence
 
 Commands run:
 
 ```bash
-# paste commands here
+npm run lint
+npm run test
+npm run build
 ```
 
 Results:
 
-- [ ] Lint passed
-- [ ] Tests passed
-- [ ] Smoke checks passed (if flow touched)
+<!-- Paste output showing all checks pass -->
 
 ## Risk and Rollback
 
-Risk areas:
+**Risk areas:**
+<!-- List what could break -->
 
-Rollback plan:
+**Rollback plan:**
+<!-- How to revert if needed -->
 
-## Reviewer Checklist
+**Is this safe to deploy independently of other changes?**
+- [ ] Yes
+- [ ] No (explain dependencies)
 
-- [ ] Acceptance criteria from issue are met
-- [ ] Diff size is reasonable and focused
-- [ ] High-risk files (if any) were validated with extra care
+## Reviewer Notes
+
+<!-- Anything the reviewer should pay extra attention to -->
