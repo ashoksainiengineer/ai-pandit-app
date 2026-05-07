@@ -40,3 +40,6 @@ jobs:
 
       - name: Lint (web)
         run: npm -w @ai-pandit/web run lint
+
+      - name: Test (web)
+        run: npm -w @ai-pandit/web run test
