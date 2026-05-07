@@ -1,249 +1,216 @@
+
 # =============================================================================
-# AI PANDIT - COMPREHENSIVE .gitignore
-# Following industry best practices
-# =============================================================================
-
-# --- DEPENDENCIES ---
-node_modules/
-.pnp
-.pnp.js
-.yarn/cache
-.yarn/unplugged
-.yarn/build-state.yml
-.yarn/install-state.gz
-yarn.lock
-pnpm-lock.yaml
-
-# --- ENVIRONMENT & SECRETS ---
-.env
-.env.local
-.env.*.local
-.env.development
-.env.test
-.env.production
-.env*.local
-.clerk/
-*.pem
-*.key
-secrets/
-config/secrets/
-
-# --- DATABASE FILES ---
-*.db
-*.sqlite
-*.sqlite3
-*.db-journal
-*.db-wal
-*.db-shm
-
-# --- BUILD OUTPUTS ---
-dist/
-build/
-.next/
-out/
-.nuxt/
-.turbo/
-*.tsbuildinfo
-.vercel/
-.netlify/
-.agents/
-.cache/
-.parcel-cache/
-
-# --- LOGS & DIAGNOSTICS ---
-*.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
-.eslintcache
-.stylelintcache
-.prettiercache
-*.pid
-*.seed
-*.pid.lock
-
-# --- TEST ARTIFACTS ---
-coverage/
-playwright-report/
-test-results/
-.nyc_output
-.vitest-reports/
-*.test.ts.snap
-*.test.tsx.snap
-__snapshots__/
-
-# --- SYSTEM & IDE ---
-.DS_Store
-Thumbs.db
-.vscode/
-!.vscode/settings.json
-!.vscode/tasks.json
-!.vscode/launch.json
-!.vscode/extensions.json
-.idea/
-.project
-.classpath
-*.sublime-workspace
-*.sublime-project
-
-# --- CLOUD & PLATFORM ---
-.gemini/
-.idx/
-.firebase/
-.firebaserc
-
-# --- BACKUP FILES ---
-*.backup
-*.bak
-*.old
-*.original
-*.swp
-*.swo
 *~
-
-# --- APP SPECIFIC (NON-SOURCE) ---
-# Ephemeris data files (downloaded at build time)
-apps/api/ephe/*.se1
-!apps/api/ephe/README.md
-!apps/api/ephe/.gitkeep
-
-# Swiss Ephemeris (legacy - removed from project)
-sweph.tar.gz
-*.eph
-
-# Skyfield data
-data/*.bsp
-data/*.bpc
-data/*.tpc
-data/*.naif
-data/*.txt
-
-services/ephemeris/data/*.bsp
-services/ephemeris/data/*.bpc
-services/ephemeris/data/*.tpc
-services/ephemeris/data/*.naif
-services/ephemeris/data/*.txt
-
-# --- PYTHON (EPHEMERIS SERVICE) ---
-services/ephemeris/.venv/
-services/ephemeris/__pycache__/
-services/ephemeris/**/__pycache__/
-services/ephemeris/*.py[cod]
-services/ephemeric/*$py.class
-services/ephemeris/.pytest_cache/
-services/ephemeris/.mypy_cache/
-services/ephemeris/.ruff_cache/
-services/ephemeris/.coverage
-services/ephemeris/.coverage.*
-services/ephemeris/htmlcov/
-services/ephemeris/dist/
-services/ephemeris/*.egg-info/
-__pycache__/
-*.py[cod]
 *$py.class
-.pytest_cache/
-.mypy_cache/
-.ruff_cache/
+a11y-report.json
+.agents/
+# AI PANDIT - COMPREHENSIVE .gitignore
+!apps/api/ephe/.gitkeep
+!apps/api/ephe/README.md
+apps/api/ephe/*.se1
+apps/api/src/check-*.ts
+apps/api/src/debug-*.ts
+apps/api/src/requeue-*.ts
+!apps/api/src/routes/debug-analysis.ts
+apps/api/src/scripts/requeue_debug.txt
+apps/api/src/test-*.ts
+!apps/api/src/utils/debug-logger.ts
+apps/api/test-*.ts
+# --- APP SPECIFIC (NON-SOURCE) ---
+apps/web/public/dia-assets/
+*.backup
+# --- BACKUP FILES ---
+*.bak
+build/
+# --- BUILD OUTPUTS ---
+.cache/
+check-*.js
+check-*.ts
+.classpath
+.clerk/
+# --- CLOUD & PLATFORM ---
+config/secrets/
 .coverage
 .coverage.*
-htmlcov/
+coverage/
+.cursorrules
+# --- DATABASE FILES ---
+data/*.bpc
+data/*.bsp
+data/*.naif
+data/*.tpc
+data/*.txt
+*.db
+*.db-journal
+*.db-shm
+*.db-wal
+debug/
+debug-analysis.log
+debug-*.js
+debug-*.ts
+# --- DEPENDENCIES ---
+.d esloppify/
+.desloppify/
+# --- DESLOPPIFY (Code Quality Scanner) ---
+# Development artifacts
+diabrowser-*
+dist/
+.docker/
+# --- DOCKER ---
+docker-compose.override.yml
+Dockerfile.local
+# Downloaded reference assets (not for production)
+.DS_Store
+*.d.ts.map
 *.egg-info/
 .eggs/
-
-# --- DOCKER ---
-Dockerfile.local
-docker-compose.override.yml
-.docker/
-
-# --- TYPESCRIPT ---
-*.js.map
-*.d.ts.map
-
-# --- MISC ---
-*.tgz
-*.tar.gz
-*.zip
-
-# --- TEMPORARY FILES ---
-tmp/
-temp/
-tmp.*
-*.tmp
-
-# --- SCRATCH & DEBUG (keep these out of git) ---
-scratch/
-scratch.*
-debug/
-debug-*.ts
-debug-*.js
-test-*.ts
-test-*.js
-check-*.ts
-check-*.js
-verify-*.ts
-verify-*.js
-apps/api/test-*.ts
-check-*.ts
-apps/api/src/check-*.ts
-check-*.ts
-apps/api/src/debug-*.ts
-debug-*.ts
-apps/api/src/test-*.ts
-test-*.ts
-apps/api/src/requeue-*.ts
-requeue-*.ts
-apps/api/src/scripts/requeue_debug.txt
-requeue_debug.txt
-logs/debug-analysis.log
-debug-analysis.log
-verify-production.ts
-!apps/api/src/utils/debug-logger.ts
-!apps/api/src/routes/debug-analysis.ts
-
-# --- WEIGHTED FILES (large binaries) ---
-*.weights
-*.onnx
-*.pt
-*.pth
-*.h5
-*.pb
-*.tflite
-*.mlmodel
-
-# --- LOCAL DEV FILES ---
-local/
-local.*
-*.local
-notes.md
-TODO.md
-todo.md
-NOTES.md
-
-# --- DESLOPPIFY (Code Quality Scanner) ---
-.d esloppify/
-.venv-desloppify/
-.desloppify/
-
-# Development artifacts
-scorecard.png
-subjective_*.json
-a11y-report.json
+.env
+.env.development
+# --- ENVIRONMENT & SECRETS ---
+.env*.local
+.env.*.local
+.env.local
+.env.production
+.env.test
+*.eph
+# Ephemeris data files (downloaded at build time)
+.eslintcache
+extract-diabrowser.js
+.firebase/
+.firebaserc
+# Following industry best practices
 gandhi-*.sql
-
+.gemini/
+*.h5
+htmlcov/
+.idea/
+.idx/
+*.js.map
+*.key
+*.local
+local.*
+local/
+# --- LOCAL DEV FILES ---
+*.log
+logs/
+logs/debug-analysis.log
+# --- LOGS & DIAGNOSTICS ---
 logs/*.json
 logs/*.log
 logs/*.md
-
-.vscode/
-.desloppify/
+# --- MISC ---
+*.mlmodel
+.mypy_cache/
+.netlify/
+.next/
+node_modules/
+notes.md
+NOTES.md
+npm-debug.log*
+.nuxt/
+.nyc_output
+*.old
+*.onnx
+*.original
+out/
+.parcel-cache/
+*.pb
+*.pem
+*.pid
+*.pid.lock
+.playwright-mcp/
+playwright-report/
+.pnp
+.pnp.js
+pnpm-debug.log*
+pnpm-lock.yaml
+.prettiercache
+.project
+*.pt
+*.pth
+__pycache__/
+*.py[cod]
+.pytest_cache/
+# --- PYTHON (EPHEMERIS SERVICE) ---
+requeue_debug.txt
+requeue-*.ts
+.ruff_cache/
+scorecard.png
+scratch.*
+scratch/
+# --- SCRATCH & DEBUG (keep these out of git) ---
+secrets/
+*.seed
+services/ephemeric/*$py.class
+services/ephemeris/.coverage
+services/ephemeris/.coverage.*
+services/ephemeris/data/*.bpc
+services/ephemeris/data/*.bsp
+services/ephemeris/data/*.naif
+services/ephemeris/data/*.tpc
+services/ephemeris/data/*.txt
+services/ephemeris/dist/
+services/ephemeris/*.egg-info/
+services/ephemeris/htmlcov/
+services/ephemeris/.mypy_cache/
+services/ephemeris/**/__pycache__/
+services/ephemeris/__pycache__/
+services/ephemeris/*.py[cod]
+services/ephemeris/.pytest_cache/
+services/ephemeris/.ruff_cache/
+services/ephemeris/.venv/
+# Skyfield data
+__snapshots__/
+*.sqlite
+*.sqlite3
+.stylelintcache
+subjective_*.json
+*.sublime-project
+*.sublime-workspace
+sweph.tar.gz
+# Swiss Ephemeris (legacy - removed from project)
+*.swo
+*.swp
+# --- SYSTEM & IDE ---
+*.tar.gz
+temp/
+# --- TEMPORARY FILES ---
+# --- TEST ARTIFACTS ---
+test-*.js
+test-results/
+test-*.ts
+*.test.ts.snap
+*.test.tsx.snap
+*.tflite
+*.tgz
+Thumbs.db
+*.tmp
+tmp.*
+tmp/
+todo.md
+TODO.md
+*.tsbuildinfo
+.turbo/
+# --- TYPESCRIPT ---
 .venv-desloppify/
 .vercel
-
-
-# Downloaded reference assets (not for production)
-apps/web/public/dia-assets/
-.playwright-mcp/
-logs/
-diabrowser-*
-extract-diabrowser.js
+.vercel/
+verify-*.js
+verify-production.ts
+verify-*.ts
+.vitest-reports/
+.vscode/
+!.vscode/extensions.json
+!.vscode/launch.json
+!.vscode/settings.json
+!.vscode/tasks.json
+# --- WEIGHTED FILES (large binaries) ---
+*.weights
+.yarn/build-state.yml
+.yarn/cache
+yarn-debug.log*
+yarn-error.log*
+.yarn/install-state.gz
+yarn.lock
+.yarn/unplugged
+*.zip

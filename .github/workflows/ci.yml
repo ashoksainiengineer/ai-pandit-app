@@ -1,0 +1,48 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: "20"
+
+jobs:
+  quality:
+    name: Quality Gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build shared workspace dependencies
+        run: |
+          npm -w @ai-pandit/shared run build
+          npm -w @ai-pandit/db run build
+
+      - name: TypeScript typecheck (web)
+        run: npm -w @ai-pandit/web run typecheck
+
+      - name: Lint (web)
+        run: npm -w @ai-pandit/web run lint
+
+      - name: Test (web)
+        run: npm -w @ai-pandit/web run test
+
+      - name: Build check (web)
+        run: npm -w @ai-pandit/web run build
