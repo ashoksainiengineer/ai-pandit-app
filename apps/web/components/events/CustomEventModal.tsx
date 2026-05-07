@@ -148,10 +148,10 @@ export default function CustomEventModal({
             <div className="p-4 border-b border-[#E8E0D5] flex items-center justify-between bg-gradient-to-r from-[#ffffff] to-white">
               <div className="flex items-center gap-3">
                 <div className="w-9 h-9 bg-[#000000]/10 rounded-xl flex items-center justify-center">
-                  <Sparkles className="w-4 h-4 text-[#000000]" />
+                  <Sparkles className="w-4 h-4 text-black" />
                 </div>
                 <div>
-                  <h2 className="font-medium text-[#000000] text-base">Create Custom Event</h2>
+                  <h2 className="font-medium text-black text-base">Create Custom Event</h2>
                   <p className="text-xs text-[#636363]">
                     Add custom life events
                   </p>
@@ -159,7 +159,7 @@ export default function CustomEventModal({
               </div>
               <button
                 onClick={handleClose}
-                className="w-8 h-8 rounded-full hover:bg-[#FAFAFA] flex items-center justify-center transition-colors"
+                className="w-8 h-8 rounded-full hover:bg-[var(--prism-canvas)] flex items-center justify-center transition-colors"
               >
                 <X className="w-5 h-5 text-[#636363]" />
               </button>
@@ -181,7 +181,7 @@ export default function CustomEventModal({
 
               {/* Event Name - Compact */}
               <div className="space-y-1.5">
-                <label className="text-sm font-medium text-[#000000]">
+                <label className="text-sm font-medium text-black">
                   Event Name <span className="text-[#C65D3B]">*</span>
                 </label>
                 <input
@@ -189,7 +189,7 @@ export default function CustomEventModal({
                   value={eventName}
                   onChange={(e) => setEventName(e.target.value)}
                   placeholder="e.g., Started Learning Guitar"
-                  className="w-full h-10 px-3 bg-white border border-[#E8E0D5] rounded-lg text-sm text-[#000000] placeholder-[#959595] focus:border-[#000000] focus:ring-2 focus:ring-[#000000]/10 outline-none transition-all"
+                  className="w-full h-10 px-3 bg-white border border-[#E8E0D5] rounded-lg text-sm text-black placeholder-[#959595] focus:border-[#000000] focus:ring-2 focus:ring-[#000000]/10 outline-none transition-all"
                   autoFocus
                 />
                 <p className="text-xs text-[#636363]">
@@ -200,13 +200,13 @@ export default function CustomEventModal({
               {/* Category Selection - Compact */}
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between">
-                  <label className="text-sm font-medium text-[#000000]">
+                  <label className="text-sm font-medium text-black">
                     Category <span className="text-[#C65D3B]">*</span>
                   </label>
                   <button
                     type="button"
                     onClick={() => setIsCreatingCategory(!isCreatingCategory)}
-                    className="text-xs text-[#000000] hover:underline flex items-center gap-1"
+                    className="text-xs text-black hover:underline flex items-center gap-1"
                   >
                     {isCreatingCategory ? (
                       '← Select Existing'
@@ -220,13 +220,13 @@ export default function CustomEventModal({
                 </div>
 
                 {isCreatingCategory ? (
-                  <div className="space-y-2 p-3 bg-[#FAFAFA] rounded-xl">
+                  <div className="space-y-2 p-3 bg-[var(--prism-canvas)] rounded-xl">
                     <input
                       type="text"
                       value={newCategoryName}
                       onChange={(e) => setNewCategoryName(e.target.value)}
                       placeholder="Category name (e.g., Hobbies)"
-                      className="w-full h-9 px-3 bg-white border border-[#E8E0D5] rounded-lg text-sm text-[#000000] placeholder-[#959595] focus:border-[#000000] outline-none"
+                      className="w-full h-9 px-3 bg-white border border-[#E8E0D5] rounded-lg text-sm text-black placeholder-[#959595] focus:border-[#000000] outline-none"
                     />
                     <div>
                       <label className="text-xs text-[#636363] mb-1.5 block">
@@ -253,7 +253,7 @@ export default function CustomEventModal({
                   <select
                     value={selectedCategory}
                     onChange={(e) => setSelectedCategory(e.target.value)}
-                    className="w-full h-10 px-3 bg-white border border-[#E8E0D5] rounded-lg text-sm text-[#000000] focus:border-[#000000] focus:ring-2 focus:ring-[#000000]/10 outline-none appearance-none cursor-pointer"
+                    className="w-full h-10 px-3 bg-white border border-[#E8E0D5] rounded-lg text-sm text-black focus:border-[#000000] focus:ring-2 focus:ring-[#000000]/10 outline-none appearance-none cursor-pointer"
                   >
                     <option value="">Select a category...</option>
                     {categories.map((category) => (

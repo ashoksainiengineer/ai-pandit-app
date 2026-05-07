@@ -49,7 +49,7 @@ function ResultsDashboardContent(props: ResultsDashboardProps) {
                                 onClick={() => engine.setActiveTab(tab)}
                                 className={`pb-4 px-2 text-sm font-medium uppercase tracking-wider transition-colors whitespace-nowrap ${engine.activeTab === tab
                                     ? 'border-b-2'
-                                    : 'hover:text-[#000000]'
+                                    : 'hover:text-black'
                                     }`}
                                 style={{
                                     color: engine.activeTab === tab ? THEME.gold : THEME.textMuted,

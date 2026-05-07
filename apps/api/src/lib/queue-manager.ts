@@ -84,7 +84,7 @@ const MEMORY_SNAPSHOT_SAMPLE_RATE = 0.1;
 
 // Queue Status Types
 
-import type { QueueStatus, QueuePosition, QueueSubmitResult, PhysicalTraits, ForensicTraits } from '@ai-pandit/shared';
+import type { QueueStatus, QueuePosition, QueueSubmitResult } from '@ai-pandit/shared';
 
 export type { QueueStatus, QueuePosition, QueueSubmitResult };
 
@@ -899,8 +899,6 @@ function startHeartbeatTimer(sessionId: string): ReturnType<typeof setInterval> 
 
 interface DecryptedSessionData {
   lifeEvents: unknown;
-  physicalTraits: PhysicalTraits | undefined;
-  forensicTraits: ForensicTraits | undefined;
   dateOfBirth: string;
   tentativeTime: string;
   spouseData: unknown | undefined;
@@ -915,12 +913,6 @@ function decryptSessionFields(
   }
 
   const lifeEvents = decryptJsonField(s.lifeEvents, s.clerkId, s.userId, true);
-  const physicalTraits = decryptOptionalJsonField<PhysicalTraits>(
-    s.physicalTraits, s.clerkId, s.userId, sessionId, 'physicalTraits'
-  );
-  const forensicTraits = decryptOptionalJsonField<ForensicTraits>(
-    s.forensicTraits, s.clerkId, s.userId, sessionId, 'forensicTraits'
-  );
 
   const dateOfBirth = parseSensitiveField(s.dateOfBirth, s.clerkId, s.userId, '') as string;
   const tentativeTime = parseSensitiveField(s.tentativeTime, s.clerkId, s.userId, '') as string;
@@ -936,7 +928,7 @@ function decryptSessionFields(
     ? parseSensitiveField(s.spouseData, s.clerkId, s.userId)
     : undefined;
 
-  return { lifeEvents, physicalTraits, forensicTraits, dateOfBirth, tentativeTime, spouseData };
+  return { lifeEvents, dateOfBirth, tentativeTime, spouseData };
 }
 
 function decryptJsonField(
@@ -1015,8 +1007,6 @@ function buildBtrInput(
     timezone: s.timezone,
     lifeEvents: decrypted.lifeEvents as Parameters<typeof executeSecondsPrecisionRectification>[0]['lifeEvents'],
     offsetConfig: offsetConfig as unknown as Parameters<typeof executeSecondsPrecisionRectification>[0]['offsetConfig'],
-    physicalTraits: decrypted.physicalTraits,
-    forensicTraits: decrypted.forensicTraits as ForensicTraits,
     spouseData: decrypted.spouseData as Parameters<typeof executeSecondsPrecisionRectification>[0]['spouseData'],
     abortSignal,
   };

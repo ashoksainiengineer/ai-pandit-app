@@ -170,10 +170,10 @@ describe('LandingPage', () => {
         screen.getByText('Enter your birth details'),
       ).toBeInTheDocument();
       expect(
-        screen.getByText('Answer physical traits'),
+        screen.getByText('Share life events'),
       ).toBeInTheDocument();
       expect(
-        screen.getByText('Share life events'),
+        screen.getByText('Get precise results'),
       ).toBeInTheDocument();
     });
 

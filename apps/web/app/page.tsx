@@ -78,14 +78,14 @@ const FEATURES_LIST = [
   },
   {
     number: '02',
-    title: 'Answer physical traits',
-    description: 'Share your natural body type, height, build, and distinguishing features. These forensic markers help our Vedic engine narrow the birth time window with remarkable accuracy.',
+    title: 'Share life events',
+    description: 'Provide 3+ significant life events with dates — marriage, career milestones, relocation, health events. The system cross-references them against Vimshottari Dasha periods.',
     active: false,
   },
   {
     number: '03',
-    title: 'Share life events',
-    description: 'Provide 3+ significant life events with dates — marriage, career milestones, relocation, health events. The system cross-references them against Vimshottari Dasha periods.',
+    title: 'Get precise results',
+    description: 'Our AI analyzes your data through a 6-stage pipeline using NASA JPL ephemeris data and Vedic astrology algorithms to determine your rectified birth time.',
     active: false,
   },
 ];
@@ -410,7 +410,7 @@ function HowItWorks() {
   const [activeFeature, setActiveFeature] = useState(0);
 
   return (
-    <section id="how-it-works" className="py-32 relative bg-[#FAFAFA]">
+    <section id="how-it-works" className="py-32 relative bg-[var(--prism-canvas)]">
       <div className="app-container">
         {/* Section Header */}
         <motion.div {...fadeIn} className="text-center mb-20">
@@ -559,7 +559,7 @@ function Features() {
 
 function Privacy() {
   return (
-    <section className="py-32 bg-[#FAFAFA]">
+    <section className="py-32 bg-[var(--prism-canvas)]">
       <div className="max-w-[800px] mx-auto px-6">
         <motion.div {...fadeIn} className="text-center">
           {/* Dashed border box */}
@@ -665,7 +665,7 @@ function CTA() {
 
 export default function LandingPage() {
   return (
-    <main className="min-h-screen bg-[#FAFAFA]">
+    <main className="min-h-screen bg-[var(--prism-canvas)]">
       <Navbar transparent />
       <Hero />
       <HowItWorks />

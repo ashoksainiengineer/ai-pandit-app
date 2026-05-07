@@ -101,8 +101,6 @@ export const sessions = pgTable(
     longitude: doublePrecision('longitude').notNull(),
     timezone: text('timezone').notNull(),
     gender: text('gender'),
-    physicalTraits: text('physicalTraits'),
-    forensicTraits: text('forensicTraits'),
     lifeEvents: text('lifeEvents'),
     spouseData: text('spouseData'),
     offsetConfig: text('offsetConfig'),

@@ -5,7 +5,7 @@
  * These types were extracted from seconds-precision-btr.ts for better modularity.
  */
 
-import { LifeEvent, ForensicTraits, DatePrecision, CandidateScore, CandidateTime as SharedCandidateTime } from './types.js';
+import { LifeEvent, DatePrecision, CandidateScore, CandidateTime as SharedCandidateTime } from './types.js';
 export type { DatePrecision, CandidateScore };
 
 // Types internal to the backend calculation engine
@@ -248,7 +248,7 @@ export interface CandidateDataPackage {
         conflictingMethods?: boolean;
         weakSignificators?: boolean;
         d60Instability?: boolean;
-        forensicMismatch?: boolean;
+      };
       };
     };
   };
@@ -311,7 +311,6 @@ export interface AnonymizedCandidate {
 export interface BatchPromptContext {
   candidates: CandidateDataPackage[];
   events: LifeEvent[];
-  forensicTraits: ForensicTraits;
   batchNumber: number;
   totalBatches: number;
   survivorsNeeded: number;
@@ -321,14 +320,12 @@ export interface BatchPromptContext {
 export interface DeepAnalysisContext {
   candidates: CandidateDataPackage[];
   events: LifeEvent[];
-  forensicTraits: ForensicTraits;
   spouseData: unknown;
 }
 
 export interface FinalPrecisionContext {
   candidates: CandidateDataPackage[];
   events: LifeEvent[];
-  forensicTraits: ForensicTraits;
   spouseData: unknown;
   currentTransits?: unknown;
 }
@@ -395,7 +392,6 @@ export interface MethodScores {
   kp: number;
   varga: number;
   transit: number;
-  forensic: number;
   boundary: number;
   tatwa: number;
   shadbala: number;
@@ -466,27 +462,6 @@ export interface ScanResult {
   errors: string[];
 }
 
-export interface ForensicProfile {
-  prakriti?: {
-    dominant: DoshaType;
-    secondary?: DoshaType;
-    confidence: number;
-  };
-  physicalTraits?: {
-    height?: 'short' | 'medium' | 'tall';
-    build?: 'slim' | 'medium' | 'heavy' | 'athletic';
-    complexion?: 'fair' | 'medium' | 'dark';
-    hairType?: string;
-    noseType?: string;
-  };
-  behavioralTraits?: {
-    decisionStyle?: string;
-    communicationStyle?: string;
-    temperament?: string;
-  };
-  birthOrder?: 'eldest' | 'middle' | 'youngest' | 'only';
-  fatherStatus?: string;
-}
 
 export interface RectificationResult {
   rectifiedTime: string;

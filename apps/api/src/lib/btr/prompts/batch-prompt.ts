@@ -2,16 +2,15 @@
  * Batch Prompt Generator
  *
  * Generates AI prompts for Stage 2 batch tournament analysis.
- * Creates comprehensive prompts with forensic context and candidate data.
+ * Creates comprehensive prompts for Stage 2 batch tournament analysis.
  * 
  * VSL DATA:
  * This prompt now uses the Vedic Shorthand Language (VSL) protocol
  * for exhaustive, lossless data compaction.
  */
 
-import { CandidateDataPackage, LifeEvent, ForensicTraits } from '@ai-pandit/shared';
+import { CandidateDataPackage, LifeEvent } from '@ai-pandit/shared';
 import { formatLifeEventForAI } from './life-event-formatter.js';
-import { buildForensicContext } from './forensic-context.js';
 import { shuffleArray } from '../../utils/index.js';
 import { validateCandidateDataForAI } from '@ai-pandit/shared/schemas';
 import { logger } from '../../../utils/logger.js';
@@ -48,7 +47,6 @@ function getEventImportanceSummary(events: LifeEvent[]): string {
  *
  * @param candidates - Candidate data packages to evaluate
  * @param events - User's life events
- * @param forensicTraits - User's forensic traits
  * @param batchNumber - Current batch number
  * @param totalBatches - Total number of batches
  * @param survivorsNeeded - Number of survivors to select
@@ -59,7 +57,6 @@ function getEventImportanceSummary(events: LifeEvent[]): string {
 export function getBatchPrompt(
   candidates: CandidateDataPackage[],
   events: LifeEvent[],
-  forensicTraits: ForensicTraits,
   batchNumber: number,
   totalBatches: number,
   survivorsNeeded: number,
@@ -85,7 +82,6 @@ export function getBatchPrompt(
   });
 
   const eventsText = events.map(formatLifeEventForAI).join('\n');
-  const forensicContext = buildForensicContext(forensicTraits);
   const spouseText = spouseData ? `SPOUSE DATA: ${JSON.stringify(spouseData)}` : 'SPOUSE DATA: N/A';
 
   // Anti-bias: Shuffle candidate order in every batch to prevent positional bias
@@ -119,7 +115,6 @@ WEIGHT ADJUSTMENT RULES:
 • CRITICAL events → Up-weight precision (Nadi, KP)
 • Incomplete D60 → Down-weight Varga
 • No spouse data → Ignore spouseD9
-• Forensic mismatch → Increase penalty
 
 ════════════════════════════════════════════════════════════════════════════════
 📊 EVENT IMPORTANCE
@@ -137,7 +132,6 @@ ${getEventImportanceSummary(events)}
 2. ZERO TENTATIVE BIAS: Do not favor times just because they are closer to the "original" time.
 3. DATA-DRIVEN SCORE: Your score must reflect astrological alignment only.
 4. NARRATIVE PRIMACY: The user's "SITUATIONAL NARRATIVE" is the ultimate source of truth.
-5. FORENSIC CORRELATION: Verify Varga markers align with PHYSICAL and PSYCHOGRAPHIC DNA.
 
 ════════════════════════════════════════════════════════════════════════════════
 ⚠️ CRITICAL SCORING RULES:
@@ -147,8 +141,7 @@ ${getEventImportanceSummary(events)}
 2. FUNCTIONAL NATURE MATTERS: A planet ruling 6/8/12 is malefic for this Ascendant.
 3. DIGNITY MATTERS: Exalted/Own planets give strong results; Debilitated give mixed/weak.
 4. HOUSE LORDSHIP IS KEY: Event MUST activate relevant house lords.
-5. BIO-VEDIC MAPPING: Treat Forensic Traits as "Biological Anchors".
-6. MAHAKALA PRECISION:
+5. MAHAKALA PRECISION:
    - TATWA SHUDDHI: Verify Element aligns with user's nature.
    - KUNDA LAGNA: 'Matches Moon' = strong structural indicator.
    - BOUNDARY LOCKS: Pay special attention - truth often lies at boundaries.
@@ -157,10 +150,7 @@ ${offsetMinutes > 120 ? `══════════════════�
 🪐 PHASE A: THE MACRO SWEEP PROTOCOL (Offset is > 2 Hours)
 ════════════════════════════════════════════════════════════════════════════════
 The time uncertainty is MASSIVE (±${offsetMinutes} mins). Your SOLE astrological objective is to identify the correct Lagna (D1) and Moon position.
-- IGNORE D9, D10, D60, and Vimshottari pratyantar precision. (At this offset, micro-charts are mathematical noise).
-- STRICTLY EVALUATE Tattwa (Element) compatibility. Does the Lagna Element match their physical build/complexion forensic data?
-- PENALIZE candidates where Biological/Forensic markers drastically contradict the planetary alignments.
-- ALLOW candidates with 'mediocre' D1 charts to survive IF their Tattwa precisely matches the human forensic data (Assume true time is between grids).`
+- IGNORE D9, D10, D60, and Vimshottari pratyantar precision. (At this offset, micro-charts are mathematical noise).`
       : offsetMinutes > 15 ? `════════════════════════════════════════════════════════════════════════════════
 🪐 PHASE B: THE MESO SWEEP PROTOCOL (Offset is Medium: ±${offsetMinutes} mins)
 ════════════════════════════════════════════════════════════════════════════════
@@ -179,18 +169,16 @@ We are in the terminal varga zones. We are hunting exact D60 / D150 alignments.
 
 ════════════════════════════════════════════════════════════════════════════════
 
-    TASK: Execution of the 'Astrological Forensic Tournament' for ${candidates.length} candidates.
+    TASK: Execution of the 'Astrological Tournament' for ${candidates.length} candidates.
 
 ## Step 1: Current Case Analysis
-- Application of Bio-Vedic Context: @ForensicTraits
 - Event Importance Matrix: @UserEvents
 - Narrative Integrity Check: @SituationalNarrative
 
 ## Step 2: Implementation of Technical Audit
-Implement the following 10-step forensic audit for EACH candidate:
+Implement the following 10-step audit for EACH candidate:
 
 1. **Lagna & Element Verification**
-   - Correlate Ascendant element with @ForensicTraits (Physical/Temperamental DNA).
    - Verify if Lagna Lord's strength supports the user's vitality narrative.
 
 2. **D1 Planetary Matrix Audit**
@@ -233,7 +221,8 @@ Implement the following 10-step forensic audit for EACH candidate:
 LIFE EVENTS:
 ${eventsText}
 
-${forensicContext}
+
+${spouseText}
 ${spouseText}
 
 CANDIDATES WITH ENRICHED VEDIC DATA (VSL Protocol):

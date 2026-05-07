@@ -360,15 +360,7 @@ const testInput = {
     description: '±30 minutes window - Research Based Analysis'
   },
   lifeEvents,
-  forensicTraits: {
-    dominantElement: 'earth',
-    prakriti: {
-      vata: 20,
-      pitta: 50,
-      kapha: 30,
-      dominant: 'pitta'
-    }
-  }
+  lifeEvents,
 };
 
 async function runResearchBasedAnalysis() {

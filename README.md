@@ -20,7 +20,7 @@ AI-Pandit is a full-stack Birth Time Rectification (BTR) platform that applies *
 
 Traditional BTR is subjective and manual. AI-Pandit replaces guesswork with a data-driven pipeline: it generates thousands of candidate birth times, runs them through successive AI-supervised elimination rounds (Dasha verification, transit matching, KP Sublord analysis, Shadbala evaluation), and converges on the most astronomically and astrologically consistent time.
 
-The system processes **physical traits questionnaires** (forensic quiz) and **life events** as input constraints, cross-references against **JPL DE440 ephemeris** via Skyfield, and encrypts all PII with **AES-256-GCM** end-to-end.
+The system processes **life events** as input constraints, cross-references against **JPL DE440 ephemeris** via Skyfield, and encrypts all PII with **AES-256-GCM** end-to-end.
 
 ---
 
@@ -34,7 +34,6 @@ The system processes **physical traits questionnaires** (forensic quiz) and **li
 | **Interactive Dashboard** | Session management, history, export (PDF via jsPDF), recharts visualizations |
 | **NASA JPL Skyfield Ephemeris** | DE440 kernel via Python FastAPI microservice — arcsecond-precision planetary positions |
 | **AI Reasoning** | DeepSeek (primary) / Groq via configurable provider — multi-prompt ensemble analysis |
-| **Physical Traits Quiz** | Forensic questionnaire + scoring engine — constrains candidate times via physiological markers |
 | **Life Events Integration** | User-provided major life event dates mapped to Dasha periods for cross-validation |
 | **Birth Place Picker** | OpenStreetMap/Leaflet integration for latitude/longitude geocoding |
 | **Clerk Authentication** | OAuth + email/password with Clerk dashboard |
@@ -106,7 +105,7 @@ The system processes **physical traits questionnaires** (forensic quiz) and **li
 ### Data Flow
 
 1. User authenticates via **Clerk** → lands on dashboard
-2. Fills **forensic physical traits quiz** + **life events** + place of birth (Leaflet OSM picker)
+2. Fills **life events** + place of birth (Leaflet OSM picker)
 3. Frontend streams **SSE connection** to `/api/sessions/:id/progress`
 4. API **initializes BTR session** — generates ~hundreds of candidate times around the tentative birth time
 5. **6-stage pipeline** executes: AI evaluates each candidate against Dasha, transit, KP Sublord, Shadbala data from Skyfield
@@ -146,7 +145,6 @@ ai-pandit/
 │   │   └── lib/
 │   │       ├── store/            # Zustand stores (stream-store with IndexedDB)
 │   │       ├── use-stream-progress.ts  # SSE stream React hook
-│   │       └── forensic-quiz/    # Physical traits quiz engine
 │   ├── api/                      # Express + TypeScript BTR backend
 │   │   └── src/
 │   │       ├── lib/

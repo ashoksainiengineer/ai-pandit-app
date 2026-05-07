@@ -5,7 +5,7 @@
  * seconds-precision BTR pipeline types.
  */
 
-import { LifeEvent, PhysicalTraits, ForensicTraits, TimeOffsetConfig } from './core.js';
+import { LifeEvent, TimeOffsetConfig } from './core.js';
 import { EphemerisData } from './ephemeris.js';
 
 // ═════════════════════════════════════════════════════════════════════════════
@@ -20,7 +20,6 @@ export interface BTRInput {
   latitude: number;
   longitude: number;
   timezone: number;
-  physicalTraits?: PhysicalTraits;
 }
 
 export interface CandidateAnalysis {
@@ -104,8 +103,6 @@ export interface SecondsPrecisionInput {
   timezone: string | number;
   lifeEvents: LifeEvent[];
   offsetConfig: TimeOffsetConfig;
-  physicalTraits?: PhysicalTraits;
-  forensicTraits: ForensicTraits;
   spouseData?: {
     dateOfBirth: string;
     birthTime: string;

@@ -28,17 +28,6 @@ test.describe('🔮 Rectify Flow Visual Tests', () => {
         }
     });
 
-    test('step 2 - physical traits form', async ({ page }) => {
-        // Fill step 1 and proceed
-        await fillStep1(page);
-        const nextButton = page.locator('button:has-text("Next"), button:has-text("Continue")').first();
-        if (await nextButton.isEnabled().catch(() => false)) {
-            await nextButton.click();
-            await page.waitForTimeout(1000);
-            const form = page.locator('form').first();
-            await expect(form).toHaveScreenshot('rectify-step2-physical.png');
-        }
-    });
 
     test('loading state visualization', async ({ page }) => {
         // Look for loading states

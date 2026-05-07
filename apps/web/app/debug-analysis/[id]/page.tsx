@@ -67,9 +67,9 @@ const THEME = {
 };
 
 const LoadingState = memo(() => (
-  <div className="flex flex-col items-center justify-center min-h-screen bg-[#FAFAFA] text-center p-4">
+  <div className="flex flex-col items-center justify-center min-h-screen bg-[var(--prism-canvas)] text-center p-4">
     <motion.div animate={{ rotate: 360 }} transition={{ duration: 1.5, repeat: Infinity, ease: 'linear' }}>
-      <Gem className="w-16 h-16 text-[#000000]" />
+      <Gem className="w-16 h-16 text-black" />
     </motion.div>
     <h1 className="text-2xl font-medium mt-6 text-black">Starting Analysis...</h1>
     <p className="text-lg text-black/60 mt-2">Establishing secure connection...</p>
@@ -78,7 +78,7 @@ const LoadingState = memo(() => (
 LoadingState.displayName = 'LoadingState';
 
 const ErrorDisplay = memo(({ error, onRetry }: { error: string; onRetry: () => void }) => (
-  <div className="flex flex-col items-center justify-center min-h-screen bg-[#FAFAFA] text-center p-4" role="alert">
+  <div className="flex flex-col items-center justify-center min-h-screen bg-[var(--prism-canvas)] text-center p-4" role="alert">
     <AlertCircle className="w-16 h-16 text-red-500" />
     <h1 className="text-2xl font-medium mt-6 text-red-700">Connection Error</h1>
     <p className="text-xs text-red-600 mt-2 max-w-2xl bg-red-50 p-4 rounded border border-red-200">{error}</p>
@@ -95,7 +95,7 @@ const Breadcrumbs = memo(({ items }: { items: { label: string; href?: string; ic
       {items.map((item, index) => (
         <li key={item.label} className="flex items-center gap-2">
           {item.href ? (
-            <Link href={item.href} className="flex items-center gap-1.5 hover:text-[#000000] transition-colors">
+            <Link href={item.href} className="flex items-center gap-1.5 hover:text-black transition-colors">
               {item.icon}{item.label}
             </Link>
           ) : (
@@ -391,7 +391,7 @@ export default function AnalysisPage() {
                         <Timer className="w-3.5 h-3.5" />
                         <span className="font-mono font-medium">{metadata.tentativeTime}</span>
                         {metadata.offsetConfig && (
-                          <span className="text-[#000000] font-medium">
+                          <span className="text-black font-medium">
                             ±{metadata.offsetConfig.customMinutes ?? metadata.offsetConfig.minutes ?? 60}min
                           </span>
                         )}
@@ -489,7 +489,7 @@ export default function AnalysisPage() {
                         <Activity className="w-4 h-4" /> {result.rectifiedTime}
                       </span>
                       <span className="w-1 h-1 rounded-full bg-stone-300" />
-                      <span className="flex items-center gap-1.5 font-medium text-[#000000]">
+                      <span className="flex items-center gap-1.5 font-medium text-black">
                         <Zap className="w-4 h-4" /> {result.confidence} Confidence
                       </span>
                       <span className="w-1 h-1 rounded-full bg-stone-300" />

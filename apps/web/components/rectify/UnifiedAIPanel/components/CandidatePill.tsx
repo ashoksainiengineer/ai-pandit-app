@@ -28,7 +28,7 @@ export const CandidatePill = memo(function CandidatePill({
         transition-all duration-200 border
         ${isSelected
                     ? `${config.bgColor} ${config.color} ${config.borderColor} ring-2 ring-offset-1 ring-current/20 shadow-sm`
-                    : 'bg-white text-[#636363] border-[rgba(0,0,0,0.08)] hover:border-[#000000]/30 hover:text-[#636363]'
+                    : 'bg-white text-black/60 border-[rgba(0,0,0,0.08)] hover:border-[#000000]/30 hover:text-black/60'
                 }
       `}
         >

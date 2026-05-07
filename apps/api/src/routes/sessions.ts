@@ -57,7 +57,6 @@ router.get('/', async (req: AuthenticatedRequest, res: Response) => {
             birthPlace: parseSensitiveField(session.birthPlace, clerkId, session.userId),
             offsetConfig: parseSensitiveField(session.offsetConfig, clerkId, session.userId),
             lifeEvents: parseSensitiveField(session.lifeEvents, clerkId, session.userId, []),
-            forensicTraits: parseSensitiveField(session.forensicTraits, clerkId, session.userId),
             spouseData: parseSensitiveField(session.spouseData, clerkId, session.userId),
         }));
 
@@ -102,8 +101,6 @@ router.get('/:id', async (req: AuthenticatedRequest, res: Response) => {
             birthPlace: parseSensitiveField(session.birthPlace, clerkId, session.userId),
             offsetConfig: parseSensitiveField(session.offsetConfig, clerkId, session.userId),
             lifeEvents: parseSensitiveField(session.lifeEvents, clerkId, session.userId, []),
-            forensicTraits: parseSensitiveField(session.forensicTraits, clerkId, session.userId),
-            physicalTraits: parseSensitiveField(session.physicalTraits, clerkId, session.userId),
             spouseData: parseSensitiveField(session.spouseData, clerkId, session.userId),
             analysisResult: parseSensitiveField(session.analysisResult as string, clerkId, session.userId),
             progressData: parseSensitiveField(session.progressData as string, clerkId, session.userId),
@@ -180,11 +177,11 @@ router.put('/:id', validateBody(SessionUpdateSchema), async (req: AuthenticatedR
         if (body.lifeEvents !== undefined) {
             updateData.lifeEvents = encryptData(JSON.stringify(body.lifeEvents), clerkId);
         }
-        if (body.physicalTraits !== undefined) {
-            updateData.physicalTraits = encryptData(JSON.stringify(body.physicalTraits), clerkId);
+        if (body.lifeEvents !== undefined) {
+            updateData.lifeEvents = encryptData(JSON.stringify(body.lifeEvents), clerkId);
         }
-        if (body.forensicTraits !== undefined) {
-            updateData.forensicTraits = encryptData(JSON.stringify(body.forensicTraits), clerkId);
+        if (body.spouseData !== undefined) {
+            updateData.spouseData = encryptData(JSON.stringify(body.spouseData), clerkId);
         }
         if (body.spouseData !== undefined) {
             updateData.spouseData = encryptData(JSON.stringify(body.spouseData), clerkId);
@@ -298,8 +295,6 @@ router.post('/:id/clone', async (req: AuthenticatedRequest, res: Response) => {
             gender: originalSession.gender,
 
             // Traits (Encrypted)
-            physicalTraits: originalSession.physicalTraits,
-            forensicTraits: originalSession.forensicTraits,
             lifeEvents: originalSession.lifeEvents,
             spouseData: originalSession.spouseData,
 

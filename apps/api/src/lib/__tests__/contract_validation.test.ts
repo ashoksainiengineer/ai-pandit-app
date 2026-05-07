@@ -33,7 +33,8 @@ describe('Phase E: Industrial Contract Validation', () => {
                     signatures: ['Sun in 7th'],
                     planets: {
                         'Jupiter': 'Aquarius | H 7'
-                    }
+                    },
+                    doubleTransit: { isTriggered: true, details: [] }
                 }
             }
         };

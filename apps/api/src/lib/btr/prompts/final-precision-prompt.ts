@@ -2,16 +2,15 @@
  * Final Precision Prompt Generator
  *
  * Generates AI prompts for Stage 6 final seconds-level precision judgment.
- * Creates the ultimate forensic prompt for selecting the single best birth time.
+ * Creates the ultimate precision prompt for selecting the single best birth time.
  * 
  * VSL DATA:
  * This prompt now uses the Vedic Shorthand Language (VSL) protocol
  * for exhaustive, lossless data compaction.
  */
 
-import { CandidateDataPackage, LifeEvent, ForensicTraits } from '@ai-pandit/shared';
+import { CandidateDataPackage, LifeEvent } from '@ai-pandit/shared';
 import { formatLifeEventForAI } from './life-event-formatter.js';
-import { buildForensicDNASummary } from './forensic-context.js';
 import { shuffleArray } from '../../utils/index.js';
 import { validateCandidateDataForAI } from '@ai-pandit/shared/schemas';
 import { logger } from '../../../utils/logger.js';
@@ -55,7 +54,6 @@ type PresentTransitLock = {
  *
  * @param candidates - Finalist candidate data packages
  * @param events - User's life events
- * @param forensicTraits - User's forensic traits
  * @param spouseData - Optional spouse data for synastry
  * @param currentTransits - Optional present-day transit data
  * @returns Complete AI prompt string for final judgment
@@ -63,7 +61,6 @@ type PresentTransitLock = {
 export function getFinalPrecisionPrompt(
   candidates: CandidateDataPackage[],
   events: LifeEvent[],
-  forensicTraits: ForensicTraits,
   spouseData: unknown,
   currentTransits?: unknown
 ): string {
@@ -87,7 +84,7 @@ export function getFinalPrecisionPrompt(
   const eventsText = events.map(formatLifeEventForAI).join('\n');
   const spouseText = spouseData ? JSON.stringify(spouseData, null, 2) : 'N/A';
 
-  const forensicDNA = buildForensicDNASummary(forensicTraits);
+  // Anti-bias: Final shuffling
 
   // Anti-bias: Final shuffling
   const shuffledCandidates = shuffleArray(candidates);
@@ -152,20 +149,15 @@ ${getEventImportanceSummary(events)}
 3. MANDATORY PROOF: Every score must be backed by technical proof.
 4. FOCUS ON D60: Even 10 seconds can change D60 Lagna!
 5. NADI AMSHA (D1080): Changes every 48 seconds - THIS IS THE KEY!
-6. BIO-VEDIC LOCK: Time must match Life Events + Forensic DNA + Family Karma.
+6. BIO-VEDIC LOCK: Time must match Life Events.
 
 ════════════════════════════════════════════════════════════════════════════════
 ════════════════════════════════════════════════════════════════════════════════
 
     TASK: Solve the Bio-Vedic Identity Matrix. Select THE SINGLE BEST birth time from ${shuffledCandidates.length} finalists.
 
-## Step 1: Advanced Forensic Correlation
-- Forensic Signature Matching: @ForensicTraits (Physical + Biological)
-- Alibi Verification: @UserEvents (Narrative Integrity)
-- Family Witness Matrix: @ForensicTraits.family
-- Bio-Vedic Lock Status: @CurrentTransits
 
-## Step 2: Final Judgment Logic
+## Step 1: Final Judgment Logic
 Execute the following 10-step final judgment sequence:
 
 1. **Micro-Chart Boundary Lock (D60/D1080 Nadi)**
@@ -178,7 +170,7 @@ Execute the following 10-step final judgment sequence:
 
 3. **Cuspal (KP) 4th Level Precision**
    - Audit Sub-Sub-Sub-Lord positions.
-   - Verify alignment with seconds-level forensic traits.
+   - Verify alignment with seconds-level birth time indicators.
 
 4. **Tattwa Shuddhi & Mahakala Anchor**
    - Verify Tattwa (5-element cycle) compatibility with biological profile (Fire/Earth/Air/Water).
@@ -208,8 +200,8 @@ Execute the following 10-step final judgment sequence:
     - Output the single best birth time with confidence and margin of error.
 
 ════════════════════════════════════════════════════════════════════════════════
-USER FORENSIC DOSSIER:
-${forensicDNA}
+
+SPOUSE INFO: ${spouseText}
 SPOUSE INFO: ${spouseText}
 ${presentTransitSection}
 

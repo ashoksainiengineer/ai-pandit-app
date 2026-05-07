@@ -39,8 +39,8 @@ export const CandidateTabsSection = memo(function CandidateTabsSection({
     return (
         <div className="px-5 py-3 bg-[#FAF8F5] border-b border-[rgba(0,0,0,0.08)]">
             <div className="flex items-center gap-2 mb-3">
-                <Users className="w-3.5 h-3.5 text-[#636363]" />
-                <span className="text-[10px] text-[#636363] uppercase tracking-wider font-medium">
+                <Users className="w-3.5 h-3.5 text-black/60" />
+                <span className="text-[10px] text-black/60 uppercase tracking-wider font-medium">
                     Candidates ({totalCandidates})
                 </span>
             </div>
@@ -70,9 +70,9 @@ export const CandidateTabsSection = memo(function CandidateTabsSection({
                                 {hasMore && (
                                     <>
                                         {isExpanded ? (
-                                            <ChevronUp className="w-3 h-3 text-[#959595] group-hover:text-[#636363]" />
+                                            <ChevronUp className="w-3 h-3 text-[#959595] group-hover:text-black/60" />
                                         ) : (
-                                            <ChevronDown className="w-3 h-3 text-[#959595] group-hover:text-[#636363]" />
+                                            <ChevronDown className="w-3 h-3 text-[#959595] group-hover:text-black/60" />
                                         )}
                                     </>
                                 )}
@@ -93,7 +93,7 @@ export const CandidateTabsSection = memo(function CandidateTabsSection({
                                 {hasMore && !isExpanded && (
                                     <button
                                         onClick={() => toggleTier(tier)}
-                                        className="px-2 py-1 text-[10px] text-[#636363] hover:text-[#636363]"
+                                        className="px-2 py-1 text-[10px] text-black/60 hover:text-black/60"
                                     >
                                         +{candidates.length - 5} more
                                     </button>

@@ -86,7 +86,7 @@ export default function EventSelector({
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           placeholder="Search life events... (e.g., marriage, surgery, school)"
-          className="w-full h-12 pl-12 pr-4 bg-white border border-[#E8E0D5] rounded-xl text-[#000000] placeholder-[#959595] focus:border-[#000000] focus:ring-2 focus:ring-[#000000]/10 outline-none"
+          className="w-full h-12 pl-12 pr-4 bg-white border border-[#E8E0D5] rounded-xl text-black placeholder-[#959595] focus:border-[#000000] focus:ring-2 focus:ring-[#000000]/10 outline-none"
         />
         {searchQuery && (
           <button
@@ -105,7 +105,7 @@ export default function EventSelector({
           animate={{ opacity: 1, height: 'auto' }}
           className="bg-white rounded-xl border border-[#E8E0D5] overflow-hidden"
         >
-          <div className="p-3 bg-[#FAFAFA] border-b border-[#E8E0D5] text-xs text-[#636363]">
+          <div className="p-3 bg-[var(--prism-canvas)] border-b border-[#E8E0D5] text-xs text-[#636363]">
             Found {searchResults.length} results for &quot;{searchQuery}&quot;
           </div>
           <div className="max-h-64 overflow-y-auto">
@@ -118,12 +118,12 @@ export default function EventSelector({
                   disabled={added}
                   className={`w-full text-left px-4 py-3 border-b border-[rgba(0,0,0,0.08)] last:border-0 transition-colors ${added
                       ? 'bg-[#184131]/5 text-[#184131]'
-                      : 'hover:bg-[#FAFAFA]'
+                      : 'hover:bg-[var(--prism-canvas)]'
                     }`}
                 >
                   <div className="flex items-center justify-between">
                     <div>
-                      <div className="font-medium text-[#000000]">
+                      <div className="font-medium text-black">
                         {added && <span className="mr-1">✓</span>}
                         {event.label}
                       </div>
@@ -132,7 +132,7 @@ export default function EventSelector({
                       </div>
                     </div>
                     {!added && (
-                      <Plus className="w-5 h-5 text-[#000000]" />
+                      <Plus className="w-5 h-5 text-black" />
                     )}
                   </div>
                 </button>
@@ -152,7 +152,7 @@ export default function EventSelector({
                 onClick={() => toggleImportance(importance)}
                 className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${importanceFilter.includes(importance)
                     ? 'bg-[#000000] text-white'
-                    : 'bg-[#FAFAFA] text-[#636363] hover:bg-[#E8E0D5]'
+                    : 'bg-[var(--prism-canvas)] text-[#636363] hover:bg-[#E8E0D5]'
                   }`}
               >
                 {getImportanceLabel(importance)}
@@ -174,14 +174,14 @@ export default function EventSelector({
       {!searchQuery && (
         <div className="space-y-3">
           <div className="flex items-center justify-between">
-            <h3 className="text-sm font-medium text-[#000000]">
+            <h3 className="text-sm font-medium text-black">
               Browse by Category
             </h3>
             <button
               onClick={() => setShowSensitive(!showSensitive)}
               className={`text-xs flex items-center gap-1 px-3 py-1.5 rounded-full transition-colors ${showSensitive
                   ? 'bg-[#DC143C]/10 text-[#DC143C]'
-                  : 'bg-[#FAFAFA] text-[#636363] hover:bg-[#E8E0D5]'
+                  : 'bg-[var(--prism-canvas)] text-[#636363] hover:bg-[#E8E0D5]'
                 }`}
             >
               <AlertTriangle className="w-3 h-3" />
@@ -212,7 +212,7 @@ export default function EventSelector({
                   <span
                     className={`text-xs px-2 py-0.5 rounded-full ${selectedCategory === category.id
                         ? 'bg-white/20'
-                        : 'bg-[#FAFAFA] text-[#636363]'
+                        : 'bg-[var(--prism-canvas)] text-[#636363]'
                       }`}
                   >
                     {category.events.length}
@@ -247,11 +247,11 @@ export default function EventSelector({
               .filter((cat) => cat.id === selectedCategory)
               .map((category) => (
                 <div key={category.id}>
-                  <div className="p-4 bg-[#FAFAFA] border-b border-[#E8E0D5] flex items-center justify-between">
+                  <div className="p-4 bg-[var(--prism-canvas)] border-b border-[#E8E0D5] flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <span className="text-xl">{category.icon}</span>
                       <div>
-                        <div className="font-medium text-[#000000]">
+                        <div className="font-medium text-black">
                           {category.label}
                         </div>
                         <div className="text-xs text-[#636363]">
@@ -277,7 +277,7 @@ export default function EventSelector({
                             disabled={added}
                             className={`px-3 py-2 rounded-lg text-sm transition-all ${added
                                 ? 'bg-[#184131]/10 text-[#184131] cursor-default'
-                                : 'bg-[#FAFAFA] text-[#636363] hover:bg-[#000000]/10 hover:text-[#000000] border border-transparent hover:border-[#000000]/30'
+                                : 'bg-[var(--prism-canvas)] text-[#636363] hover:bg-[#000000]/10 hover:text-black border border-transparent hover:border-[#000000]/30'
                               }`}
                           >
                             {added && <span className="mr-1">✓</span>}
@@ -294,7 +294,7 @@ export default function EventSelector({
                       {/* Custom Event Button within Category */}
                       <button
                         onClick={() => onCreateCustom(category.id)}
-                        className="px-3 py-2 rounded-lg text-sm bg-white text-[#000000] border-2 border-dashed border-[#000000]/30 hover:bg-[#000000]/5 hover:border-[#000000]/50 transition-all flex items-center gap-1"
+                        className="px-3 py-2 rounded-lg text-sm bg-white text-black border-2 border-dashed border-[#000000]/30 hover:bg-[#000000]/5 hover:border-[#000000]/50 transition-all flex items-center gap-1"
                       >
                         <Plus className="w-3.5 h-3.5" />
                         Custom
@@ -310,7 +310,7 @@ export default function EventSelector({
       {/* Custom Event Button */}
       <button
         onClick={() => onCreateCustom()}
-        className="w-full h-14 border-2 border-dashed border-[#000000]/30 rounded-xl text-[#000000] font-medium hover:bg-[#000000]/5 hover:border-[#000000]/50 transition-all flex items-center justify-center gap-2"
+        className="w-full h-14 border-2 border-dashed border-[#000000]/30 rounded-xl text-black font-medium hover:bg-[#000000]/5 hover:border-[#000000]/50 transition-all flex items-center justify-center gap-2"
       >
         <Plus className="w-5 h-5" />
         Create Custom Event

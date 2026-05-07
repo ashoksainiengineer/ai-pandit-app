@@ -11,11 +11,6 @@ export const MODI_BLINDED_PROFILE: TestProfile = {
     longitude: 72.6333,
     timezone: 5.5,
     offsetConfig: { preset: '30min', description: '+/- 30 mins search window' },
-    forensicTraits: {
-        physical: 'Charismatic speaker, distinct white beard in later life, energetic despite age.',
-        psychological: 'Highly disciplined, solitary worker, visionary, polarizing figure, celibate lifestyle.',
-        social: 'Started from humble beginnings (tea seller lore), rose to supreme executive power.',
-    },
     lifeEvents: [
         // Early Life & Spiritual Pursuits
         { id: '524ca8b4-3030-4be0-af4b-14b38c2e84c5', category: 'travel', eventType: 'relocation', eventDate: '1968-06-15', datePrecision: 'month_year', importance: 'high', notes: 'Left home for extensive spiritual travel across the mountains.' },

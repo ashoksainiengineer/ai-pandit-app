@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@clerk/nextjs';
-import type { BirthData, LifeEvent, ForensicTraits, TimeOffsetConfig, SpouseData } from '@/lib/types';
+import type { BirthData, LifeEvent, TimeOffsetConfig, SpouseData } from '@/lib/types';
 import { useWarmup } from '@/hooks/use-warmup';
 import { useAutoSave } from '@/hooks/use-auto-save';
 import { env } from '@/lib/config';
@@ -21,33 +21,6 @@ const initialBirthData: BirthData = {
     gender: 'male'
 };
 
-const initialForensicTraits: ForensicTraits = {
-    physical: {
-        facialStructure: { forehead: '', eyeShape: '', noseType: '', teethAlignment: '', voicePitch: '' },
-        skinHair: { texture: '', hairType: '', complexion: '', marks: [] },
-        build: '',
-        height: { cm: 0, feet: 0, inches: 0 }
-    },
-    psychographic: {
-        speechStyle: '',
-        decisionMaking: '',
-        stressResponse: '',
-        sleepCycle: '',
-        temperament: ''
-    },
-    biological: {
-        prakriti: '',
-        sensitivity: { heat: '', cold: '' },
-        recurringHealthIssues: []
-    },
-    family: {
-        siblingPosition: '',
-        brotherCount: 0,
-        sisterCount: 0,
-        fatherStatusAtBirth: '',
-        motherHealthAtBirth: ''
-    }
-};
 
 const initialSpouseData: SpouseData = {
     dateOfBirth: '',
@@ -81,7 +54,6 @@ export function useRectifyForm() {
     const [step, setStep] = useState(1);
     const [birthData, setBirthData] = useState<BirthData>(initialBirthData);
     const [lifeEvents, setLifeEvents] = useState<LifeEvent[]>([]);
-    const [forensicTraits, setForensicTraits] = useState<ForensicTraits>(initialForensicTraits);
     const [spouseData, setSpouseData] = useState<SpouseData>(initialSpouseData);
     const [offsetConfig, setOffsetConfig] = useState<TimeOffsetConfig>({ preset: '1hour', customMinutes: 60, description: '±1 hour' });
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -118,7 +90,6 @@ export function useRectifyForm() {
             setDraftSessionId(null);
             setBirthData(initialBirthData);
             setLifeEvents([]);
-            setForensicTraits(initialForensicTraits);
             setSpouseData(initialSpouseData);
             setStep(1);
             setMaxUnlockedStep(1);
@@ -133,12 +104,13 @@ export function useRectifyForm() {
         let filledFields = 0;
         const totalFields = 7;
 
-        if (birthData.fullName?.trim().length < 2) errors.push("Full Name must be at least 2 characters"); else filledFields++;
+        if (!birthData.fullName || birthData.fullName.trim().length < 2) errors.push("Full Name must be at least 2 characters"); else filledFields++;
         if (!birthData.dateOfBirth) errors.push("Date of Birth is required"); else filledFields++;
         if (!birthData.tentativeTime) errors.push("Tentative Birth Time is required"); else filledFields++;
         if (!birthData.birthPlace?.trim()) errors.push("Birth Place is required"); else filledFields++;
         if (!birthData.gender) errors.push("Gender is required"); else filledFields++;
-        if (birthData.birthPlace?.trim() && (birthData.latitude === 0 && birthData.longitude === 0)) {
+        // Coordinates must be explicitly set (not default 0,0 with empty place)
+        if (birthData.birthPlace?.trim() && !birthData.latitude && !birthData.longitude) {
             errors.push("Please select a valid location from the search results to set coordinates");
         } else if (birthData.birthPlace?.trim()) {
             filledFields++;
@@ -152,11 +124,6 @@ export function useRectifyForm() {
         return { isValid: errors.length === 0, errors, warnings: [], progress: Math.round((filledFields / totalFields) * 100) };
     }, [birthData]);
 
-    const validateStep2 = useCallback((): StepValidation => {
-        const errors: string[] = [];
-        if (!forensicTraits.physical?.build?.trim()) errors.push('Please select your body build type');
-        return { isValid: errors.length === 0, errors, warnings: [], progress: forensicTraits.physical?.build?.trim() ? 100 : 0 };
-    }, [forensicTraits]);
 
     const validateStep3 = useCallback((): StepValidation => {
         const errors: string[] = [];
@@ -173,25 +140,18 @@ export function useRectifyForm() {
     const validateAllSteps = useCallback((): { isValid: boolean; errors: string[] } => {
         const allErrors: string[] = [];
         if (!validateStep1().isValid) allErrors.push('Step 1: Birth details are incomplete.');
-        if (!validateStep2().isValid) allErrors.push('Step 2: Physical traits are incomplete.');
         if (!validateStep3().isValid) allErrors.push('Step 3: Life events are incomplete.');
         return { isValid: allErrors.length === 0, errors: allErrors };
-    }, [validateStep1, validateStep2, validateStep3]);
+    }, [validateStep1, validateStep3]);
 
     const handleNext = useCallback(() => {
         if (isSubmitting) return;
-        if (step >= 4) { setError('Already at the last step'); return; }
+        if (step >= 3) { setError('Already at the last step'); return; }
 
         if (step === 1) {
             const v = validateStep1();
             if (!v.isValid) { setError(v.errors.join(', ')); return; }
         } else if (step === 2) {
-            // Physical traits: at minimum, build type should be selected
-            if (!forensicTraits.physical?.build?.trim()) {
-                setError('Please select your body build type before proceeding');
-                return;
-            }
-        } else if (step === 3) {
             const v = validateStep3();
             if (!v.isValid) { setError(v.errors.join(', ')); return; }
         }
@@ -201,7 +161,7 @@ export function useRectifyForm() {
         setStep(nextStep);
         setError(null);
         window.scrollTo(0, 0);
-    }, [step, isSubmitting, validateStep1, validateStep3, forensicTraits]);
+    }, [step, isSubmitting, validateStep1, validateStep3]);
 
     const handleSubmit = useCallback(async () => {
         const fullValidation = validateAllSteps();
@@ -220,7 +180,6 @@ export function useRectifyForm() {
             const payload = {
                 birthData,
                 lifeEvents,
-                forensicTraits,
                 spouseData,
                 offsetConfig,
                 consentConfirmed: true
@@ -231,7 +190,7 @@ export function useRectifyForm() {
                 const updateRes = await fetch(`/api/sessions/${draftSessionId}`, {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-                    body: JSON.stringify({ birthData, lifeEvents, forensicTraits, spouseData, offsetConfig })
+                    body: JSON.stringify({ birthData, lifeEvents, spouseData, offsetConfig })
                 });
                 if (!updateRes.ok && updateRes.status !== 409) {
                     let updateError = 'Failed to save latest draft';
@@ -280,31 +239,17 @@ export function useRectifyForm() {
             setError(toErrorMessage(err, 'An unexpected error occurred. Please try again.'));
             setIsSubmitting(false);
         }
-    }, [toErrorMessage, validateAllSteps, getToken, draftSessionId, birthData, lifeEvents, forensicTraits, spouseData, offsetConfig, router]);
+    }, [toErrorMessage, validateAllSteps, getToken, draftSessionId, birthData, lifeEvents, spouseData, offsetConfig, router]);
 
     const updateBirthData = useCallback((updates: Partial<BirthData>) => {
         setBirthData(prev => ({ ...prev, ...updates }));
     }, []);
 
-    const updateForensicTraits = useCallback((updates: Partial<ForensicTraits>) => {
-        setForensicTraits(prev => ({
-            ...prev,
-            ...updates,
-            physical: { ...prev.physical, ...updates.physical },
-            biological: { ...prev.biological, ...updates.biological },
-            psychographic: { ...prev.psychographic, ...updates.psychographic },
-            family: { ...prev.family, ...updates.family }
-        }));
-    }, []);
 
     const updateSpouseData = useCallback((updates: Partial<SpouseData>) => {
         setSpouseData(prev => ({ ...prev, ...updates }));
     }, []);
 
-    const updatePhysicalTraits = useCallback((updates: Partial<NonNullable<ForensicTraits['physical']>> | undefined) => {
-        if (!updates) return;
-        setForensicTraits(prev => ({ ...prev, physical: { ...prev.physical, ...updates } }));
-    }, []);
 
     const handleBack = useCallback(() => {
         if (step > 1) {
@@ -329,8 +274,8 @@ export function useRectifyForm() {
     }, [isNewPerson, draftIdFromUrl]);
 
     const currentDataString = useMemo(() =>
-        JSON.stringify({ birthData, lifeEvents, forensicTraits, spouseData, offsetConfig }),
-        [birthData, lifeEvents, forensicTraits, spouseData, offsetConfig]
+        JSON.stringify({ birthData, lifeEvents, spouseData, offsetConfig }),
+        [birthData, lifeEvents, spouseData, offsetConfig]
     );
 
     useAutoSave({
@@ -376,7 +321,6 @@ export function useRectifyForm() {
 
                         if (session.birthData) setBirthData(session.birthData);
                         if (session.lifeEvents && Array.isArray(session.lifeEvents)) setLifeEvents(session.lifeEvents);
-                        if (session.forensicTraits) setForensicTraits(session.forensicTraits);
                         if (session.spouseData) setSpouseData(session.spouseData);
 
                         if (session.offsetConfig) {
@@ -393,7 +337,6 @@ export function useRectifyForm() {
                         setLastSavedData(JSON.stringify({
                             birthData: session.birthData,
                             lifeEvents: session.lifeEvents,
-                            forensicTraits: session.forensicTraits,
                             spouseData: session.spouseData,
                             offsetConfig: session.offsetConfig
                         }));
@@ -421,7 +364,6 @@ export function useRectifyForm() {
         birthData,
         lifeEvents,
         setLifeEvents,
-        forensicTraits,
         spouseData,
         offsetConfig,
         setOffsetConfig,
@@ -432,14 +374,11 @@ export function useRectifyForm() {
         draftLoaded,
         maxUnlockedStep,
         validateStep1,
-        validateStep2,
         validateStep3,
         handleNext,
         handleSubmit,
         updateBirthData,
-        updateForensicTraits,
         updateSpouseData,
-        updatePhysicalTraits,
         handleBack,
     };
 }

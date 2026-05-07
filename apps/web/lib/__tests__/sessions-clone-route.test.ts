@@ -88,8 +88,6 @@ describe('POST /api/sessions/[id]/clone', () => {
       longitude: 56.78,
       timezone: '5.5',
       gender: 'male',
-      physicalTraits: 'enc-physical',
-      forensicTraits: 'enc-forensic',
       lifeEvents: 'enc-events',
       spouseData: 'enc-spouse',
       offsetConfig: 'enc-offset',

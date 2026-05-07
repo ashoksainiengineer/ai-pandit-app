@@ -43,14 +43,14 @@ export function ActionNav({
                     <div className="hidden md:flex items-center gap-6">
                         <Link
                             href="/dashboard"
-                            className="text-sm font-medium transition-colors hover:text-[#000000]"
+                            className="text-sm font-medium transition-colors hover:text-black"
                             style={{ color: THEME.textSecondary }}
                         >
                             Dashboard
                         </Link>
                         <Link
                             href="/rectify?new=true"
-                            className="text-sm font-medium transition-colors hover:text-[#000000]"
+                            className="text-sm font-medium transition-colors hover:text-black"
                             style={{ color: THEME.textSecondary }}
                         >
                             New Analysis

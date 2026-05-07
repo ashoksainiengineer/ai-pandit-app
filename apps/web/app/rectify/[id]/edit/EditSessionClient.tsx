@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@clerk/nextjs';
-import { BirthData, LifeEvent, PhysicalTraits, SpouseData, ForensicTraits } from '@/lib/types';
+import { BirthData, LifeEvent, SpouseData } from '@/lib/types';
 import { env } from '@/lib/config';
 import { useStreamStore } from '@/lib/store/stream-store';
 import { waitForAnalysisSessionReady } from '@/lib/analysis-session-readiness';
@@ -12,8 +12,6 @@ import { logger } from '@/lib/secure-logger';
 
 import Step1BirthDetails from '@/components/rectify/Step1BirthDetails';
 import Step3LifeEvents from '@/components/rectify/Step3LifeEvents';
-import Step2ForensicTraits from '@/components/rectify/Step2ForensicTraits';
-import Step3PhysicalTraits from '@/components/rectify/Step3PhysicalTraits';
 import Step4Review from '@/components/rectify/Step4Review';
 import Layout from '@/components/Layout';
 
@@ -22,8 +20,6 @@ interface EditSessionClientProps {
     initialData: {
         birthData: BirthData;
         lifeEvents: LifeEvent[];
-        physicalTraits?: PhysicalTraits;
-        forensicTraits?: ForensicTraits;
         spouseData?: SpouseData;
         offsetConfig?: any;
     };
@@ -37,7 +33,7 @@ export function EditSessionClient({ sessionId, initialData }: EditSessionClientP
         const urlStep = searchParams.get('step');
         if (urlStep) {
             const parsed = parseInt(urlStep, 10);
-            if (parsed >= 1 && parsed <= 5) return parsed;
+            if (parsed >= 1 && parsed <= 3) return parsed;
         }
         return 1;
     };
@@ -45,26 +41,7 @@ export function EditSessionClient({ sessionId, initialData }: EditSessionClientP
     const [step, setStep] = useState(getInitialStep);
     const [birthData, setBirthData] = useState<BirthData | null>(initialData.birthData);
     const [lifeEvents, setLifeEvents] = useState<LifeEvent[]>(initialData.lifeEvents || []);
-    const [physicalTraits, setPhysicalTraits] = useState<PhysicalTraits>(initialData.physicalTraits || {
-        height: { cm: 165, feet: 5, inches: 5 },
-        build: 'medium',
-        complexion: 'medium',
-        faceShape: 'oval',
-        eyeColor: 'brown',
-        hairColor: 'black'
-    });
     const [offsetConfig, setOffsetConfig] = useState<any>(initialData.offsetConfig || { preset: '1hour', customMinutes: 60, description: '±1 hour' });
-    const [forensicTraits, setForensicTraits] = useState<ForensicTraits>(initialData.forensicTraits || {
-        physical: {
-            facialStructure: { forehead: '', eyeShape: '', noseType: '', teethAlignment: '', voicePitch: '' },
-            skinHair: { texture: '', hairType: '', complexion: '', marks: [] },
-            build: '',
-            height: { cm: 0, feet: 0, inches: 0 }
-        },
-        psychographic: { speechStyle: '', decisionMaking: '', stressResponse: '', sleepCycle: '', temperament: '' },
-        biological: { prakriti: '', sensitivity: { heat: '', cold: '' }, recurringHealthIssues: [] },
-        family: { siblingPosition: '', brotherCount: 0, sisterCount: 0, fatherStatusAtBirth: '', motherHealthAtBirth: '' }
-    });
     const [spouseData, setSpouseData] = useState<SpouseData>(initialData.spouseData || {
         dateOfBirth: '',
         birthTime: '',
@@ -104,7 +81,7 @@ export function EditSessionClient({ sessionId, initialData }: EditSessionClientP
         if (!birthData || !birthData.fullName || birthData.fullName.trim().length < 2) return;
         if (isSubmitting) return;
 
-        const currentData = JSON.stringify({ birthData, lifeEvents, forensicTraits, spouseData, offsetConfig });
+        const currentData = JSON.stringify({ birthData, lifeEvents, spouseData, offsetConfig });
         if (currentData === lastSavedData) return;
 
         const saveDraft = async () => {
@@ -117,7 +94,6 @@ export function EditSessionClient({ sessionId, initialData }: EditSessionClientP
                     body: JSON.stringify({
                         birthData,
                         lifeEvents,
-                        forensicTraits,
                         spouseData,
                         offsetConfig
                     })
@@ -143,7 +119,7 @@ export function EditSessionClient({ sessionId, initialData }: EditSessionClientP
 
         const timer = setTimeout(saveDraft, 5000);
         return () => clearTimeout(timer);
-    }, [birthData, lifeEvents, forensicTraits, spouseData, offsetConfig, sessionId, lastSavedData, getToken, isSubmitting]);
+    }, [birthData, lifeEvents, spouseData, offsetConfig, sessionId, lastSavedData, getToken, isSubmitting]);
 
     const advanceToNextStep = () => {
         setError(null);
@@ -165,18 +141,35 @@ export function EditSessionClient({ sessionId, initialData }: EditSessionClientP
         if (!birthData) return false;
         switch (currentStep) {
             case 1:
-                if (!birthData.fullName) { setError("Full Name is required"); return false; }
-                if (!birthData.dateOfBirth) { setError("Date of Birth is required"); return false; }
-                if (!birthData.tentativeTime) { setError("Birth Time is required"); return false; }
-                if (!birthData.birthPlace) { setError("Birth Place is required"); return false; }
+                if (!birthData.fullName || birthData.fullName.trim().length < 2) {
+                    setError('Full Name must be at least 2 characters');
+                    return false;
+                }
+                if (!birthData.dateOfBirth) {
+                    setError('Date of Birth is required');
+                    return false;
+                }
+                if (!birthData.tentativeTime) {
+                    setError('Birth Time is required');
+                    return false;
+                }
+                if (!birthData.birthPlace?.trim()) {
+                    setError('Birth Place is required');
+                    return false;
+                }
+                // Coordinates must be explicitly set (not default 0,0)
+                if (birthData.birthPlace?.trim() && !birthData.latitude && !birthData.longitude) {
+                    setError('Please select a valid location from the search results to set coordinates');
+                    return false;
+                }
+                if (birthData.timezone === undefined || birthData.timezone === null) {
+                    setError('Timezone is required (select a location to auto-fill)');
+                    return false;
+                }
                 return true;
             case 2:
-                return true;
-            case 3:
-                return true;
-            case 4:
                 if (lifeEvents.length < 3) {
-                    setError(`Please add at least 3 life events. Currently: ${lifeEvents.length}`);
+                    setError('Please add at least 3 life events. Currently: ' + lifeEvents.length);
                     return false;
                 }
                 return true;
@@ -200,7 +193,6 @@ export function EditSessionClient({ sessionId, initialData }: EditSessionClientP
                 body: JSON.stringify({
                     birthData,
                     lifeEvents,
-                    forensicTraits,
                     spouseData,
                     offsetConfig
                 })
@@ -261,25 +253,25 @@ export function EditSessionClient({ sessionId, initialData }: EditSessionClientP
 
     return (
         <Layout hideFooter>
-            <main className="min-h-screen bg-[#FAFAFA] text-[#000000] pt-16">
-                <nav className="sticky top-0 z-50 bg-[#FAFAFA]/90 backdrop-blur-xl border-b border-[rgba(0,0,0,0.08)]">
+            <main className="min-h-screen bg-[var(--prism-canvas)] text-black pt-16">
+                <nav className="sticky top-0 z-50 bg-[var(--prism-canvas)]/90 backdrop-blur-xl border-b border-[rgba(0,0,0,0.08)]">
                     <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
                         <Link href="/" className="flex items-center gap-3 group">
-                            <span className="font-medium text-xl text-[#000000] tracking-tight">AI Pandit</span>
+                            <span className="font-medium text-xl text-black tracking-tight">AI Pandit</span>
                         </Link>
                         <div className="flex items-center gap-6">
                             <Link
                                 href="/dashboard"
-                                className="text-sm font-medium text-[#636363] hover:text-[#000000] transition-colors"
+                                className="text-sm font-medium text-[#636363] hover:text-black transition-colors"
                             >
                                 Dashboard
                             </Link>
                             <div className="flex items-center gap-2 text-sm">
-                                {savingStatus === 'saving' && <span className="text-[#000000] animate-pulse">Saving...</span>}
+                                {savingStatus === 'saving' && <span className="text-black animate-pulse">Saving...</span>}
                                 {savingStatus === 'saved' && <span className="text-[#184131]">Saved ✓</span>}
                                 {savingStatus === 'error' && <span className="text-[#D64545]">Save Failed</span>}
-                                <span className="text-[#000000] font-medium opacity-50">|</span>
-                                <span className="text-[#000000] font-medium">✏️ Editing Session</span>
+                                <span className="text-black font-medium opacity-50">|</span>
+                                <span className="text-black font-medium">✏️ Editing Session</span>
                             </div>
                         </div>
                     </div>
@@ -287,7 +279,7 @@ export function EditSessionClient({ sessionId, initialData }: EditSessionClientP
 
                 <div className="max-w-4xl mx-auto px-6 py-12">
                     <div className="mb-8 text-center">
-                        <h1 className="text-3xl font-medium text-[#000000] mb-2">✏️ Edit & Re-analyze</h1>
+                        <h1 className="text-3xl font-medium text-black mb-2">✏️ Edit & Re-analyze</h1>
                         <p className="text-[#636363]">Update your details and run a new analysis</p>
                     </div>
 
@@ -296,27 +288,27 @@ export function EditSessionClient({ sessionId, initialData }: EditSessionClientP
                             <div className="absolute top-1/2 left-0 w-full h-1 bg-[rgba(0,0,0,0.08)] -z-10 rounded-full" />
                             <div
                                 className="absolute top-1/2 left-0 h-1 bg-[#000000] -z-10 rounded-full transition-all duration-500"
-                                style={{ width: `${((step - 1) / 4) * 100}%` }}
+                                style={{ width: `${((step - 1) / 2) * 100}%` }}
                             />
 
-                            {[1, 2, 3, 4, 5].map((s) => (
+                            {[1, 2, 3].map((s) => (
                                 <button
                                     key={s}
                                     onClick={() => updateStep(s)}
-                                    className="flex flex-col items-center bg-[#FAFAFA] px-2 outline-none focus:outline-none"
+                                    className="flex flex-col items-center bg-[var(--prism-canvas)] px-2 outline-none focus:outline-none"
                                 >
                                     <div
                                         className={`w-10 h-10 rounded-full flex items-center justify-center font-medium text-sm transition-all border-2 ${s < step
                                             ? 'bg-[#184131] border-[#184131] text-white'
                                             : s === step
-                                                ? 'bg-white border-[#000000] text-[#000000] shadow-[0_0_15px_rgba(184,134,11,0.3)]'
-                                                : 'bg-[#FAFAFA] border-[#EBE2D6] text-[#959595]'
+                                                ? 'bg-white border-[#000000] text-black shadow-[0_0_15px_rgba(184,134,11,0.3)]'
+                                                : 'bg-[var(--prism-canvas)] border-[#EBE2D6] text-[#959595]'
                                             }`}
                                     >
-                                        {s < step ? '✓' : ['👤', '🪞', '📏', '📅', '✅'][s - 1]}
+                                        {s < step ? '✓' : ['👤', '📅', '✅'][s - 1]}
                                     </div>
-                                    <span className={`text-xs mt-2 font-medium ${s === step ? 'text-[#000000]' : 'text-[#636363]'}`}>
-                                        {s === 1 ? 'Birth' : s === 2 ? 'Physical' : s === 3 ? 'Forensic' : s === 4 ? 'Life Events' : 'Review'}
+                                    <span className={`text-xs mt-2 font-medium ${s === step ? 'text-black' : 'text-[#636363]'}`}>
+                                        {s === 1 ? 'Birth' : s === 2 ? 'Life Events' : 'Review'}
                                     </span>
                                 </button>
                             ))}
@@ -339,38 +331,16 @@ export function EditSessionClient({ sessionId, initialData }: EditSessionClientP
                             />
                         )}
                         {step === 2 && (
-                            <Step3PhysicalTraits
-                                physicalTraits={forensicTraits.physical}
-                                updateTraits={(p) => {
-                                    setForensicTraits(prev => ({
-                                        ...prev,
-                                        physical: { ...prev.physical, ...p }
-                                    }));
-                                    setPhysicalTraits(prev => ({ ...prev, ...p }));
-                                }}
-                            />
-                        )}
-                        {step === 3 && (
-                            <Step2ForensicTraits
-                                traits={forensicTraits}
-                                updateTraits={(updates) => {
-                                    setForensicTraits(prev => ({ ...prev, ...updates }));
-                                }}
-                            />
-                        )}
-                        {step === 4 && (
                             <Step3LifeEvents
                                 lifeEvents={lifeEvents}
                                 updateEvents={setLifeEvents}
                                 offsetConfig={offsetConfig}
                             />
                         )}
-                        {step === 5 && birthData && (
+                        {step === 3 && birthData && (
                             <Step4Review
                                 data={birthData}
                                 events={lifeEvents}
-                                traits={physicalTraits}
-                                forensicTraits={forensicTraits}
                                 onSubmit={submitEditedSession}
                                 isSubmitting={isSubmitting}
                                 onEdit={updateStep}
@@ -379,14 +349,14 @@ export function EditSessionClient({ sessionId, initialData }: EditSessionClientP
                         )}
                     </div>
 
-                    {step < 5 && (
+                    {step < 3 && (
                         <div className="flex justify-between mt-12 pt-6 border-t border-[rgba(0,0,0,0.08)]">
                             <button
                                 onClick={goToPreviousStep}
                                 disabled={step === 1}
                                 className={`px-6 py-3 rounded-xl font-medium transition-colors ${step === 1
                                     ? 'opacity-0 cursor-default'
-                                    : 'border-2 border-[#000000]/50 text-[#000000] hover:bg-[#000000]/10'
+                                    : 'border-2 border-[#000000]/50 text-black hover:bg-[#000000]/10'
                                     }`}
                             >
                                 ← Back

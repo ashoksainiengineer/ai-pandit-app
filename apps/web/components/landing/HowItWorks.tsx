@@ -27,7 +27,7 @@ const STEPS = [
 
 export default function HowItWorks() {
   return (
-    <section className="py-20 bg-[#FAFAFA]">
+    <section className="py-20 bg-[var(--prism-canvas)]">
       <div className="max-w-5xl mx-auto px-4">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -35,7 +35,7 @@ export default function HowItWorks() {
           viewport={{ once: true }}
           className="text-center mb-14"
         >
-          <h2 className=" text-3xl sm:text-4xl font-medium text-[#000000] mb-3">
+          <h2 className=" text-3xl sm:text-4xl font-medium text-black mb-3">
             How It Works
           </h2>
           <p className="text-[#636363] text-sm max-w-md mx-auto">
@@ -61,7 +61,7 @@ export default function HowItWorks() {
                   <div className="flex items-center gap-2 mb-2">
                     <span className="text-xs font-medium text-[#959595]">Step {step.number}</span>
                   </div>
-                  <h3 className=" text-xl font-medium text-[#000000] mb-2">
+                  <h3 className=" text-xl font-medium text-black mb-2">
                     {step.title}
                   </h3>
                   <p className="text-sm text-[#636363] leading-relaxed">{step.desc}</p>

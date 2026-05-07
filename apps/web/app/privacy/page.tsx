@@ -14,7 +14,7 @@ export const metadata: Metadata = {
 
 export default function PrivacyPage() {
   return (
-    <main className="min-h-screen bg-[#FAFAFA]">
+    <main className="min-h-screen bg-[var(--prism-canvas)]">
       {/* Header */}
       <div className="bg-white/90 backdrop-blur-xl border-b border-black/10">
         <div className="max-w-4xl mx-auto px-6 py-6">
@@ -186,7 +186,7 @@ export default function PrivacyPage() {
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="text-emerald-600 mt-0.5">✓</span>
-                    <span className="text-emerald-900"><strong>Forensic Traits:</strong> Physical and behavioral characteristics mapped to astrological indicators</span>
+                    <span className="text-emerald-900"><strong>Birth Profile Data:</strong> Astrological birth parameters mapped to astrological indicators</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="text-emerald-600 mt-0.5">✓</span>
@@ -348,7 +348,7 @@ export default function PrivacyPage() {
                     <td className="p-3"><span className="px-2 py-1 bg-emerald-50 text-emerald-700 rounded text-xs">✓ AES-256</span></td>
                   </tr>
                   <tr>
-                    <td className="p-3 text-black/60 font-medium">Forensic Traits</td>
+                    <td className="p-3 text-black/60 font-medium">Birth Profile Data</td>
                     <td className="p-3 text-black/60">Facial Structure, Psychographic, Biological, Family Details</td>
                     <td className="p-3"><span className="px-2 py-1 bg-blue-50 text-blue-700 rounded text-xs">Database</span></td>
                     <td className="p-3"><span className="px-2 py-1 bg-emerald-50 text-emerald-700 rounded text-xs">Yes</span></td>

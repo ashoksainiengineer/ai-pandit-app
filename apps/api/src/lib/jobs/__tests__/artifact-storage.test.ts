@@ -41,10 +41,10 @@ vi.mock('../../../config/index.js', () => ({
   },
 }));
 
-vi.mock('../../logger.js', () => ({
-  logger: {
-    error: loggerErrorMock,
-  },
+vi.mock('../../../utils/logger.js', () => ({
+    logger: {
+        error: loggerErrorMock,
+    },
 }));
 
 vi.mock('@google-cloud/storage', () => ({

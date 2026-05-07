@@ -7,15 +7,13 @@
  */
 
 export { formatLifeEventForAI } from './life-event-formatter.js';
-export { buildForensicContext, buildForensicDNASummary } from './forensic-context.js';
+
 export { getBatchPrompt } from './batch-prompt.js';
 export { getDeepAnalysisPrompt } from './deep-analysis-prompt.js';
 export { getFinalPrecisionPrompt } from './final-precision-prompt.js';
 
 // Legacy exports for backward compatibility
 export { formatLifeEventForAI as _formatLifeEventForAI } from './life-event-formatter.js';
-export { buildForensicContext as _buildForensicContext } from './forensic-context.js';
-export { buildForensicDNASummary as _buildForensicDNASummary } from './forensic-context.js';
 export { getBatchPrompt as _getBatchPrompt } from './batch-prompt.js';
 export { getDeepAnalysisPrompt as _getDeepAnalysisPrompt } from './deep-analysis-prompt.js';
 export { getFinalPrecisionPrompt as _getFinalPrecisionPrompt } from './final-precision-prompt.js';

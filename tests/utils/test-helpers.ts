@@ -55,8 +55,6 @@ export const generateTestSession = () => ({
     longitude: 72.8777,
     timezone: 5.5,
     gender: 'male',
-    physicalTraits: {},
-    forensicTraits: {},
     lifeEvents: [],
 });
 

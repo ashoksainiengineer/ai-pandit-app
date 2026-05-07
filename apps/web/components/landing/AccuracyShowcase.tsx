@@ -94,14 +94,14 @@ export function AccuracyShowcase() {
             className="inline-flex items-center gap-2 px-5 py-2.5 bg-white border border-[rgba(0,0,0,0.08)] 
                    rounded-full text-sm mb-8"
           >
-            <Terminal className="w-4 h-4 text-[#000000]" />
+            <Terminal className="w-4 h-4 text-black" />
             <span className="text-[#636363]">Precision Metrics</span>
           </div>
 
           <h2 className=" text-3xl md:text-4xl lg:text-5xl 
-                     font-medium text-[#000000] mb-6 leading-tight">
+                     font-medium text-black mb-6 leading-tight">
             Divine{' '}
-            <span className="text-[#000000]">Precision</span>
+            <span className="text-black">Precision</span>
             {' '}Engineering
           </h2>
 
@@ -117,7 +117,7 @@ export function AccuracyShowcase() {
             className="bg-white border border-[rgba(0,0,0,0.08)] rounded-3xl p-8"
           >
             <div className="flex items-center justify-between mb-10">
-              <h3 className=" text-xl font-medium text-[#000000]">
+              <h3 className=" text-xl font-medium text-black">
                 Accuracy Comparison
               </h3>
               <div className="flex items-center gap-2 px-3 py-1.5 bg-[#ffffff] rounded-lg border border-[rgba(0,0,0,0.08)]">
@@ -131,17 +131,17 @@ export function AccuracyShowcase() {
                 <div key={item.method} className="relative">
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-3">
-                      <span className={`text-sm font-medium ${item.highlight ? 'text-[#000000]' : 'text-[#636363]'}`}>
+                      <span className={`text-sm font-medium ${item.highlight ? 'text-black' : 'text-[#636363]'}`}>
                         {item.method}
                       </span>
                       {item.highlight && (
                         <span className="px-2 py-0.5 bg-[#000000]/10 border border-[#000000]/30 
-                                     text-[#000000] text-xs rounded-full font-medium">
+                                     text-black text-xs rounded-full font-medium">
                           Divine
                         </span>
                       )}
                     </div>
-                    <span className={`text-2xl font-medium ${item.highlight ? 'text-[#000000]' : 'text-[#636363]'}`}>
+                    <span className={`text-2xl font-medium ${item.highlight ? 'text-black' : 'text-[#636363]'}`}>
                       {item.accuracy}%
                     </span>
                   </div>
@@ -197,7 +197,7 @@ export function AccuracyShowcase() {
                       <Icon className="w-6 h-6" style={{ color: metric.color }} />
                     </div>
 
-                    <div className="font-mono text-4xl font-medium text-[#000000] mb-2">
+                    <div className="font-mono text-4xl font-medium text-black mb-2">
                       {metric.value}%
                     </div>
                     <div className="text-sm font-medium text-[#636363] mb-1">{metric.label}</div>
@@ -213,9 +213,9 @@ export function AccuracyShowcase() {
             >
               <div className="flex items-center gap-3 mb-5">
                 <div className="p-2 bg-[#000000]/10 rounded-lg border border-[#000000]/20">
-                  <Terminal className="w-5 h-5 text-[#000000]" />
+                  <Terminal className="w-5 h-5 text-black" />
                 </div>
-                <h4 className=" text-sm font-medium text-[#000000]">
+                <h4 className=" text-sm font-medium text-black">
                   Calculation Pipeline
                 </h4>
               </div>
@@ -223,22 +223,22 @@ export function AccuracyShowcase() {
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-xs font-mono">
                 <div className="p-4 bg-[#ffffff] rounded-xl border border-[rgba(0,0,0,0.08)]">
                   <div className="text-[#636363] mb-2">Ephemeris</div>
-                  <div className="text-[#000000] text-sm mb-1">DE440</div>
+                  <div className="text-black text-sm mb-1">DE440</div>
                   <div className="text-[#959595]">32MB dataset</div>
                 </div>
                 <div className="p-4 bg-[#ffffff] rounded-xl border border-[rgba(0,0,0,0.08)]">
                   <div className="text-[#636363] mb-2">Precision</div>
-                  <div className="text-[#000000] text-sm mb-1">±0.0001°</div>
+                  <div className="text-black text-sm mb-1">±0.0001°</div>
                   <div className="text-[#959595]">0.36 arcseconds</div>
                 </div>
                 <div className="p-4 bg-[#ffffff] rounded-xl border border-[rgba(0,0,0,0.08)]">
                   <div className="text-[#636363] mb-2">Candidates</div>
-                  <div className="text-[#000000] text-sm mb-1">1,440</div>
+                  <div className="text-black text-sm mb-1">1,440</div>
                   <div className="text-[#959595]">per analysis</div>
                 </div>
                 <div className="p-4 bg-[#ffffff] rounded-xl border border-[rgba(0,0,0,0.08)]">
                   <div className="text-[#636363] mb-2">Confidence</div>
-                  <div className="text-[#000000] text-sm mb-1">97.3%</div>
+                  <div className="text-black text-sm mb-1">97.3%</div>
                   <div className="text-[#959595]">Divine verified</div>
                 </div>
               </div>

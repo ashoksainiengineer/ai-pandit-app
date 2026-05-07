@@ -10,7 +10,6 @@ export interface TestProfile {
     timezone: string | number;
     offsetConfig: { preset?: any; customMinutes?: number; description: string };
     lifeEvents: any[];
-    forensicTraits: any;
 }
 
 export const TEST_PROFILES: TestProfile[] = [
@@ -31,7 +30,6 @@ export const TEST_PROFILES: TestProfile[] = [
             { id: 'vk4', category: 'marriage', eventType: 'marriage', eventDate: '2017-12-11', datePrecision: 'exact_date', importance: 'critical' },
             { id: 'vk5', category: 'children', eventType: 'birth', eventDate: '2021-01-11', datePrecision: 'exact_date', importance: 'high' }
         ] as any[],
-        forensicTraits: {} as any
     },
     {
         id: 'TECH-SJ-1955',
@@ -50,7 +48,6 @@ export const TEST_PROFILES: TestProfile[] = [
             { id: 'sj4', category: 'career', eventType: 'rejoining', eventDate: '1997-02-01', datePrecision: 'month_year', importance: 'critical' }, // Return to Apple
             { id: 'sj5', category: 'health', eventType: 'surgery', eventDate: '2004-07-31', datePrecision: 'exact_date', importance: 'high' }
         ] as any[],
-        forensicTraits: {} as any
     },
     {
         id: 'ACTR-AB-1942',
@@ -69,7 +66,6 @@ export const TEST_PROFILES: TestProfile[] = [
             { id: 'ab4', category: 'career', eventType: 'achievement', eventDate: '2000-07-03', datePrecision: 'exact_date', importance: 'high' }, // KBC
             { id: 'ab5', category: 'children', eventType: 'birth', eventDate: '1974-03-17', datePrecision: 'exact_date', importance: 'high' } // Shweta
         ] as any[],
-        forensicTraits: {} as any
     },
     {
         id: 'TECH-EM-1971',
@@ -88,7 +84,6 @@ export const TEST_PROFILES: TestProfile[] = [
             { id: 'em4', category: 'career', eventType: 'ipo', eventDate: '2010-06-29', datePrecision: 'exact_date', importance: 'high' }, // Tesla IPO
             { id: 'em5', category: 'children', eventType: 'birth', eventDate: '2002-01-01', datePrecision: 'month_year', importance: 'high' }
         ] as any[],
-        forensicTraits: {} as any
     },
     {
         id: 'TECH-BG-1955',
@@ -107,7 +102,6 @@ export const TEST_PROFILES: TestProfile[] = [
             { id: 'bg4', category: 'career', eventType: 'resignation', eventDate: '2000-01-13', datePrecision: 'exact_date', importance: 'high' },
             { id: 'bg5', category: 'family', eventType: 'death', eventDate: '2020-09-14', datePrecision: 'exact_date', importance: 'medium' }
         ] as any[],
-        forensicTraits: {} as any
     },
     {
         id: 'SCIE-AE-1879',
@@ -126,7 +120,6 @@ export const TEST_PROFILES: TestProfile[] = [
             { id: 'ae4', category: 'career', eventType: 'achievement', eventDate: '1922-11-09', datePrecision: 'exact_date', importance: 'critical' }, // Nobel announced
             { id: 'ae5', category: 'location', eventType: 'relocation', eventDate: '1933-10-17', datePrecision: 'exact_date', importance: 'high' }
         ] as any[],
-        forensicTraits: {} as any
     },
     {
         id: 'ACTR-LM-1929',
@@ -145,7 +138,6 @@ export const TEST_PROFILES: TestProfile[] = [
             { id: 'lm4', category: 'career', eventType: 'achievement', eventDate: '2001-01-26', datePrecision: 'exact_date', importance: 'critical' }, // Bharat Ratna
             { id: 'lm5', category: 'health', eventType: 'surgery', eventDate: '2019-11-11', datePrecision: 'exact_date', importance: 'medium' }
         ] as any[],
-        forensicTraits: {} as any
     },
     {
         id: 'LEAD-MG-1869',
@@ -164,7 +156,6 @@ export const TEST_PROFILES: TestProfile[] = [
             { id: 'mg4', category: 'location', eventType: 'relocation', eventDate: '1915-01-09', datePrecision: 'exact_date', importance: 'critical' }, // India Return
             { id: 'mg5', category: 'career', eventType: 'achievement', eventDate: '1930-03-12', datePrecision: 'exact_date', importance: 'critical' } // Dandi March
         ] as any[],
-        forensicTraits: {} as any
     },
     {
         id: 'ROYA-PD-1961',
@@ -183,7 +174,6 @@ export const TEST_PROFILES: TestProfile[] = [
             { id: 'pd4', category: 'marriage', eventType: 'separation', eventDate: '1992-12-09', datePrecision: 'exact_date', importance: 'high' },
             { id: 'pd5', category: 'marriage', eventType: 'divorce', eventDate: '1996-08-28', datePrecision: 'exact_date', importance: 'critical' }
         ] as any[],
-        forensicTraits: {} as any
     },
     {
         id: 'LEAD-NM-1950',
@@ -202,6 +192,5 @@ export const TEST_PROFILES: TestProfile[] = [
             { id: 'nm4', category: 'career', eventType: 'achievement', eventDate: '2019-05-30', datePrecision: 'exact_date', importance: 'critical' }, // PM 2
             { id: 'nm5', category: 'career', eventType: 'achievement', eventDate: '2023-09-09', datePrecision: 'exact_date', importance: 'high' } // G20
         ] as any[],
-        forensicTraits: {} as any
     }
 ];

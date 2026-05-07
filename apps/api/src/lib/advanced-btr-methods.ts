@@ -25,12 +25,6 @@ export interface DivisionalChart {
     ascendant: { sign: string; degree: number; nadiName?: string };
 }
 
-export interface PhysicalTraitsScore {
-    score: number;       // 0-100
-    matches: string[];   // What matched
-    mismatches: string[]; // What didn't match
-    recommendation: string;
-}
 
 export interface AspectData {
     planet1: string;
@@ -568,169 +562,6 @@ export function calculateShadbalaLite(ephemeris: EphemerisData): Record<string, 
     return results;
 }
 
-// ═════════════════════════════════════════════════════════════════════════════
-// PHYSICAL TRAITS ANALYSIS
-// ═════════════════════════════════════════════════════════════════════════════
-
-interface PhysicalTraits {
-    height?: 'short' | 'medium' | 'tall';
-    build?: 'slim' | 'medium' | 'heavy';
-    complexion?: 'fair' | 'medium' | 'dark';
-    hairType?: 'straight' | 'curly' | 'wavy' | 'thin' | 'thick';
-    prakriti?: 'vata' | 'pitta' | 'kapha' | 'vata-pitta' | 'pitta-kapha' | 'vata-kapha';
-    noseType?: 'sharp' | 'blunt' | 'aquiline' | 'long' | 'small';
-    appearance?: string;
-}
-
-// Sign-based physical characteristics (Vedic astrology)
-const LAGNA_TRAITS: Record<string, {
-    height: string[];
-    build: string[];
-    complexion: string[];
-}> = {
-    Aries: { height: ['medium', 'tall'], build: ['medium', 'slim'], complexion: ['medium', 'fair'] },
-    Taurus: { height: ['short', 'medium'], build: ['heavy', 'medium'], complexion: ['fair', 'medium'] },
-    Gemini: { height: ['tall', 'medium'], build: ['slim', 'medium'], complexion: ['fair', 'medium'] },
-    Cancer: { height: ['short', 'medium'], build: ['medium', 'heavy'], complexion: ['fair', 'medium'] },
-    Leo: { height: ['tall', 'medium'], build: ['medium', 'heavy'], complexion: ['medium', 'fair'] },
-    Virgo: { height: ['medium'], build: ['slim', 'medium'], complexion: ['fair', 'medium'] },
-    Libra: { height: ['medium', 'tall'], build: ['medium'], complexion: ['fair'] },
-    Scorpio: { height: ['medium'], build: ['medium', 'heavy'], complexion: ['medium', 'dark'] },
-    Sagittarius: { height: ['tall'], build: ['medium', 'heavy'], complexion: ['medium', 'fair'] },
-    Capricorn: { height: ['short', 'medium'], build: ['slim', 'medium'], complexion: ['dark', 'medium'] },
-    Aquarius: { height: ['tall', 'medium'], build: ['medium'], complexion: ['medium', 'fair'] },
-    Pisces: { height: ['short', 'medium'], build: ['medium', 'heavy'], complexion: ['fair', 'medium'] },
-};
-
-// Moon sign complexion influence
-const MOON_COMPLEXION: Record<string, string[]> = {
-    // Water signs = Fair
-    Cancer: ['fair', 'medium'], Scorpio: ['medium'], Pisces: ['fair', 'medium'],
-    // Fire signs = Medium to Dark
-    Aries: ['medium', 'dark'], Leo: ['medium'], Sagittarius: ['medium', 'fair'],
-    // Earth signs = Medium
-    Taurus: ['medium', 'fair'], Virgo: ['fair', 'medium'], Capricorn: ['dark', 'medium'],
-    // Air signs = Fair to Medium
-    Gemini: ['fair', 'medium'], Libra: ['fair'], Aquarius: ['fair', 'medium'],
-};
-
-/**
- * Score physical traits match with chart
- * High-impact method: Can eliminate 20-30% of candidates early
- */
-export function scorePhysicalTraits(
-    ephemeris: EphemerisData,
-    traits: PhysicalTraits
-): PhysicalTraitsScore {
-    let score = 50; // Start neutral
-    const matches: string[] = [];
-    const mismatches: string[] = [];
-
-    const lagnaSign = ephemeris.ascendant.sign;
-    const moonSign = ephemeris.planets.moon.sign;
-
-    const expectedTraits = LAGNA_TRAITS[lagnaSign];
-    const moonComplexion = MOON_COMPLEXION[moonSign];
-
-    if (!expectedTraits) {
-        return { score: 50, matches: [], mismatches: [], recommendation: 'Unable to determine traits for this ascendant' };
-    }
-
-    // Height matching (30 points max)
-    if (traits.height) {
-        if (expectedTraits.height.includes(traits.height)) {
-            score += 15;
-            matches.push(`${lagnaSign} Lagna matches ${traits.height} height`);
-        } else {
-            score -= 10;
-            mismatches.push(`${lagnaSign} Lagna typically gives ${expectedTraits.height.join('/')} height, not ${traits.height}`);
-        }
-    }
-
-    // Build matching (30 points max)
-    if (traits.build) {
-        if (expectedTraits.build.includes(traits.build)) {
-            score += 15;
-            matches.push(`${lagnaSign} Lagna matches ${traits.build} build`);
-        } else {
-            score -= 10;
-            mismatches.push(`${lagnaSign} Lagna typically gives ${expectedTraits.build.join('/')} build, not ${traits.build}`);
-        }
-    }
-
-    // Complexion matching (15 points) - use both Lagna and Moon
-    if (traits.complexion) {
-        const lagnaMatch = expectedTraits.complexion.includes(traits.complexion);
-        const moonMatch = moonComplexion?.includes(traits.complexion);
-
-        if (lagnaMatch && moonMatch) {
-            score += 10;
-            matches.push(`Both Lagna (${lagnaSign}) and Moon (${moonSign}) match ${traits.complexion} complexion`);
-        } else if (lagnaMatch || moonMatch) {
-            score += 5;
-            matches.push(`${lagnaMatch ? 'Lagna' : 'Moon'} matches ${traits.complexion} complexion`);
-        } else {
-            score -= 5;
-            mismatches.push(`Neither Lagna (${lagnaSign}) nor Moon (${moonSign}) typically gives ${traits.complexion} complexion`);
-        }
-    }
-
-    // Hair Type matching (10 points)
-    if (traits.hairType) {
-        if (['curly', 'thick'].includes(traits.hairType) && ['Leo', 'Aries', 'Scorpio'].includes(lagnaSign)) {
-            score += 5;
-            matches.push(`${lagnaSign} Lagna matches ${traits.hairType} hair`);
-        } else if (['straight', 'thin'].includes(traits.hairType) && ['Virgo', 'Gemini', 'Libra'].includes(lagnaSign)) {
-            score += 5;
-            matches.push(`${lagnaSign} Lagna matches ${traits.hairType} hair`);
-        }
-    }
-
-    // Prakriti matching (20 points - High indicator)
-    if (traits.prakriti) {
-        const fireSigns = ['Aries', 'Leo', 'Sagittarius'];
-        const _earthSigns = ['Taurus', 'Virgo', 'Capricorn'];
-        const airSigns = ['Gemini', 'Libra', 'Aquarius'];
-        const waterSigns = ['Cancer', 'Scorpio', 'Pisces'];
-
-        if (traits.prakriti.includes('pitta') && fireSigns.includes(lagnaSign)) {
-            score += 10;
-            matches.push(`${lagnaSign} (Fire) aligns with Pitta prakriti`);
-        } else if (traits.prakriti.includes('vata') && airSigns.includes(lagnaSign)) {
-            score += 10;
-            matches.push(`${lagnaSign} (Air) aligns with Vata prakriti`);
-        } else if (traits.prakriti.includes('kapha') && waterSigns.includes(lagnaSign)) {
-            score += 10;
-            matches.push(`${lagnaSign} (Water) aligns with Kapha prakriti`);
-        }
-    }
-
-    // Nose Type matching (10 points)
-    if (traits.noseType) {
-        if (traits.noseType === 'sharp' && ['Aries', 'Leo', 'Virgo'].includes(lagnaSign)) {
-            score += 5;
-            matches.push(`${lagnaSign} typically gives a sharp nose`);
-        } else if (traits.noseType === 'aquiline' && ['Sagittarius', 'Scorpio'].includes(lagnaSign)) {
-            score += 5;
-            matches.push(`${lagnaSign} aligns with aquiline features`);
-        }
-    }
-
-    // Clamp score
-    score = Math.max(0, Math.min(100, score));
-
-    // Generate recommendation
-    let recommendation: string;
-    if (score >= 70) {
-        recommendation = 'Physical traits strongly support this birth time';
-    } else if (score >= 50) {
-        recommendation = 'Physical traits moderately support this birth time';
-    } else {
-        recommendation = 'Physical traits suggest this may not be the correct birth time';
-    }
-
-    return { score, matches, mismatches, recommendation };
-}
 
 // ═════════════════════════════════════════════════════════════════════════════
 // ADVANCED ASPECTS ANALYSIS
@@ -1087,20 +918,6 @@ export function formatAdvancedAspects(aspects: AspectData[]): string {
     return lines.join('\n');
 }
 
-export function formatPhysicalTraitsAnalysis(analysis: PhysicalTraitsScore): string {
-    const lines = [
-        'PHYSICAL TRAITS ANALYSIS:',
-        `Score: ${analysis.score}/100`,
-        `Recommendation: ${analysis.recommendation}`,
-        '',
-        'Matches:',
-        ...analysis.matches.map(m => `✓ ${m}`),
-        '',
-        'Mismatches:',
-        ...analysis.mismatches.map(m => `✗ ${m}`),
-    ];
-    return lines.join('\n');
-}
 
 export function formatArudhaLagna(al: ArudhaLagna): string {
     return `ARUDHA LAGNA (Public Image):

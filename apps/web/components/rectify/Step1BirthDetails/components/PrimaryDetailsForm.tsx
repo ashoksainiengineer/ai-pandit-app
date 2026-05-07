@@ -47,7 +47,7 @@ export function PrimaryDetailsForm({
                     value={data.fullName || ''}
                     onChange={(e) => handleNameChange(e.target.value)}
                     placeholder="Enter your full name"
-                    className="w-full h-11 px-4 bg-white border border-[#E8E0D5] rounded-lg text-[#000000] text-sm placeholder-[#959595] focus:border-[#000000] focus:ring-2 focus:ring-[#000000]/10 outline-none transition-all"
+                    className="w-full h-11 px-4 bg-white border border-[#E8E0D5] rounded-lg text-black text-sm placeholder-[#959595] focus:border-[#000000] focus:ring-2 focus:ring-[#000000]/10 outline-none transition-all"
                     maxLength={100}
                 />
             </FormField>
@@ -63,7 +63,7 @@ export function PrimaryDetailsForm({
                     <select
                         value={dobParts.day}
                         onChange={(e) => handleDateChange('day', e.target.value)}
-                        className="h-11 px-3 bg-white border border-[#E8E0D5] rounded-lg text-[#000000] text-sm focus:border-[#000000] outline-none cursor-pointer"
+                        className="h-11 px-3 bg-white border border-[#E8E0D5] rounded-lg text-black text-sm focus:border-[#000000] outline-none cursor-pointer"
                     >
                         <option value="">Day</option>
                         {availableDays.map(d => <option key={d} value={d}>{d}</option>)}
@@ -71,7 +71,7 @@ export function PrimaryDetailsForm({
                     <select
                         value={dobParts.month}
                         onChange={(e) => handleDateChange('month', e.target.value)}
-                        className="h-11 px-3 bg-white border border-[#E8E0D5] rounded-lg text-[#000000] text-sm focus:border-[#000000] outline-none cursor-pointer"
+                        className="h-11 px-3 bg-white border border-[#E8E0D5] rounded-lg text-black text-sm focus:border-[#000000] outline-none cursor-pointer"
                     >
                         <option value="">Month</option>
                         {MONTHS.map(m => <option key={m.val} value={m.val}>{m.label}</option>)}
@@ -79,7 +79,7 @@ export function PrimaryDetailsForm({
                     <select
                         value={dobParts.year}
                         onChange={(e) => handleDateChange('year', e.target.value)}
-                        className="h-11 px-3 bg-white border border-[#E8E0D5] rounded-lg text-[#000000] text-sm focus:border-[#000000] outline-none cursor-pointer"
+                        className="h-11 px-3 bg-white border border-[#E8E0D5] rounded-lg text-black text-sm focus:border-[#000000] outline-none cursor-pointer"
                     >
                         <option value="">Year</option>
                         {YEARS.map(y => <option key={y} value={y}>{y}</option>)}
@@ -98,16 +98,16 @@ export function PrimaryDetailsForm({
                     <select
                         value={timeParts.hour}
                         onChange={(e) => handleTimeChange('hour', e.target.value)}
-                        className="h-11 w-20 px-2 bg-white border border-[#E8E0D5] rounded-lg text-[#000000] text-base text-center focus:border-[#000000] outline-none"
+                        className="h-11 w-20 px-2 bg-white border border-[#E8E0D5] rounded-lg text-black text-base text-center focus:border-[#000000] outline-none"
                     >
                         <option value="">HH</option>
                         {HOURS.map(h => <option key={h} value={h}>{h}</option>)}
                     </select>
-                    <span className="text-xl text-[#000000]">:</span>
+                    <span className="text-xl text-black">:</span>
                     <select
                         value={timeParts.minute}
                         onChange={(e) => handleTimeChange('minute', e.target.value)}
-                        className="h-11 w-20 px-2 bg-white border border-[#E8E0D5] rounded-lg text-[#000000] text-base text-center focus:border-[#000000] outline-none"
+                        className="h-11 w-20 px-2 bg-white border border-[#E8E0D5] rounded-lg text-black text-base text-center focus:border-[#000000] outline-none"
                     >
                         <option value="">MM</option>
                         {MINUTES.map(m => <option key={m} value={m}>{m}</option>)}
@@ -118,7 +118,7 @@ export function PrimaryDetailsForm({
                                 key={p}
                                 type="button"
                                 onClick={() => handleTimeChange('period', p)}
-                                className={`px-4 font-medium text-sm transition-all ${timeParts.period === p ? 'bg-[#000000] text-white' : 'text-[#636363] hover:text-[#000000]'}`}
+                                className={`px-4 font-medium text-sm transition-all ${timeParts.period === p ? 'bg-[#000000] text-white' : 'text-black/60 hover:text-black'}`}
                             >
                                 {p}
                             </button>
@@ -142,7 +142,7 @@ export function PrimaryDetailsForm({
                                     onClick={() => handleOffsetChange(preset.value)}
                                     className={`px-3 py-2 rounded-lg text-xs font-medium border transition-all ${selectedOffset === preset.value
                                         ? 'bg-[#000000] text-white border-[#000000]'
-                                        : 'bg-white text-[#636363] border-[#E8E0D5] hover:border-[#000000]/50'
+                                        : 'bg-white text-black/60 border-[#E8E0D5] hover:border-[#000000]/50'
                                         }`}
                                 >
                                     {preset.label}
@@ -154,7 +154,7 @@ export function PrimaryDetailsForm({
                             <div
                                 className="flex items-center gap-3 bg-[#ffffff] p-3 rounded-lg border border-[#E8E0D5] animate-fade-in-up"
                             >
-                                <label className="text-sm text-[#000000] font-medium whitespace-nowrap">
+                                <label className="text-sm text-black font-medium whitespace-nowrap">
                                     Unknown by ±
                                 </label>
                                 <div className="relative w-24">
@@ -164,13 +164,13 @@ export function PrimaryDetailsForm({
                                         max="720"
                                         value={customOffset}
                                         onChange={(e) => handleCustomOffsetChange(e.target.value)}
-                                        className="w-full h-9 px-2 text-center bg-white border border-[#E8E0D5] rounded-md text-[#000000] focus:border-[#000000] outline-none"
+                                        className="w-full h-9 px-2 text-center bg-white border border-[#E8E0D5] rounded-md text-black focus:border-[#000000] outline-none"
                                     />
-                                    <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-[#636363] pointer-events-none">
+                                    <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-black/60 pointer-events-none">
                                         min
                                     </span>
                                 </div>
-                                <span className="text-xs text-[#636363]">
+                                <span className="text-xs text-black/60">
                                     (Max 720 mins)
                                 </span>
                             </div>
@@ -204,7 +204,7 @@ export function PrimaryDetailsForm({
                                 className={`p-4 rounded-xl text-center transition-all border ${data.gender === g.value ? 'bg-[#000000]/10 border-[#000000] shadow-sm' : 'bg-white border-[#E8E0D5] hover:border-[#000000]/50'}`}
                             >
                                 <span className="text-2xl mb-1 block">{g.icon}</span>
-                                <div className="text-xs text-[#000000] font-medium">{g.label}</div>
+                                <div className="text-xs text-black font-medium">{g.label}</div>
                             </button>
                         ))}
                     </div>

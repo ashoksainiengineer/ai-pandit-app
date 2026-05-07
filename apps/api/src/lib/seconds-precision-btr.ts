@@ -57,8 +57,6 @@ import { logAnalysisContainerAction, clearDebugLog } from '../utils/debug-logger
 // Import from modular BTR components
 import {
     _formatLifeEventForAI,
-    _buildForensicContext,
-    _buildForensicDNASummary,
     _getBatchPrompt,
     _getDeepAnalysisPrompt,
     _getFinalPrecisionPrompt,
@@ -149,7 +147,7 @@ async function initializeBTRSession(
 /**
  * Main BTR processing function - 6 stage tournament for birth time rectification
  *
- * @param input - BTR input parameters including birth data, life events, and forensic traits
+ * @param input - BTR input parameters including birth data and life events
  * @returns Final rectified birth time with accuracy metrics
  */
 export async function executeSecondsPrecisionRectification(
@@ -171,7 +169,7 @@ export async function executeSecondsPrecisionRectification(
         logger.info(`[PIPELINE] Stage 1 Complete: ${stage1.candidates.length} candidates generated`);
         stageHistory[1] = stage1.stageResult;
         emitStageStats(input.sessionId, 1, stage1.stageResult.candidatesOut, `Generated ${stage1.stageResult.candidatesOut} candidates`);
-        await progress.flush("Initiating Forensic Evaluation: Pruning non-matching paths...");
+        await progress.flush("Initiating Batch Tournament: Pruning non-matching paths...");
 
         // ═══════════════════════════════════════════════════════════════════════
         // STAGE 2: BATCH TOURNAMENT
@@ -179,7 +177,7 @@ export async function executeSecondsPrecisionRectification(
         await throwIfCancelled(input.sessionId, input.abortSignal);
         await progress.updateETA(480);
         logger.info('[PIPELINE] Entering Stage 2: Batch Tournament');
-        const stage2 = await stage2BatchTournament(input, stage1.candidates, progress, input.forensicTraits, globalLifecycle);
+        const stage2 = await stage2BatchTournament(input, stage1.candidates, progress, globalLifecycle);
         logger.info(`[PIPELINE] Stage 2 Complete: ${stage2.survivors.length} survivors`);
         stageHistory[2] = stage2.stageResult;
         emitStageStats(input.sessionId, 2, stage2.stageResult.candidatesOut,
@@ -204,7 +202,7 @@ export async function executeSecondsPrecisionRectification(
         await throwIfCancelled(input.sessionId, input.abortSignal);
         await progress.updateETA(240);
         logger.info('[PIPELINE] Entering Stage 4: Deep Analysis');
-        const stage4 = await stage4DeepAnalysis(input, stage3.candidates, progress, input.forensicTraits, globalLifecycle);
+        const stage4 = await stage4DeepAnalysis(input, stage3.candidates, progress, globalLifecycle);
         logger.info(`[PIPELINE] Stage 4 Complete: ${stage4.survivors.length} deep survivors`);
         stageHistory[4] = stage4.stageResult;
         emitStageStats(input.sessionId, 4, stage4.stageResult.candidatesOut, `Deep: ${stage4.survivors.length} survivors`);
@@ -228,7 +226,7 @@ export async function executeSecondsPrecisionRectification(
         await throwIfCancelled(input.sessionId, input.abortSignal);
         await progress.updateETA(60);
         logger.info('[PIPELINE] Entering Stage 6: Final Precision');
-        const stage6 = await stage6FinalPrecision(input, stage5.candidates, progress, input.forensicTraits, globalLifecycle);
+        const stage6 = await stage6FinalPrecision(input, stage5.candidates, progress, globalLifecycle);
         logger.info('[PIPELINE] Stage 6 Complete: Final Verdict reached');
         stageHistory[6] = stage6.stageResult;
         emitStageStats(input.sessionId, 6, 1, 'FINAL TIME DETERMINED');

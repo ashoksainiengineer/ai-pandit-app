@@ -1,10 +1,13 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import {
   deriveRetryReasonCode,
   getRetryDelay,
   mapReasonToDependency,
   RETRY_CONFIG,
 } from '../retry-policies.js';
+
+beforeEach(() => { vi.spyOn(Math, 'random').mockReturnValue(0); });
+afterEach(() => { vi.restoreAllMocks(); });
 
 describe('retry-policies', () => {
   describe('deriveRetryReasonCode', () => {

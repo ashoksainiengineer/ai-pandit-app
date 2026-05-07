@@ -23,10 +23,8 @@ npm run test:e2e
 
 ### Flow 2: Birth Data Collection
 - Step 1: Birth details
-- Step 2: Forensic traits
-- Step 3: Physical traits
-- Step 4: Life events
-- Step 5: Review & submit
+- Step 2: Life events
+- Step 3: Review & submit
 
 ### Flow 3: Analysis
 - Submit for analysis

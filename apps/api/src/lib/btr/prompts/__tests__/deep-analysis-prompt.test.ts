@@ -27,7 +27,6 @@ describe('getDeepAnalysisPrompt timeline range', () => {
         } as any,
       ],
       {} as any,
-      null,
       30,
     );
 

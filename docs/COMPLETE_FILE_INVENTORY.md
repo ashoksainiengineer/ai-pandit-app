@@ -231,8 +231,6 @@
 | `components/rectify/PlanetaryVitals.tsx` | Planetary display |
 | `components/rectify/ResultsPage.tsx` | Results page |
 | `components/rectify/Step1BirthDetails.tsx` | Step 1 form |
-| `components/rectify/Step2ForensicTraits.tsx` | Step 2 forensic |
-| `components/rectify/Step2PhysicalTraits.tsx` | Step 2 physical |
 | `components/rectify/Step3LifeEvents.tsx` | Step 3 events |
 | `components/rectify/Step4Review.tsx` | Step 4 review |
 | `components/rectify/UnifiedAIPanel.tsx` | Unified AI panel |
@@ -252,15 +250,6 @@
 | `components/rectify/dashboard/utils.ts` | Dashboard utils |
 | `components/rectify/dashboard/VerdictCard.tsx` | Verdict card |
 
-#### 2.3.7 Forensic Quiz Engine
-| File | Purpose |
-|------|---------|
-| `components/rectify/ForensicQuizEngine/constants.ts` | Quiz constants |
-| `components/rectify/ForensicQuizEngine/index.tsx` | Quiz engine |
-| `components/rectify/ForensicQuizEngine/types.ts` | Quiz types |
-| `components/rectify/ForensicQuizEngine/__tests__/useQuizEngine.test.tsx` | Quiz tests |
-| `components/rectify/ForensicQuizEngine/hooks/useDebounce.ts` | Debounce hook |
-| `components/rectify/ForensicQuizEngine/hooks/useQuizEngine.ts` | Quiz hook |
 
 #### 2.3.8 Results Dashboard
 | File | Purpose |

@@ -81,7 +81,7 @@ export const AnalysisStatusBanner = memo(function AnalysisStatusBanner({
             <CheckCircle className="w-5 h-5 text-[#184131]" />
           </div>
           <div>
-            <p className="font-medium text-[#000000]">Analysis Complete</p>
+            <p className="font-medium text-black">Analysis Complete</p>
             <p className="text-xs text-[#184131] font-medium">Results verified & finalized</p>
           </div>
         </div>
@@ -96,7 +96,7 @@ export const AnalysisStatusBanner = memo(function AnalysisStatusBanner({
         </div>
         <div className="min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
-            <p className="font-medium text-[#000000] text-sm sm:text-base">{stage.name}</p>
+            <p className="font-medium text-black text-sm sm:text-base">{stage.name}</p>
             {/* Phase Label Logic */}
             {(() => {
               const stageNum = effectiveStageIndex;
@@ -111,11 +111,11 @@ export const AnalysisStatusBanner = memo(function AnalysisStatusBanner({
                 </span>
               );
             })()}
-            <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#000000]/20 text-[#000000] font-medium">
+            <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#000000]/20 text-black font-medium">
               Step {stageProgress.current} of {stageProgress.total}
             </span>
           </div>
-          <p className="text-xs sm:text-sm text-[#636363] mt-0.5 truncate">{stage.description}</p>
+          <p className="text-xs sm:text-sm text-black/60 mt-0.5 truncate">{stage.description}</p>
         </div>
       </div>
     );
@@ -135,13 +135,13 @@ export const AnalysisStatusBanner = memo(function AnalysisStatusBanner({
 
           <div className="flex items-center gap-2">
             <div className={`w-2 h-2 rounded-full ${isComplete ? 'bg-[#184131]' : (isConnected ? 'bg-[#184131] animate-pulse' : 'bg-[#C65D3B]')}`} />
-            <span className="text-xs font-medium text-[#636363]">
+            <span className="text-xs font-medium text-black/60">
               {isComplete ? 'Finalized' : (isConnected ? 'Inference Active' : 'Reconnecting')}
             </span>
           </div>
 
           <div className="text-center">
-            <p className="text-[10px] text-[#636363] uppercase tracking-wider">Inference</p>
+            <p className="text-[10px] text-black/60 uppercase tracking-wider">Inference</p>
             <p className="text-sm font-medium text-[#184131] font-mono">
               {(() => {
                 if (elapsedSeconds <= 0) return '0.0';
@@ -150,21 +150,21 @@ export const AnalysisStatusBanner = memo(function AnalysisStatusBanner({
               })()}
               <span className="text-[8px] ml-0.5 opacity-60">c/s</span>
             </p>
-            <p className="text-[9px] text-[#000000] font-medium mt-0.5">
+            <p className="text-[9px] text-black font-medium mt-0.5">
               {candidateCount.toLocaleString()} <span className="text-[7px] uppercase opacity-60">Variations</span>
             </p>
           </div>
 
           <div className="text-center">
-            <p className="text-[10px] text-[#636363] uppercase tracking-wider">Elapsed</p>
-            <p className="text-sm font-medium text-[#000000] font-mono">{formatTime(elapsedSeconds)}</p>
+            <p className="text-[10px] text-black/60 uppercase tracking-wider">Elapsed</p>
+            <p className="text-sm font-medium text-black font-mono">{formatTime(elapsedSeconds)}</p>
           </div>
         </div>
       </div>
 
       {!isComplete && progressPercent > 0 && (
         <div className="mt-3 pt-3 border-t border-[#000000]/10">
-          <div className="flex items-center justify-between text-xs text-[#636363] mb-1">
+          <div className="flex items-center justify-between text-xs text-black/60 mb-1">
             <span>Stage Progress</span>
             <span>{progressPercent}%</span>
           </div>

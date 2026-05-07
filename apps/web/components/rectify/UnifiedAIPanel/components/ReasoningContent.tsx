@@ -33,9 +33,9 @@ export const ReasoningContent = memo(function ReasoningContent({
                     transition={{ duration: 3, repeat: Infinity }}
                     className="w-16 h-16 rounded-full bg-[#000000]/5 flex items-center justify-center mb-4"
                 >
-                    <Brain className="w-8 h-8 text-[#000000]/40" />
+                    <Brain className="w-8 h-8 text-black/40" />
                 </motion.div>
-                <p className="text-sm text-[#636363]">
+                <p className="text-sm text-black/60">
                     Waiting for AI reasoning stream...
                 </p>
             </div>
@@ -45,9 +45,9 @@ export const ReasoningContent = memo(function ReasoningContent({
     return (
         <div
             ref={scrollRef}
-            className="p-5 overflow-y-auto max-h-[400px] font-mono text-sm text-[#636363] leading-7 style-scroll"
+            className="p-5 overflow-y-auto max-h-[400px] font-mono text-sm text-black/60 leading-7 style-scroll"
         >
-            <pre className="whitespace-pre-wrap break-words font-mono text-sm text-[#636363] leading-7">
+            <pre className="whitespace-pre-wrap break-words font-mono text-sm text-black/60 leading-7">
                 {highlightedContent}
                 {isActive && (
                     <span className="inline-block w-1.5 h-4 bg-[#000000] animate-pulse ml-0.5 align-middle" />

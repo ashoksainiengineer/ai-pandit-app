@@ -55,7 +55,7 @@ export const DeleteConfirmModal = memo(function DeleteConfirmModal({
           <button
             onClick={onClose}
             disabled={isDeleting}
-            className="absolute top-4 right-4 p-2 rounded-full text-[#959595] hover:text-[#636363] hover:bg-[#FAFAFA] transition-all duration-200"
+            className="absolute top-4 right-4 p-2 rounded-full text-[#959595] hover:text-[#636363] hover:bg-[var(--prism-canvas)] transition-all duration-200"
           >
             <X className="w-5 h-5" />
           </button>
@@ -73,13 +73,13 @@ export const DeleteConfirmModal = memo(function DeleteConfirmModal({
             </div>
 
             {/* Title */}
-            <h3 className="text-xl font-medium text-[#000000] text-center  mb-1">
+            <h3 className="text-xl font-medium text-black text-center  mb-1">
               Delete {isCompleted ? 'Analysis' : 'Draft'}?
             </h3>
 
             {/* Subtitle */}
             <p className="text-[#636363] text-center text-sm mb-6">
-              This will permanently remove <span className="font-medium text-[#000000]">{session.fullName}&apos;s</span> data
+              This will permanently remove <span className="font-medium text-black">{session.fullName}&apos;s</span> data
             </p>
 
             {/* Data Categories Grid */}
@@ -90,7 +90,7 @@ export const DeleteConfirmModal = memo(function DeleteConfirmModal({
                   <div className="w-8 h-8 rounded-lg bg-amber-100 flex items-center justify-center">
                     <User className="w-4 h-4 text-amber-600" />
                   </div>
-                  <span className="font-medium text-[#000000] text-sm">Birth Details</span>
+                  <span className="font-medium text-black text-sm">Birth Details</span>
                 </div>
                 <ul className="text-xs text-[#636363] space-y-1 ml-10">
                   <li>• {session.fullName}</li>
@@ -106,11 +106,11 @@ export const DeleteConfirmModal = memo(function DeleteConfirmModal({
                   <div className="w-8 h-8 rounded-lg bg-purple-100 flex items-center justify-center">
                     <FileText className="w-4 h-4 text-purple-600" />
                   </div>
-                  <span className="font-medium text-[#000000] text-sm">Form Data</span>
+                  <span className="font-medium text-black text-sm">Form Data</span>
                 </div>
                 <ul className="text-xs text-[#636363] space-y-1 ml-10">
                   <li>• Physical Traits</li>
-                  <li>• Forensic Data</li>
+                  <li>• Birth Profile Data</li>
                   <li>• Life Events</li>
                   <li>• All progress</li>
                 </ul>
@@ -124,7 +124,7 @@ export const DeleteConfirmModal = memo(function DeleteConfirmModal({
                       <div className="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center">
                         <Sparkles className="w-4 h-4 text-blue-600" />
                       </div>
-                      <span className="font-medium text-[#000000] text-sm">Results</span>
+                      <span className="font-medium text-black text-sm">Results</span>
                     </div>
                     <ul className="text-xs text-[#636363] space-y-1 ml-10">
                       <li>• Rectified Time</li>
@@ -139,7 +139,7 @@ export const DeleteConfirmModal = memo(function DeleteConfirmModal({
                       <div className="w-8 h-8 rounded-lg bg-green-100 flex items-center justify-center">
                         <Database className="w-4 h-4 text-green-600" />
                       </div>
-                      <span className="font-medium text-[#000000] text-sm">Technical</span>
+                      <span className="font-medium text-black text-sm">Technical</span>
                     </div>
                     <ul className="text-xs text-[#636363] space-y-1 ml-10">
                       <li>• Calculations</li>
@@ -172,7 +172,7 @@ export const DeleteConfirmModal = memo(function DeleteConfirmModal({
               <span className="text-[11px] text-black/30">Your data is encrypted</span>
             </div>
             <div className="flex items-center justify-center gap-2 mb-6 text-xs text-[#636363]">
-              <Shield className="w-4 h-4 text-[#000000]" />
+              <Shield className="w-4 h-4 text-black" />
               <span>Your data is end-to-end encrypted</span>
             </div>
 
@@ -193,7 +193,7 @@ export const DeleteConfirmModal = memo(function DeleteConfirmModal({
               <button
                 onClick={onClose}
                 disabled={isDeleting}
-                className="flex-1 px-4 py-3 border border-[#E8E0D5] text-[#636363] rounded-xl font-medium hover:bg-[#FAFAFA] hover:text-[#636363] transition-all duration-200 disabled:opacity-50"
+                className="flex-1 px-4 py-3 border border-[#E8E0D5] text-[#636363] rounded-xl font-medium hover:bg-[var(--prism-canvas)] hover:text-[#636363] transition-all duration-200 disabled:opacity-50"
               >
                 Keep {isCompleted ? 'Analysis' : 'Draft'}
               </button>

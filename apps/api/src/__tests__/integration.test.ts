@@ -21,6 +21,7 @@ describe('API Integration Tests', () => {
     
     // Create test user
     const [user] = await db.insert(users).values({
+      id: `test-user-${Date.now()}`,
       clerkId: testUser.clerkId,
       email: testUser.email,
       fullName: testUser.fullName,
@@ -73,7 +74,6 @@ describe('API Integration Tests', () => {
             gender: 'female'
           },
           lifeEvents: [],
-          forensicTraits: {},
           offsetConfig: { preset: '2hours', minutes: 120 }
         })
         .expect(200);

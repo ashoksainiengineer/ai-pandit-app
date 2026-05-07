@@ -20,7 +20,6 @@ describe('Elite E2E Data Precision Retention (DMS)', () => {
             sessionId: 'test',
             tentativeTime: '12:00:00',
             offsetConfig: { description: 'test' },
-            forensicTraits: {} as any
         } as SecondsPrecisionInput;
 
         // 1. Build the data package exactly as production does

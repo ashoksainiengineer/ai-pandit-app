@@ -243,7 +243,7 @@ export const StageLeaderboard = memo(function StageLeaderboard({
 
                                             <div className="flex items-center gap-6">
                                                 <div className="flex flex-col items-end">
-                                                    <span className={`text-sm font-medium font-mono ${s.score > 85 ? 'text-[#184131]' : (s.score > 0 ? 'text-[#000000]' : 'text-stone-400')
+                                                    <span className={`text-sm font-medium font-mono ${s.score > 85 ? 'text-[#184131]' : (s.score > 0 ? 'text-black' : 'text-stone-400')
                                                         }`}>
                                                         {s.score > 0 ? `${s.score.toFixed(1)}%` : 'PENDING'}
                                                     </span>

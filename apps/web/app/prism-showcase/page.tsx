@@ -265,7 +265,7 @@ const componentExamples = [
 
 export default function PrismShowcasePage() {
   return (
-    <div className="min-h-screen bg-[#FAFAFA] font-sans">
+    <div className="min-h-screen bg-[var(--prism-canvas)] font-sans">
       {/* Import design system styles */}
       <style jsx global>{`
         @import url('./globals.css');

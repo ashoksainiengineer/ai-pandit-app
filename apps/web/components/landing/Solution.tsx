@@ -82,7 +82,7 @@ const pipelineSteps = [
     number: '07',
     phase: 'Stage 6',
     title: 'Final Precision Judgement',
-    description: 'Apply God-Tier enhancement with DeepSeek R1. Full forensic context analysis and final verdict extraction.',
+    description: 'Apply God-Tier enhancement with DeepSeek R1. Full astrological context analysis and final verdict extraction.',
     technologies: ['God-Tier Enhancer', 'DeepSeek R1', 'Verdict Extractor'],
     metrics: { label: 'Precision', value: '±15s' },
     icon: Brain,
@@ -134,9 +134,9 @@ export default function Solution() {
           </div>
           
           <h2 className=" text-3xl md:text-4xl lg:text-5xl 
-                         font-medium text-[#000000] mb-6 leading-tight">
+                         font-medium text-black mb-6 leading-tight">
             Sacred{' '}
-            <span className="text-[#000000]">Technical</span>
+            <span className="text-black">Technical</span>
             {' '}Workflow
           </h2>
           
@@ -177,7 +177,7 @@ export default function Solution() {
 
                     {/* Content */}
                     <div className="flex-1">
-                      <h3 className=" text-xl font-medium text-[#000000] mb-2">
+                      <h3 className=" text-xl font-medium text-black mb-2">
                         {step.title}
                       </h3>
                       <p className="text-sm text-[#636363] mb-4 leading-relaxed">{step.description}</p>
@@ -224,10 +224,10 @@ export default function Solution() {
           <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 mb-10">
             <div>
               <div className="flex items-center gap-2 mb-3">
-                <Moon className="w-4 h-4 text-[#000000]" />
-                <span className="text-xs uppercase tracking-[0.2em] text-[#000000]">Architecture</span>
+                <Moon className="w-4 h-4 text-black" />
+                <span className="text-xs uppercase tracking-[0.2em] text-black">Architecture</span>
               </div>
-              <h3 className=" text-2xl font-medium text-[#000000] mb-2">
+              <h3 className=" text-2xl font-medium text-black mb-2">
                 System Architecture
               </h3>
               <p className="text-sm text-[#636363]">Backend components and their sacred alignment</p>
@@ -252,7 +252,7 @@ export default function Solution() {
                 <div className="text-[10px] uppercase tracking-[0.15em] mb-3" style={{ color: layer.color }}>
                   {layer.name}
                 </div>
-                <div className="text-sm font-medium text-[#000000] mb-2">{layer.tech}</div>
+                <div className="text-sm font-medium text-black mb-2">{layer.tech}</div>
                 <div className="flex items-center gap-1.5">
                   <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: layer.color }} />
                   <span className="text-xs text-[#636363]">{layer.status}</span>

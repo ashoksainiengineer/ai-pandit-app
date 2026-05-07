@@ -109,7 +109,7 @@ export default function RecentReadingsTable({ readings, loading }: RecentReading
         <div className="w-16 h-16 rounded-full bg-[#ffffff] flex items-center justify-center mx-auto mb-4">
           <Calendar className="w-8 h-8 text-[#959595]" />
         </div>
-        <h3 className="text-lg font-medium text-[#000000] mb-2">No readings yet</h3>
+        <h3 className="text-lg font-medium text-black mb-2">No readings yet</h3>
         <p className="text-[#636363]">Readings will appear here once users start using the service.</p>
       </div>
     );
@@ -123,12 +123,12 @@ export default function RecentReadingsTable({ readings, loading }: RecentReading
       className="bg-white rounded-xl border border-[rgba(0,0,0,0.08)] overflow-hidden"
     >
       <div className="p-6 border-b border-[rgba(0,0,0,0.08)] flex items-center justify-between">
-        <h3 className="text-lg font-medium text-[#000000] ">
+        <h3 className="text-lg font-medium text-black ">
           Recent Readings
         </h3>
         <Link
           href="/admin/readings"
-          className="text-sm text-[#000000] hover:text-[#000000] font-medium flex items-center gap-1"
+          className="text-sm text-black hover:text-black font-medium flex items-center gap-1"
         >
           View all
           <ChevronRight className="w-4 h-4" />
@@ -151,10 +151,10 @@ export default function RecentReadingsTable({ readings, loading }: RecentReading
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
                   <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#000000]/10 to-[#000000]/10 flex items-center justify-center">
-                    <User className="w-5 h-5 text-[#000000]" />
+                    <User className="w-5 h-5 text-black" />
                   </div>
                   <div>
-                    <p className="font-medium text-[#000000]">{reading.userName}</p>
+                    <p className="font-medium text-black">{reading.userName}</p>
                     <div className="flex items-center gap-3 text-sm text-[#636363]">
                       <span className="flex items-center gap-1">
                         <Calendar className="w-3.5 h-3.5" />
@@ -171,7 +171,7 @@ export default function RecentReadingsTable({ readings, loading }: RecentReading
                 <div className="flex items-center gap-4">
                   {reading.confidence && (
                     <div className="text-right hidden sm:block">
-                      <p className="text-sm font-medium text-[#000000]">
+                      <p className="text-sm font-medium text-black">
                         {(reading.confidence * 100).toFixed(1)}%
                       </p>
                       <p className="text-xs text-[#636363]">Confidence</p>
@@ -185,7 +185,7 @@ export default function RecentReadingsTable({ readings, loading }: RecentReading
 
                   <Link
                     href={`/admin/readings/${reading.id}`}
-                    className="p-2 rounded-lg hover:bg-[rgba(0,0,0,0.08)]/50 text-[#636363] hover:text-[#000000] transition-colors"
+                    className="p-2 rounded-lg hover:bg-[rgba(0,0,0,0.08)]/50 text-[#636363] hover:text-black transition-colors"
                   >
                     <ChevronRight className="w-5 h-5" />
                   </Link>

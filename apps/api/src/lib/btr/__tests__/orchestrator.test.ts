@@ -21,19 +21,14 @@ findCorrections: vi.fn().mockReturnValue({
 correctionWindows: [],
 dominantTatwa: 'AKASH',
     }),
-    inferFromPrakriti: vi.fn().mockReturnValue(['AKASH']),
 },
 }));
 
 vi.mock('../transit-analyzer.js', () => ({
   TransitAnalyzer: {
-    analyzeTransits: vi.fn().mockResolvedValue({
-      score: 90,
-      transits: [],
-    }),
+    batchAnalyze: vi.fn().mockResolvedValue(new Map()),
   },
 }));
-
 vi.mock('../event-scorer.js', () => ({
   EventScorer: {
     scoreEvents: vi.fn().mockReturnValue([]),
@@ -51,7 +46,7 @@ vi.mock('../../ephemeris.js', () => ({
     planets: { sun: { longitude: 280, latitude: 0 } },
   }),
   convertToUTC: vi.fn().mockReturnValue(new Date('2024-01-01T12:00:00Z')),
-  clearSessionCache: vi.fn(),
+  clearEphemerisSessionCache: vi.fn(),
 }));
 
 vi.mock('../../logger.js', () => ({
@@ -99,19 +94,6 @@ describe('BTR Orchestrator', () => {
       expect(result.eventAnalysis).toBeDefined();
     });
 
-    it('should handle forensic profile if provided', async () => {
-      const inputWithProfile: RectificationInput = {
-        ...validInput,
-        forensicProfile: {
-          prakriti: { dominant: 'vata', confidence: 0.8 },
-          physicalTraits: { height: 'average' as any },
-        },
-      };
-
-      const result = await rectifyBirthTime(inputWithProfile);
-      expect(result).toBeDefined();
-      expect(result.rectifiedTime).toBeDefined();
-    });
 
     it('should handle custom time range', async () => {
       const inputWithRange: RectificationInput = {

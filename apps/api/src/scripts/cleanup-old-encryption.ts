@@ -54,8 +54,6 @@ interface CleanupStats {
     sessionsCleared: number;
     fieldsCleared: {
         lifeEvents: number;
-        physicalTraits: number;
-        forensicTraits: number;
     };
 }
 
@@ -70,8 +68,6 @@ export async function cleanupOldEncryption(): Promise<CleanupStats> {
         sessionsCleared: 0,
         fieldsCleared: {
             lifeEvents: 0,
-            physicalTraits: 0,
-            forensicTraits: 0,
         },
     };
 
@@ -85,8 +81,6 @@ export async function cleanupOldEncryption(): Promise<CleanupStats> {
             id: sessions.id,
             clerkId: sessions.clerkId,
             lifeEvents: sessions.lifeEvents,
-            physicalTraits: sessions.physicalTraits,
-            forensicTraits: sessions.forensicTraits,
         })
         .from(sessions)
         .where(isNotNull(sessions.lifeEvents));
@@ -110,27 +104,7 @@ export async function cleanupOldEncryption(): Promise<CleanupStats> {
             }
         }
 
-        // Check physicalTraits
-        if (session.physicalTraits) {
-            if (isOldFormat(session.physicalTraits)) {
-                oldFields.push('physicalTraits');
-                updates.physicalTraits = null;
-                stats.fieldsCleared.physicalTraits++;
-            } else if (isNewFormat(session.physicalTraits)) {
-                newFields.push('physicalTraits');
-            }
-        }
 
-        // Check forensicTraits
-        if (session.forensicTraits) {
-            if (isOldFormat(session.forensicTraits)) {
-                oldFields.push('forensicTraits');
-                updates.forensicTraits = null;
-                stats.fieldsCleared.forensicTraits++;
-            } else if (isNewFormat(session.forensicTraits)) {
-                newFields.push('forensicTraits');
-            }
-        }
 
         // Update stats
         if (oldFields.length > 0) {
@@ -178,8 +152,6 @@ function printSummary(stats: CleanupStats): void {
     logger.info('');
     logger.info('Fields cleared:');
     logger.info(`  - lifeEvents: ${stats.fieldsCleared.lifeEvents}`);
-    logger.info(`  - physicalTraits: ${stats.fieldsCleared.physicalTraits}`);
-    logger.info(`  - forensicTraits: ${stats.fieldsCleared.forensicTraits}`);
     logger.info('═══════════════════════════════════════════════════════════\n');
 
     if (stats.sessionsWithOldFormat > 0) {

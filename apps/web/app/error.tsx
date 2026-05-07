@@ -54,7 +54,7 @@ export default function ErrorBoundary({ error, reset }: ErrorBoundaryProps) {
   };
 
   return (
-    <div className="min-h-screen bg-[#FAFAFA] flex items-center justify-center p-4">
+    <div className="min-h-screen bg-[var(--prism-canvas)] flex items-center justify-center p-4">
       <div className="max-w-lg w-full">
         {/* Error Card */}
         <div className="bg-white border border-black/8 rounded-2xl p-8 shadow-lg">

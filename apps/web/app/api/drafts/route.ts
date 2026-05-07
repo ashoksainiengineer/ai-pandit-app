@@ -43,7 +43,7 @@ export async function POST(request: NextRequest) {
                 { status: 400 }
             );
         }
-        const { birthData, lifeEvents, physicalTraits, forensicTraits, spouseData, offsetConfig, sessionId } = body;
+        const { birthData, lifeEvents, spouseData, offsetConfig, sessionId } = body;
 
         if (!birthData || !birthData.fullName) {
             return NextResponse.json(
@@ -62,8 +62,6 @@ export async function POST(request: NextRequest) {
 
         const encryptedFullName = encrypt(birthData.fullName, internalUserId);
         const encryptedLifeEvents = lifeEvents && lifeEvents.length > 0 ? encryptObject(lifeEvents, internalUserId) : '';
-        const encryptedPhysicalTraits = physicalTraits ? encryptObject(physicalTraits, internalUserId) : null;
-        const encryptedForensicTraits = forensicTraits ? encryptObject(forensicTraits, internalUserId) : null;
         const encryptedSpouseData = spouseData ? encryptObject(spouseData, internalUserId) : null;
 
         const draftData = {
@@ -75,8 +73,6 @@ export async function POST(request: NextRequest) {
             longitude: birthData.longitude || 0,
             timezone: birthData.timezone?.toString() || '5.5',
             gender: birthData.gender || 'other',
-            physicalTraits: encryptedPhysicalTraits,
-            forensicTraits: encryptedForensicTraits,
             spouseData: encryptedSpouseData,
             lifeEvents: encryptedLifeEvents,
             offsetConfig: offsetConfig ? JSON.stringify(offsetConfig) : null,

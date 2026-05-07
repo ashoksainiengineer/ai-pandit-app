@@ -30,7 +30,6 @@ export type { PrecisionEnhancement, CandidateWithPrecisionData };
 export function enhanceCandidateWithPrecisionData(
   candidate: CandidateWithPrecisionData,
   events: ValidationInput['events'],
-  forensicProfile: ValidationInput['forensicProfile'],
   tentativeTime: string
 ): CandidateWithPrecisionData {
   const startTime = Date.now();
@@ -55,7 +54,6 @@ export function enhanceCandidateWithPrecisionData(
         }
       },
       events,
-      forensicProfile,
       tentativeTime
     };
 
@@ -112,7 +110,6 @@ export function enhanceCandidateWithPrecisionData(
 export function enhanceCandidatesBatch(
   candidates: CandidateWithPrecisionData[],
   events: ValidationInput['events'],
-  forensicProfile: ValidationInput['forensicProfile'],
   tentativeTime: string,
   options: { parallel?: boolean; maxConcurrency?: number } = {}
 ): CandidateWithPrecisionData[] {
@@ -121,7 +118,7 @@ export function enhanceCandidatesBatch(
   if (!parallel) {
     // Sequential processing
     return candidates.map(c =>
-      enhanceCandidateWithPrecisionData(c, events, forensicProfile, tentativeTime)
+      enhanceCandidateWithPrecisionData(c, events, tentativeTime)
     );
   }
 
@@ -131,7 +128,7 @@ export function enhanceCandidatesBatch(
 
   for (const chunk of chunks) {
     const chunkResults = chunk.map(c =>
-      enhanceCandidateWithPrecisionData(c, events, forensicProfile, tentativeTime)
+      enhanceCandidateWithPrecisionData(c, events, tentativeTime)
     );
     results.push(...chunkResults);
   }
@@ -215,7 +212,6 @@ export function generatePrecisionReport(
       'KP Sub-Lords': consensus.scores.kp,
       'Divisional Charts': consensus.scores.varga,
       'Transit Analysis': consensus.scores.transit,
-      'Forensic Match': consensus.scores.forensic,
       'AI Reasoning': consensus.scores.ai
     },
     redFlags: redFlagsList,
@@ -284,7 +280,7 @@ function createErrorConsensus(): ConsensusResult {
   return {
     scores: {
       vimshottari: 0, yogini: 0, chara: 0, kalachakra: 0, kp: 0,
-      ashtakavarga: 0, varga: 0, transit: 0, forensic: 0, ai: 0
+      ashtakavarga: 0, varga: 0, transit: 0, ai: 0
     },
     overallConsensus: 0,
     confidenceLevel: 'LOW',
@@ -293,7 +289,7 @@ function createErrorConsensus(): ConsensusResult {
     redFlags: {
       sandhiBirth: false, gandanta: false, dashaSandhi: false,
       conflictingMethods: false, weakSignificators: false,
-      d60Instability: false, forensicMismatch: false
+      d60Instability: false
     },
     keyEvidence: [],
     recommendations: ['Error in precision analysis'],
@@ -358,7 +354,7 @@ METHOD SCORES:
   KP Sub-Lords:      ${String(precision.consensus.scores.kp).padStart(3)}% ${getScoreBar(precision.consensus.scores.kp)}
   Divisional Charts: ${String(precision.consensus.scores.varga).padStart(3)}% ${getScoreBar(precision.consensus.scores.varga)}
   Transit Analysis:  ${String(precision.consensus.scores.transit).padStart(3)}% ${getScoreBar(precision.consensus.scores.transit)}
-  Forensic Match:    ${String(precision.consensus.scores.forensic).padStart(3)}% ${getScoreBar(precision.consensus.scores.forensic)}
+  AI Reasoning:      ${String(precision.consensus.scores.ai).padStart(3)}% ${getScoreBar(precision.consensus.scores.ai)}
   AI Reasoning:      ${String(precision.consensus.scores.ai).padStart(3)}% ${getScoreBar(precision.consensus.scores.ai)}
 
 ${precision.consensus.redFlags.conflictingMethods ? '⚠️ WARNING: Methods show significant disagreement' : '✅ All methods in agreement'}

@@ -2,7 +2,7 @@
  * 🔱 AI-Pandit Core Domain Types
  * ==========================================
  * Fundamental types: birth data, life events, time offsets,
- * forensic traits, session/archive types, and event constants.
+ * session/archive types, and event constants.
  */
 
 import { z } from 'zod';
@@ -131,94 +131,6 @@ export const BirthDataSchema = z.object({
     gender: z.enum(['male', 'female', 'other']),
 });
 
-/**
- * Physical traits for forensic matching
- */
-export interface PhysicalTraits {
-  height?: {
-    cm: number;
-    feet: number;
-    inches: number;
-  };
-  build: 'slim' | 'medium' | 'athletic' | 'heavy' | 'very_heavy';
-  complexion: 'very_fair' | 'fair' | 'medium' | 'dark' | 'very_dark';
-  faceShape: 'round' | 'oval' | 'square' | 'long' | 'heart' | 'pear';
-  eyeColor: string;
-  hairColor: string;
-  hairType?: 'straight' | 'curly' | 'wavy' | 'thin' | 'thick';
-  prakriti?: 'vata' | 'pitta' | 'kapha' | 'vata-pitta' | 'pitta-kapha' | 'vata-kapha';
-  noseType?: 'sharp' | 'blunt' | 'aquiline' | 'long' | 'small';
-  specialFeatures?: string;
-  overallDescription?: string;
-}
-
-// ═════════════════════════════════════════════════════════════════════════════
-// FORENSIC TRAITS TYPES
-// ═════════════════════════════════════════════════════════════════════════════
-
-export interface FacialStructure {
-  forehead: string | 'broad' | 'narrow' | 'average' | 'sloping';
-  eyeShape: string | 'deep_set' | 'prominent' | 'almond' | 'round' | 'small';
-  noseType: string | 'sharp' | 'blunt' | 'aquiline' | 'long' | 'small';
-  noseShape?: string;
-  jawLine?: string;
-  teethAlignment: string | 'perfect' | 'crooked' | 'gap' | 'large' | 'small';
-  voicePitch: string | 'deep' | 'high' | 'medium' | 'soft' | 'raspy';
-}
-
-export interface SkinHair {
-  texture: 'dry' | 'oily' | 'combination' | 'sensitive';
-  hairType: 'straight' | 'curly' | 'wavy' | 'thin' | 'thick' | 'bald';
-  complexion: 'very_fair' | 'fair' | 'medium' | 'dark' | 'very_dark';
-  marks: string[];
-}
-
-/**
- * Psychographic/DNA characteristics
- */
-export interface PsychographicDNA {
-  speechStyle: 'fast_loud' | 'measured_soft' | 'argumentative' | 'concise' | 'talkative';
-  decisionMaking: 'impulsive' | 'deliberate' | 'indecisive' | 'intuitive';
-  stressResponse: 'aggressive' | 'withdrawn' | 'anxious' | 'calm';
-  sleepCycle: 'night_owl' | 'early_bird' | 'irregular' | 'deep_sleeper';
-  temperament: 'short_tempered' | 'patient' | 'jovial' | 'melancholic' | 'optimistic';
-}
-
-/**
- * Biological markers (Ayurvedic)
- */
-export interface BiologicalMarkers {
-  prakriti: 'vata' | 'pitta' | 'kapha' | 'vata-pitta' | 'pitta-kapha' | 'vata-kapha';
-  sensitivity: {
-    heat: 'high' | 'medium' | 'low';
-    cold: 'high' | 'medium' | 'low';
-  };
-  recurringHealthIssues: string[];
-}
-
-export interface FamilyNarrativeMatrix {
-  siblingPosition: 'eldest' | 'middle' | 'youngest' | 'only_child';
-  brotherCount: number;
-  sisterCount: number;
-  fatherStatusAtBirth: 'struggling' | 'stable' | 'prosperous' | 'highly_distinguished';
-  motherHealthAtBirth: 'excellent' | 'normal' | 'weak' | 'complicated';
-  firstChildInfo?: {
-    gender: 'male' | 'female';
-    yearOfBirth: number;
-  };
-}
-
-export interface ForensicTraits {
-  physical: {
-    facialStructure: FacialStructure;
-    skinHair: SkinHair;
-    build: 'slim' | 'medium' | 'athletic' | 'heavy' | 'very_heavy';
-    height: { cm: number; feet: number; inches: number };
-  };
-  psychographic: PsychographicDNA;
-  biological: BiologicalMarkers;
-  family: FamilyNarrativeMatrix;
-}
 
 // ═════════════════════════════════════════════════════════════════════════════
 // LIFE EVENT TYPES
@@ -431,7 +343,6 @@ export interface RectificationSession {
   longitude: number;
   timezone: string | number;
   gender?: string;
-  physicalTraits?: PhysicalTraits;
   lifeEvents: LifeEvent[];
   offsetConfig?: TimeOffsetConfig;
   rectifiedTime?: string;

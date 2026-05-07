@@ -5,7 +5,7 @@
  * precision enhancement, boundary safety checks.
  */
 
-import { LifeEvent, ForensicTraits } from './core.js';
+import { LifeEvent } from './core.js';
 import { EphemerisData } from './ephemeris.js';
 
 // ═════════════════════════════════════════════════════════════════════════════
@@ -24,7 +24,7 @@ export interface ConsensusScores {
   ashtakavarga: number;
   varga: number;
   transit: number;
-  forensic: number;
+  ai: number;
   ai: number;
   nadi?: number;
   prana?: number;
@@ -46,7 +46,6 @@ export interface RedFlags {
   conflictingMethods: boolean;
   weakSignificators: boolean;
   d60Instability: boolean;
-  forensicMismatch: boolean;
 }
 
 export interface ConsensusResult {
@@ -73,7 +72,6 @@ export interface ValidationInput {
     candidateDate?: string;
   };
   events: LifeEvent[];
-  forensicProfile: ForensicTraits;
   tentativeTime: string;
 }
 

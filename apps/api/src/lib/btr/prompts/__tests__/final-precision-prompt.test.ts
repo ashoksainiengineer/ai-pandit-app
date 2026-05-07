@@ -27,7 +27,6 @@ describe('getFinalPrecisionPrompt life-event window propagation', () => {
         } as any,
       ],
       {} as any,
-      null,
       undefined,
     );
 

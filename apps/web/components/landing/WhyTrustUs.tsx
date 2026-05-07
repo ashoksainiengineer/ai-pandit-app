@@ -32,7 +32,7 @@ export default function WhyTrustUs() {
           viewport={{ once: true }}
           className="text-center mb-14"
         >
-          <h2 className=" text-3xl sm:text-4xl font-medium text-[#000000] mb-3">
+          <h2 className=" text-3xl sm:text-4xl font-medium text-black mb-3">
             Built for Trust
           </h2>
           <p className="text-[#636363] text-sm max-w-md mx-auto">
@@ -54,7 +54,7 @@ export default function WhyTrustUs() {
                 <p.icon className="w-5 h-5 text-[#8A6A0B]" />
               </div>
               <div>
-                <h3 className=" text-lg font-medium text-[#000000] mb-2">
+                <h3 className=" text-lg font-medium text-black mb-2">
                   {p.title}
                 </h3>
                 <p className="text-sm text-[#636363] leading-relaxed">{p.desc}</p>

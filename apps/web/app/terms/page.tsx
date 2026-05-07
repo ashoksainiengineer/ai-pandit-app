@@ -16,7 +16,7 @@ export const metadata: Metadata = {
 
 export default function TermsPage() {
   return (
-    <main className="min-h-screen bg-[#FAFAFA]">
+    <main className="min-h-screen bg-[var(--prism-canvas)]">
       {/* Header */}
       <div className="bg-white/90 backdrop-blur-xl border-b border-black/10">
         <div className="max-w-4xl mx-auto px-6 py-6">
@@ -82,7 +82,7 @@ export default function TermsPage() {
             <ul className="space-y-3 text-black/60">
               <li className="flex items-start gap-2">
                 <span className="text-indigo-600 mt-1">✓</span>
-                <span><strong>Data Processing:</strong> Your birth data (date, time, coordinates), life events, and forensic traits will be processed by AI systems to perform astrological analysis.</span>
+                <span><strong>Data Processing:</strong> Your birth data (date, time, coordinates) and life events will be processed by AI systems to perform astrological analysis.</span>
               </li>
               <li className="flex items-start gap-2">
                 <span className="text-indigo-600 mt-1">✓</span>
@@ -129,7 +129,7 @@ export default function TermsPage() {
                   <li>• Anonymized data with PII redacted ([REDACTED_NAME])</li>
                   <li>• Birth date, time, coordinates</li>
                   <li>• Life event dates & descriptions</li>
-                  <li>• Forensic traits (physical/psychological)</li>
+                  <li>• Life event dates &amp; descriptions</li>
                   <li>• Spouse birth data (DOB/time/coords)</li>
                   <li>• Skyfield ephemeris calculations</li>
                   <li>• Anonymous user ID (pseudonym)</li>

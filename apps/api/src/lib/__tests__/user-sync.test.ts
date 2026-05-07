@@ -14,6 +14,7 @@ vi.mock('@ai-pandit/db', () => ({
         values: vi.fn().mockResolvedValue(undefined),
     },
     executeWithRetry: vi.fn((fn: any) => fn()),
+    syncUser: vi.fn(),
 }));
 
 const _mockGetUser = vi.fn().mockResolvedValue({
@@ -33,7 +34,7 @@ vi.mock('../logger.js', () => ({
 }));
 
 import { syncUser } from '../user-sync.js';
-import { db } from '@ai-pandit/db';
+import { syncUser as syncUserShared } from '@ai-pandit/db';
 import { getClerk } from '../../middleware/auth.js';
 
 describe('User Sync - Unit Tests', () => {
@@ -45,45 +46,45 @@ describe('User Sync - Unit Tests', () => {
     // ═════ syncUser ═════
 
     describe('syncUser', () => {
-        it('should return existing user ID if user found in DB', async () => {
-            (db as any).limit.mockResolvedValueOnce([{ id: 'existing-uuid' }]);
+        it('should delegate to syncUserShared and return result', async () => {
+            vi.mocked(syncUserShared).mockResolvedValueOnce('existing-uuid');
 
             const result = await syncUser('clerk_123');
             expect(result).toBe('existing-uuid');
-            // Should NOT call Clerk API since user exists
-            expect(_mockGetUser).not.toHaveBeenCalled();
+            expect(syncUserShared).toHaveBeenCalledWith('clerk_123', expect.objectContaining({
+                getClerkUser: expect.any(Function),
+                log: expect.any(Function),
+            }));
         });
 
-        it('should create user from Clerk when not found in DB', async () => {
-            (db as any).limit.mockResolvedValueOnce([]); // user not found
+        it('should call Clerk API via getClerkUser when needed', async () => {
+            vi.mocked(syncUserShared).mockImplementationOnce(async (_clerkId, opts: any) => {
+                const user = await opts.getClerkUser('clerk_456');
+                expect(user.emailAddresses[0].emailAddress).toBe('test@example.com');
+                return 'new-user-uuid';
+            });
 
             const result = await syncUser('clerk_456');
-            expect(typeof result).toBe('string');
-            expect(result.length).toBeGreaterThan(0);
-            // Should call Clerk to fetch user data
+            expect(result).toBe('new-user-uuid');
             expect(_mockGetUser).toHaveBeenCalledWith('clerk_456');
-            // Should insert into DB
-            expect(db.insert).toHaveBeenCalled();
         });
 
         it('should throw when Clerk API fails', async () => {
-            (db as any).limit.mockResolvedValueOnce([]); // user not found
             _mockGetUser.mockRejectedValueOnce(new Error('Clerk unavailable'));
+            vi.mocked(syncUserShared).mockImplementationOnce(async (_clerkId, opts: any) => {
+                await opts.getClerkUser('clerk_789');
+                return 'should-not-reach';
+            });
 
-            await expect(syncUser('clerk_789')).rejects.toThrow('User synchronization failed');
+            await expect(syncUser('clerk_789')).rejects.toThrow();
         });
 
         it('should handle empty name gracefully', async () => {
-            (db as any).limit.mockResolvedValueOnce([]);
-            _mockGetUser.mockResolvedValueOnce({
-                emailAddresses: [{ emailAddress: 'noname@test.com' }],
-                firstName: null,
-                lastName: null,
-            } as any);
+            vi.mocked(syncUserShared).mockResolvedValueOnce('empty-name-uuid');
 
             const result = await syncUser('clerk_empty');
-            expect(typeof result).toBe('string');
-            expect(db.insert).toHaveBeenCalled();
+            expect(result).toBe('empty-name-uuid');
+            expect(syncUserShared).toHaveBeenCalled();
         });
     });
 });

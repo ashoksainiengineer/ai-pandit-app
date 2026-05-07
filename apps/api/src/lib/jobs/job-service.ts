@@ -27,8 +27,6 @@ type UserPlanTier = 'free' | 'pro' | 'enterprise';
 interface CreateJobRequestBody extends Record<string, unknown> {
   birthData?: unknown;
   lifeEvents?: unknown;
-  physicalTraits?: unknown;
-  forensicTraits?: unknown;
   offsetConfig?: unknown;
   existingSessionId?: unknown;
   consentConfirmed?: unknown;
@@ -197,8 +195,6 @@ function validateBirthData(value: CreateJobRequestBody): asserts value is Create
   const validationResult = CalculateRequestSchema.safeParse({
     birthData: value.birthData,
     lifeEvents: value.lifeEvents,
-    physicalTraits: value.physicalTraits,
-    forensicTraits: value.forensicTraits,
     offsetConfig: value.offsetConfig,
   });
 
@@ -211,10 +207,7 @@ function validateBirthData(value: CreateJobRequestBody): asserts value is Create
     });
   }
 
-  const { birthData, forensicTraits, offsetConfig } = validationResult.data;
-  if (!forensicTraits) {
-    throw new ValidationError('Forensic traits are required for high-precision BTR.');
-  }
+  const { birthData, offsetConfig } = validationResult.data;
 
   const offsetValidation = validateOffsetConfig(offsetConfig);
   if (!offsetValidation.valid) {
@@ -330,8 +323,6 @@ export async function createQueuedBirthRectificationJob(
   const validationResult = CalculateRequestSchema.parse({
     birthData: options.body.birthData,
     lifeEvents: options.body.lifeEvents,
-    physicalTraits: options.body.physicalTraits,
-    forensicTraits: options.body.forensicTraits,
     offsetConfig: options.body.offsetConfig,
   });
 
@@ -388,12 +379,6 @@ export async function createQueuedBirthRectificationJob(
   const timestamp = nowIso();
   const encryptedFullName = encryptData(validationResult.birthData.fullName, options.clerkId);
   const encryptedLifeEvents = encryptData(JSON.stringify(validationResult.lifeEvents), options.clerkId);
-  const encryptedPhysicalTraits = validationResult.physicalTraits
-    ? encryptData(JSON.stringify(validationResult.physicalTraits), options.clerkId)
-    : null;
-  const encryptedForensicTraits = validationResult.forensicTraits
-    ? encryptData(JSON.stringify(validationResult.forensicTraits), options.clerkId)
-    : null;
 
   try {
     await db.transaction(async (tx) => {
@@ -409,8 +394,6 @@ export async function createQueuedBirthRectificationJob(
         longitude: validationResult.birthData.longitude,
         timezone: validationResult.birthData.timezone.toString(),
         gender: validationResult.birthData.gender ?? 'other',
-        physicalTraits: encryptedPhysicalTraits,
-        forensicTraits: encryptedForensicTraits,
         lifeEvents: encryptedLifeEvents,
         offsetConfig: encryptData(JSON.stringify(validationResult.offsetConfig), options.clerkId),
         status: 'pending',

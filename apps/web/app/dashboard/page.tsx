@@ -21,7 +21,7 @@ export default async function DashboardPage() {
   if (!user) {
     return (
       <Layout hideFooter>
-        <div className="min-h-[60vh] flex items-center justify-center bg-[#FAFAFA]">
+        <div className="min-h-[60vh] flex items-center justify-center bg-[var(--prism-canvas)]">
           <div className="bg-white rounded-3xl shadow-lg border border-black/5 p-8 max-w-md text-center">
             <h1 className="text-2xl font-medium text-black mb-4">
               Please Sign In
@@ -43,7 +43,7 @@ export default async function DashboardPage() {
 
   return (
     <Layout hideFooter>
-      <div className="pt-8 pb-12 bg-[#FAFAFA] min-h-screen">
+      <div className="pt-8 pb-12 bg-[var(--prism-canvas)] min-h-screen">
         <Suspense fallback={<DashboardSkeleton />}>
           <DashboardContent clerkId={user.id} userName={user.firstName || 'User'} />
         </Suspense>

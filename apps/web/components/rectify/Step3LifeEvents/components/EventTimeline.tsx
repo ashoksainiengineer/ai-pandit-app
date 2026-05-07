@@ -16,8 +16,8 @@ export function EventTimeline({ sortedEvents, setEditingId }: EventTimelineProps
     return (
         <FormCard className="p-5">
             <div className="flex justify-between items-center mb-4">
-                <h3 className=" text-lg font-medium text-[#000000]">📜 Timeline</h3>
-                <span className="text-xs text-[#636363] bg-[#FAFAFA] px-2 py-1 rounded-full">
+                <h3 className=" text-lg font-medium text-black">📜 Timeline</h3>
+                <span className="text-xs text-black/60 bg-[var(--prism-canvas)] px-2 py-1 rounded-full">
                     {sortedEvents.length} events
                 </span>
             </div>
@@ -26,34 +26,34 @@ export function EventTimeline({ sortedEvents, setEditingId }: EventTimelineProps
                     <motion.div
                         key={event.id}
                         onClick={() => setEditingId(event.id)}
-                        className="flex items-center gap-3 p-3 cursor-pointer hover:bg-[#FAFAFA] transition-colors rounded-lg"
+                        className="flex items-center gap-3 p-3 cursor-pointer hover:bg-[var(--prism-canvas)] transition-colors rounded-lg"
                         whileHover={{ x: 4 }}
                     >
                         <span className="text-2xl">{event.icon}</span>
                         <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2">
-                                <div className="text-[#000000] font-medium text-sm truncate">{event.eventType}</div>
+                                <div className="text-black font-medium text-sm truncate">{event.eventType}</div>
                                 {event.importance && (
                                     <span className={`text-[10px] px-2 py-0.5 rounded-full ${event.importance === 'critical'
                                         ? 'bg-[#C65D3B]/10 text-[#C65D3B]'
                                         : event.importance === 'high'
-                                            ? 'bg-[#000000]/10 text-[#000000]'
+                                            ? 'bg-[#000000]/10 text-black'
                                             : event.importance === 'medium'
                                                 ? 'bg-[#184131]/10 text-[#184131]'
-                                                : 'bg-[#959595]/20 text-[#636363]'
+                                                : 'bg-[#959595]/20 text-black/60'
                                         }`}>
                                         {IMPORTANCE_OPTIONS.find(i => i.level === event.importance)?.icon}
                                     </span>
                                 )}
                                 {event.isCustom && (
-                                    <span className="text-[10px] px-2 py-0.5 bg-[#000000]/10 text-[#000000] rounded-full">
+                                    <span className="text-[10px] px-2 py-0.5 bg-[#000000]/10 text-black rounded-full">
                                         Custom
                                     </span>
                                 )}
                             </div>
-                            <div className="text-xs text-[#000000] font-medium">{formatEventDate(event)}</div>
+                            <div className="text-xs text-black font-medium">{formatEventDate(event)}</div>
                             {event.description && (
-                                <p className="text-xs text-[#636363] line-clamp-1 mt-0.5">{event.description}</p>
+                                <p className="text-xs text-black/60 line-clamp-1 mt-0.5">{event.description}</p>
                             )}
                         </div>
                         {event.description && event.description.length >= 10 ? (

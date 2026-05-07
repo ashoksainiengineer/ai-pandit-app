@@ -12,12 +12,8 @@ import BirthDataForm from '@/components/rectify/BirthDataForm';
 import LifeEventsEditor from '@/components/rectify/LifeEventsEditor';
 import { useRectifyForm } from '@/hooks/use-rectify-form';
 
-const Step2PhysicalTraits = dynamic(() => import('@/components/rectify/Step2PhysicalTraits'), {
-    loading: () => <div className="animate-pulse bg-[#FAFAFA] h-96 rounded-xl" />,
-    ssr: false
-});
 const Step4Review = dynamic(() => import('@/components/rectify/Step4Review'), {
-    loading: () => <div className="animate-pulse bg-[#FAFAFA] h-96 rounded-xl" />,
+    loading: () => <div className="animate-pulse bg-[var(--prism-canvas)] h-96 rounded-xl" />,
     ssr: false
 });
 
@@ -46,24 +42,16 @@ function RectifyPageContent() {
                             />
                         )}
                         {form.step === 2 && (
-                            <Step2PhysicalTraits
-                                physicalTraits={form.forensicTraits.physical}
-                                updateTraits={form.updatePhysicalTraits}
-                            />
-                        )}
-                        {form.step === 3 && (
                             <LifeEventsEditor
                                 lifeEvents={form.lifeEvents}
                                 offsetConfig={form.offsetConfig}
                                 onUpdateEvents={form.setLifeEvents}
                             />
                         )}
-                        {form.step === 4 && (
+                        {form.step === 3 && (
                             <Step4Review
                                 data={form.birthData}
                                 events={form.lifeEvents}
-                                traits={form.forensicTraits.physical as any}
-                                forensicTraits={form.forensicTraits}
                                 onSubmit={form.handleSubmit}
                                 isSubmitting={form.isSubmitting}
                                 onEdit={form.setStep}
@@ -74,7 +62,7 @@ function RectifyPageContent() {
 
                     <RectifySubmitBar
                         step={form.step}
-                        totalSteps={4}
+                        totalSteps={3}
                         isSubmitting={form.isSubmitting}
                         error={form.error}
                         onBack={form.handleBack}

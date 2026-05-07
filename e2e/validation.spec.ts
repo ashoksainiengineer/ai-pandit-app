@@ -45,43 +45,8 @@ test.describe('Form Validation & Integrity', () => {
         await maleBtn.click();
         await page.getByRole('button', { name: /Next Step/i }).click();
 
-        // Step 2: Physical
-        await expect(page.getByText(/Physical Appearance/i)).toBeVisible({ timeout: 10000 });
-        await page.getByRole('button', { name: /Almond/i }).click();
-        await page.getByRole('button', { name: /Next Step/i }).click();
 
-        // Step 3: Forensic (Skip/Complete quiz quickly)
-        await expect(page.getByText(/Forensic Traits/i)).toBeVisible({ timeout: 15000 });
-
-        const startBtn = page.getByRole('button', { name: /Start Assessment/i }).or(page.getByRole('button', { name: /Resume Assessment/i }));
-        if (await startBtn.count() > 0 && await startBtn.first().isVisible()) {
-            await startBtn.first().click();
-        }
-
-        // Just answer enough to get to results or just skip if results button appears
-        let qCount = 0;
-        while (qCount < 20) {
-            const confirmBtn = page.getByRole('button', { name: /Confirm & Continue/i });
-            if (await confirmBtn.isVisible()) {
-                await confirmBtn.click();
-                break;
-            }
-            const option = page.locator('button.w-full.text-left').first();
-            if (await option.isVisible()) {
-                await option.click();
-                const next = page.getByRole('button', { name: 'Next', exact: true }).or(page.getByRole('button', { name: 'See Results', exact: true }));
-                await next.click();
-                await page.waitForSelector('button.w-full.text-left, button:has-text("Confirm & Continue")', { state: 'visible', timeout: 5000 });
-            } else {
-                break;
-            }
-            qCount++;
-        }
-
-        await expect(page.getByRole('button', { name: 'Next Step →' })).toBeVisible({ timeout: 15000 });
-        await page.getByRole('button', { name: 'Next Step →' }).click();
-
-        // Step 4: Life Events
+        // Step 2: Life Events
         await expect(page.getByRole('heading', { name: /Life Events/i })).toBeVisible({ timeout: 10000 });
         const searchInput = page.getByPlaceholder(/Search life events/i);
         await searchInput.fill('Marriage');

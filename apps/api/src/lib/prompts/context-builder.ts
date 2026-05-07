@@ -17,12 +17,7 @@ export function buildCandidateAnalysisPrompt(
         description: string;
         importance: string;
     }>,
-    dashaInfo: string,
-    physicalTraits?: {
-        height?: string;
-        build?: string;
-        complexion?: string;
-    }
+    dashaInfo: string
 ): string {
     const eventsText = lifeEvents.map((event, i) =>
         `${i + 1}. ${event.eventType.toUpperCase()} (${event.category})
@@ -31,44 +26,23 @@ export function buildCandidateAnalysisPrompt(
    Description: ${event.description}`
     ).join('\n\n');
 
-    const traitsText = physicalTraits
-        ? `HEIGHT: ${physicalTraits.height || 'Not specified'}
-BUILD: ${physicalTraits.build || 'Not specified'}
-COMPLEXION: ${physicalTraits.complexion || 'Not specified'}`
-        : 'No physical traits provided';
-
     return `BIRTH TIME RECTIFICATION ANALYSIS
 
-══════════════════════════════════════════════════════════════════════════════
 CANDIDATE BIRTH TIME: ${candidateTime}
 DATE OF BIRTH: ${dateOfBirth}
-══════════════════════════════════════════════════════════════════════════════
 
 PLANETARY POSITIONS (Vedic/Sidereal):
 ${planetaryPositions}
 
-══════════════════════════════════════════════════════════════════════════════
-
 HOUSE CUSPS:
 ${housePositions}
-
-══════════════════════════════════════════════════════════════════════════════
 
 VIMSHOTTARI DASHA SEQUENCE:
 ${dashaInfo}
 
-══════════════════════════════════════════════════════════════════════════════
-
 LIFE EVENTS TO VERIFY (${lifeEvents.length} events):
 
 ${eventsText}
-
-══════════════════════════════════════════════════════════════════════════════
-
-PHYSICAL CHARACTERISTICS:
-${traitsText}
-
-══════════════════════════════════════════════════════════════════════════════
 
 YOUR TASK:
 1. Cross-verify dasha and transits for each event.
@@ -98,8 +72,6 @@ You have analyzed the following ${candidates.length} candidates:
 
 ${candidatesText}
 
-══════════════════════════════════════════════════════════════════════════════
-
 FINAL TASK:
 1. Rank them from MOST LIKELY to LEAST LIKELY.
 2. State confidence and missing data for 99.9% precision.
@@ -110,5 +82,5 @@ RANK 2: [Time] - Score: [X]/100
 
 TOP RECOMMENDATION: [Time]
 CONFIDENCE: [HIGH/MEDIUM/LOW]
-🚨 MISSING DATA: [List gaps]`;
+MISSING DATA: [List gaps]`;
 }

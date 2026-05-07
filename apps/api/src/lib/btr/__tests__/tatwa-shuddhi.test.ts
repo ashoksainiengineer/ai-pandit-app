@@ -14,7 +14,7 @@ describe('Vedic Engine - Tatwa Shuddhi Analysis', () => {
             sunriseTime,
             birthTime: tentativeTime,
             // Assuming the candidate is predominantly 'pitta' (Fire/Agni)
-            knownPrakriti: 'pitta'
+            // No knownPrakriti provided
         });
 
         expect(result).toBeDefined();

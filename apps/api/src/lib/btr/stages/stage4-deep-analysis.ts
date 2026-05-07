@@ -3,11 +3,11 @@ import { AppError } from '@ai-pandit/shared';
 /**
  * Stage 4: Deep Analysis
  *
- * Multi-dasha verification with deep forensic analysis on Stage 3 candidates.
+ * Multi-dasha verification with deep analysis on Stage 3 candidates.
  * Uses parallel AI execution for comprehensive candidate evaluation.
  */
 
-import { SecondsPrecisionInput, ForensicTraits } from '@ai-pandit/shared';
+import { SecondsPrecisionInput } from '@ai-pandit/shared';
 import { CandidateTime, getCandidateIdentity, getDynamicBatchSize, getDynamicSurvivors, sortCandidatesByMerit, splitIntoBatches } from '../../time-offset-manager.js';
 import { ProgressTracker } from '../../progress-tracker.js';
 import { _callAIWithStream, _executeAIInParallel } from '../../ai-client.js';
@@ -34,7 +34,7 @@ type LifecycleShift = NonNullable<CandidateDataPackage['lifecycleShifts']>[numbe
  * @param input - BTR input parameters
  * @param candidates - Refined candidates from Stage 3
  * @param progress - Progress tracker
- * @param forensicTraits - User's forensic traits
+ * @param globalLifecycle - Pre-calculated lifecycle shifts
  * @param globalLifecycle - Pre-calculated lifecycle shifts
  * @returns Deep analysis survivors and stage result
  */
@@ -42,7 +42,6 @@ export async function stage4DeepAnalysis(
     input: SecondsPrecisionInput,
     candidates: CandidateTime[],
     progress: ProgressTracker,
-    forensicTraits: ForensicTraits,
     globalLifecycle: LifecycleShift[] = []
 ): Promise<{ survivors: CandidateTime[]; stageResult: StageResult; aiReasoning: string }> {
     await progress.startStep('deep', 'Stage 4: Deep analysis tournament...');
@@ -52,7 +51,7 @@ export async function stage4DeepAnalysis(
         candidatesIn: candidates.length,
         sampleTime: candidates[0]?.time,
         lifeEventsCount: input.lifeEvents?.length,
-        hasForensicTraits: !!forensicTraits
+        hasForensicTraits: false
     });
 
     let currentCandidates = [...candidates];
@@ -96,11 +95,10 @@ export async function stage4DeepAnalysis(
                     moon: `${c.planets.moon.sign} ${c.planets.moon.degree}`
                 })),
                 lifeEventsCount: input.lifeEvents.length,
-                hasForensicTraits: !!forensicTraits
             });
 
-            const systemPrompt = 'You are the GOD-TIER VEDIC ANALYST. Perform deep forensic multi-dasha verification.';
-            const userPrompt = getDeepAnalysisPrompt(batchEnriched, input.lifeEvents, forensicTraits, input.spouseData, offsetMinutes);
+            const systemPrompt = 'You are the GOD-TIER VEDIC ANALYST. Perform deep multi-dasha verification.';
+            const userPrompt = getDeepAnalysisPrompt(batchEnriched, input.lifeEvents, input.spouseData, offsetMinutes);
             
             // Save batch metadata
             btrDataCapture.saveBatchMetadata(
@@ -139,8 +137,7 @@ export async function stage4DeepAnalysis(
                     {
                         candidateCount: batchEnriched.length,
                         eventCount: input.lifeEvents.length,
-                        forensicTraitsPresent: !!forensicTraits,
-                        spouseDataPresent: !!input.spouseData
+                        spouseDataPresent: !!input.spouseData,
                     },
                     roundNumber,
                     i + 1
@@ -279,7 +276,7 @@ export async function stage4DeepAnalysis(
             })
         ));
 
-        const prompt = getDeepAnalysisPrompt(finalBatchData, input.lifeEvents, forensicTraits, input.spouseData, offsetMinutes);
+        const prompt = getDeepAnalysisPrompt(finalBatchData, input.lifeEvents, input.spouseData, offsetMinutes);
 
         const response = await _callAIWithStream(
             input.sessionId,

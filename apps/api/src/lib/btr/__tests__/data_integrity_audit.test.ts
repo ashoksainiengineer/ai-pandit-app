@@ -29,17 +29,6 @@ describe('🔱 DATA INTEGRITY AUDIT: AI Payload Precision', () => {
             ],
             offsetConfig: { preset: '30min', description: 'Test' },
             sessionId: 'audit-session',
-            forensicTraits: {
-                physical: {
-                    facialStructure: { forehead: 'average', eyeShape: 'almond', noseType: 'sharp', teethAlignment: 'perfect', voicePitch: 'medium' },
-                    skinHair: { texture: 'combination', hairType: 'straight', complexion: 'fair', marks: [] },
-                    build: 'medium',
-                    height: { cm: 175, feet: 5, inches: 9 }
-                },
-                psychographic: { speechStyle: 'measured_soft', decisionMaking: 'deliberate', stressResponse: 'calm', sleepCycle: 'early_bird', temperament: 'patient' },
-                biological: { prakriti: 'pitta', sensitivity: { heat: 'high', cold: 'medium' }, recurringHealthIssues: [] },
-                family: { siblingPosition: 'eldest', brotherCount: 1, sisterCount: 0, fatherStatusAtBirth: 'stable', motherHealthAtBirth: 'excellent' }
-            }
         };
 
         const pkg = await buildCandidateDataPackage('10:00:00', 0, input, {

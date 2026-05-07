@@ -48,7 +48,6 @@ export async function GET(_req: NextRequest) {
             isFavorite: favoriteSet.has(s.id),
             fullName: parseSensitiveField(s.fullName, user.id, undefined),
             lifeEvents: parseSensitiveField(s.lifeEvents, user.id, []),
-            forensicTraits: parseSensitiveField(s.forensicTraits, user.id, undefined),
             spouseData: parseSensitiveField(s.spouseData, user.id, undefined),
             offsetConfig: parseSensitiveField(s.offsetConfig, user.id, undefined),
             // Reconstruct birthData object
@@ -127,7 +126,6 @@ export async function POST(req: NextRequest) {
             // Encrypted JSON fields
             lifeEvents: body.lifeEvents ? encrypt(JSON.stringify(body.lifeEvents), user.id) : encrypt('[]', user.id),
             spouseData: body.spouseData ? encrypt(JSON.stringify(body.spouseData), user.id) : null,
-            forensicTraits: body.forensicTraits ? encrypt(JSON.stringify(body.forensicTraits), user.id) : null,
             offsetConfig: body.offsetConfig ? encrypt(JSON.stringify(body.offsetConfig), user.id) : null,
 
             status: 'draft' as const,
@@ -148,7 +146,6 @@ export async function POST(req: NextRequest) {
                 birthData: bd,
                 lifeEvents: body.lifeEvents || [],
                 spouseData: body.spouseData,
-                forensicTraits: body.forensicTraits,
                 offsetConfig: body.offsetConfig
             }
         });

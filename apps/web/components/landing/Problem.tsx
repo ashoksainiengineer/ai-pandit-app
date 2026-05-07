@@ -164,9 +164,9 @@ export default function Problem() {
           </div>
           
           <h2 className=" text-3xl md:text-4xl lg:text-5xl 
-                         font-medium text-[#000000] mb-6 leading-tight">
+                         font-medium text-black mb-6 leading-tight">
             Algorithmic{' '}
-            <span className="text-[#000000]">Precision</span>
+            <span className="text-black">Precision</span>
             {' '}vs Manual Methods
           </h2>
           
@@ -199,7 +199,7 @@ export default function Problem() {
                 <div className="relative">
                   <Icon className="w-6 h-6 mx-auto mb-3" style={{ color: spec.color }} />
                   <div className="text-[10px] uppercase tracking-[0.15em] text-[#636363] mb-1">{spec.label}</div>
-                  <div className="text-sm font-medium text-[#000000]">{spec.value}</div>
+                  <div className="text-sm font-medium text-black">{spec.value}</div>
                 </div>
               </div>
             );
@@ -210,7 +210,7 @@ export default function Problem() {
         <div
           className="mb-20"
         >
-          <h3 className=" text-2xl font-medium text-[#000000] mb-8 text-center">
+          <h3 className=" text-2xl font-medium text-black mb-8 text-center">
             Sacred Architecture Components
           </h3>
           
@@ -229,7 +229,7 @@ export default function Problem() {
                     <Workflow className="w-5 h-5" style={{ color: comp.color }} />
                   </div>
                   <div>
-                    <span className="font-medium text-[#000000] block">{comp.name}</span>
+                    <span className="font-medium text-black block">{comp.name}</span>
                     <span className="text-sm text-[#636363]">{comp.purpose}</span>
                   </div>
                 </div>
@@ -297,7 +297,7 @@ export default function Problem() {
                       </div>
                       <div>
                         <div className="text-xs uppercase tracking-[0.15em] text-[#636363]">{point.category}</div>
-                        <h3 className=" text-xl font-medium text-[#000000]">
+                        <h3 className=" text-xl font-medium text-black">
                           {point.ai.title}
                         </h3>
                       </div>
@@ -337,10 +337,10 @@ export default function Problem() {
           <div className="relative flex flex-col md:flex-row items-center justify-between gap-6">
             <div>
               <div className="flex items-center gap-2 mb-3">
-                <Star className="w-5 h-5 text-[#000000] fill-[#000000]" />
-                <span className="text-xs uppercase tracking-[0.2em] text-[#000000]">Begin Your Journey</span>
+                <Star className="w-5 h-5 text-black fill-[#000000]" />
+                <span className="text-xs uppercase tracking-[0.2em] text-black">Begin Your Journey</span>
               </div>
-              <h3 className=" text-2xl lg:text-3xl font-medium text-[#000000] mb-2">
+              <h3 className=" text-2xl lg:text-3xl font-medium text-black mb-2">
                 Experience Divine Precision
               </h3>
               <p className="text-[#636363]">

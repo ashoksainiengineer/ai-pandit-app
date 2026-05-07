@@ -380,15 +380,7 @@ const testInput = {
       significators: ['Jupiter', 'Ketu', '9th House']
     }
   ],
-  forensicTraits: {
-    dominantElement: 'earth',
-    prakriti: {
-      vata: 20,
-      pitta: 40,
-      kapha: 40,
-      dominant: 'pitta-kapha'
-    }
-  }
+  ],
 };
 
 // Progress tracking

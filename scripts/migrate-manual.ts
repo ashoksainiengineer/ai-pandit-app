@@ -34,7 +34,6 @@ async function manualMigrate() {
         longitude REAL NOT NULL,
         timezone TEXT NOT NULL,
         gender TEXT,
-        physicalTraits TEXT,
         lifeEvents TEXT NOT NULL,
         offsetConfig TEXT,
         rectifiedTime TEXT,

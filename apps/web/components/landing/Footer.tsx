@@ -24,7 +24,7 @@ export default function Footer() {
           <div
           >
             <div className="mb-6">
-              <span className=" text-2xl font-medium text-[#000000] block">
+              <span className=" text-2xl font-medium text-black block">
                 AI Pandit
               </span>
               <span className="text-[10px] text-[#636363] uppercase tracking-[0.2em]">
@@ -48,7 +48,7 @@ export default function Footer() {
           {/* Quick Links */}
           <div
           >
-            <h3 className=" text-[#000000] font-medium text-lg mb-6">
+            <h3 className=" text-black font-medium text-lg mb-6">
               Quick Links
             </h3>
             <ul className="space-y-3">
@@ -56,7 +56,7 @@ export default function Footer() {
                 <li key={link.href}>
                   <Link
                     href={link.href}
-                    className="text-[#636363] hover:text-[#000000] transition-colors duration-300 text-sm 
+                    className="text-[#636363] hover:text-black transition-colors duration-300 text-sm 
                                flex items-center gap-2 group"
                   >
                     <span className="w-0 h-px bg-[#000000] group-hover:w-3 transition-all duration-300" />
@@ -70,14 +70,14 @@ export default function Footer() {
           {/* Contact */}
           <div
           >
-            <h3 className=" text-[#000000] font-medium text-lg mb-6">
+            <h3 className=" text-black font-medium text-lg mb-6">
               Connect
             </h3>
 
             <div className="space-y-4">
               <a
                 href="mailto:app.aipandit@gmail.com"
-                className="flex items-center gap-3 text-[#636363] hover:text-[#000000] 
+                className="flex items-center gap-3 text-[#636363] hover:text-black 
                            transition-colors duration-300 text-sm group"
               >
                 <div className="w-10 h-10 rounded-xl bg-white border border-[rgba(0,0,0,0.08)] 

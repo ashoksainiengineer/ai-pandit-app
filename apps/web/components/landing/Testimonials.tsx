@@ -5,7 +5,7 @@ import TESTIMONIALS, { Testimonial, getAverageRating, getTotalTestimonials } fro
 
 function renderStars(rating: number) {
   return Array.from({ length: 5 }, (_, i) => (
-    <span key={i} className={i < rating ? 'text-[#000000]' : 'text-[rgba(0,0,0,0.08)]'}>
+    <span key={i} className={i < rating ? 'text-black' : 'text-[rgba(0,0,0,0.08)]'}>
       ★
     </span>
   ));
@@ -20,10 +20,10 @@ export default function TestimonialsSection() {
       <div className="max-w-7xl mx-auto px-6 relative">
         {/* Section Header */}
         <div className="text-center mb-16">
-          <span className="inline-block px-4 py-2 bg-[#000000]/10 border border-[#000000]/30 rounded-full text-[#000000] text-sm font-medium mb-6">
+          <span className="inline-block px-4 py-2 bg-[#000000]/10 border border-[#000000]/30 rounded-full text-black text-sm font-medium mb-6">
             ⭐ {getAverageRating()}/5 Average Rating from {getTotalTestimonials()} Users
           </span>
-          <h2 className="text-4xl md:text-5xl font-medium text-[#000000] mb-4">
+          <h2 className="text-4xl md:text-5xl font-medium text-black mb-4">
             Real Results from Real Users
           </h2>
           <p className="text-[#636363] text-lg max-w-2xl mx-auto">
@@ -61,12 +61,12 @@ function TestimonialCard({ testimonial, renderStars }: TestimonialCardProps) {
             <div className="flex items-center gap-3">
               {/* Avatar with initials */}
               <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#000000]/30 to-[#6A0572]/30 flex items-center justify-center">
-                <span className="text-[#000000] font-medium text-lg">
+                <span className="text-black font-medium text-lg">
                   {testimonial.name.split(' ').map(n => n[0]).join('')}
                 </span>
               </div>
               <div>
-                <h4 className="font-medium text-[#000000]">{testimonial.name}</h4>
+                <h4 className="font-medium text-black">{testimonial.name}</h4>
                 <p className="text-xs text-[#636363]">{testimonial.profession}</p>
                 <p className="text-xs text-[#636363]">{testimonial.location}</p>
               </div>
@@ -90,18 +90,18 @@ function TestimonialCard({ testimonial, renderStars }: TestimonialCardProps) {
 
           {/* Result Badge */}
           <div className="flex flex-wrap items-center gap-3 mb-4">
-            <div className="px-3 py-1.5 bg-[#FAFAFA] rounded-lg">
+            <div className="px-3 py-1.5 bg-[var(--prism-canvas)] rounded-lg">
               <span className="text-xs text-[#636363] block">Original</span>
               <span className="text-sm font-mono text-red-600 line-through">{testimonial.result.originalTime}</span>
             </div>
-            <span className="text-[#000000]">→</span>
+            <span className="text-black">→</span>
             <div className="px-3 py-1.5 bg-[#184131]/20 rounded-lg border border-[#184131]/30">
               <span className="text-xs text-[#184131] block">Rectified</span>
               <span className="text-sm font-mono text-[#184131] font-medium">{testimonial.result.rectifiedTime}</span>
             </div>
             <div className="px-3 py-1.5 bg-[#000000]/10 rounded-lg">
-              <span className="text-xs text-[#000000] block">Accuracy</span>
-              <span className="text-sm font-mono text-[#000000] font-medium">{testimonial.result.accuracyAchieved}%</span>
+              <span className="text-xs text-black block">Accuracy</span>
+              <span className="text-sm font-mono text-black font-medium">{testimonial.result.accuracyAchieved}%</span>
             </div>
           </div>
 
@@ -113,7 +113,7 @@ function TestimonialCard({ testimonial, renderStars }: TestimonialCardProps) {
           </div>
 
           {/* Expand/Collapse indicator */}
-          <div className="text-sm text-[#000000] flex items-center gap-1">
+          <div className="text-sm text-black flex items-center gap-1">
             Read Full Story
             <span className="transition-transform group-open:rotate-180">▼</span>
           </div>

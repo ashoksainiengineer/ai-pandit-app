@@ -2,14 +2,13 @@
  * Deep Analysis Prompt Generator
  *
  * Generates AI prompts for Stage 4 deep multi-dasha analysis.
- * Creates detailed forensic prompts for final candidate verification.
  * 
  * VSL DATA:
  * This prompt now uses the Vedic Shorthand Language (VSL) protocol
  * for exhaustive, lossless data compaction.
  */
 
-import { CandidateDataPackage, LifeEvent, ForensicTraits } from '@ai-pandit/shared';
+import { CandidateDataPackage, LifeEvent } from '@ai-pandit/shared';
 import { formatLifeEventForAI } from './life-event-formatter.js';
 import { shuffleArray } from '../../utils/index.js';
 import { validateCandidateDataForAI } from '@ai-pandit/shared/schemas';
@@ -69,14 +68,12 @@ function getTimelineRange(events: LifeEvent[]): string {
  *
  * @param candidates - Finalist candidate data packages
  * @param events - User's life events
- * @param forensicTraits - User's forensic traits
  * @param spouseData - Optional spouse data for synastry
  * @returns Complete AI prompt string for deep analysis
  */
 export function getDeepAnalysisPrompt(
   candidates: CandidateDataPackage[],
   events: LifeEvent[],
-  forensicTraits: ForensicTraits,
   spouseData: unknown,
   offsetMinutes: number = 30
 ): string {
@@ -97,23 +94,13 @@ export function getDeepAnalysisPrompt(
     }
   });
 
-  const eventsText = events.map(formatLifeEventForAI).join('\n');
-  const f = forensicTraits;
-  const spouseText = spouseData ? JSON.stringify(spouseData, null, 2) : 'N/A';
-  const timelineRange = getTimelineRange(events);
-
-  const forensicContext = `
-    [FORENSIC DNA - TOP 5 ANCHORS]
-    1. PRAKRITI: ${f?.biological?.prakriti?.toUpperCase() ?? 'Unknown'} (Biological Constitution)
-    2. TEMPERAMENT: ${f?.psychographic?.temperament ?? 'unknown'} (Psychological Profile)
-    3. BUILD: ${f?.physical?.build ?? 'unknown'} (${f?.physical?.height?.feet ?? '?'}'${f?.physical?.height?.inches ?? '?'}") (Physical Structure)
-    4. BIRTH ORDER: ${f?.family?.siblingPosition ?? 'unknown'} child (${f?.family?.brotherCount ?? 0}B/${f?.family?.sisterCount ?? 0}S) (Family Karma)
-    5. VOICE: ${f?.physical?.facialStructure?.voicePitch ?? 'unknown'} (Physical Marker)
-    `;
   // Anti-bias: Shuffle to prevent positional bias
   const filteredCandidates = candidates.filter(c => c.time);
   const shuffledCandidates = shuffleArray(filteredCandidates);
   const duplicateTimes = buildDuplicateTimeSet(shuffledCandidates);
+  const spouseText = spouseData ? JSON.stringify(spouseData, null, 2) : 'N/A';
+  const eventsText = events.map(formatLifeEventForAI).join('\n');
+  const timelineRange = getTimelineRange(events);
 
   return `BIRTH TIME RECTIFICATION - STAGE 4 (Deep Multi-Dasha Analysis)
 
@@ -151,13 +138,6 @@ ${getEventImportanceSummary(events)}
 ════════════════════════════════════════════════════════════════════════════════
 
 1. RELY ONLY ON PROVIDED MATHEMATICAL DATA - Do not hallucinate positions.
-2. NARRATIVE PRIMACY: Match event "flavor" to planetary dignity and aspects.
-3. FORENSIC CORRELATION: Varga markers must align with physical/psychographic data.
-4. BIO-VEDIC MAPPING: Forensic traits are "Biological Anchors".
-5. PROJECT MAHAKALA:
-   - TATWA SHUDDHI: Element matches biological/temperamental profile?
-   - KUNDA LAGNA: 'Matches Moon' = strong structural indicator.
-   - DIVISIONAL BOUNDARIES: Truth often lies at boundaries.
 
 ${offsetMinutes > 15 ? `════════════════════════════════════════════════════════════════════════════════
 🪐 PHASE B: THE MESO SWEEP PROTOCOL (Offset: ±${offsetMinutes} mins)
@@ -177,60 +157,48 @@ We are in the terminal varga zones. We are hunting exact D60 / D1080 (Nadi) alig
 
 ════════════════════════════════════════════════════════════════════════════════
 
-    TASK: Execution of 'Deep Multi-Varga Forensic Audit' on ${shuffledCandidates.length} finalist candidates.
+    TASK: Execution of 'Deep Multi-Varga Audit' on ${shuffledCandidates.length} finalist candidates.
 
-## Step 1: Forensic DNA Synchronization
-- Physical Alignment: @ForensicTraits.physical
-- Temperamental Mapping: @ForensicTraits.psychographic
-- Biological Anchor Status: @ForensicTraits.biological
-- Family Karma Matrix: @ForensicTraits.family
 
-## Step 2: Implementation of Deep Audit
+## Step 1: Implementation of Deep Audit
 Implement the following comprehensive verification sequence for EACH candidate:
 
 1. **Varga Boundary Scrutiny**
    - Audit D9 and D10 Ascendant degrees. 
    - Identify if the candidate sits on a 'Terminal Varga Zone' (Boundary Lock).
 
-2. **Bio-Vedic Mapping Verification**
-   - Match @ForensicTraits to specific Varga deities and planetary configurations.
-   - Verify if Tattwa Shuddhi aligns with the user's temperamental profile.
 
-3. **Multi-Dasha Chronology (${timelineRange})**
+2. **Multi-Dasha Chronology (${timelineRange})**
    - Correlate Vimshottari MD-AD-PD-SD sequence with real-world events.
    - Cross-verify timing using Yogini and Chara Dashas for redundant proof.
 
-4. **Karmic Knot (Gandanta) Analysis**
+3. **Karmic Knot (Gandanta) Analysis**
    - Assess severity of Lagna/Moon Gandanta if present.
    - Map traumatic/life-defining events to these karmic boundaries.
 
-5. **Spouse/Synastry Lock**
+4. **Spouse/Synastry Lock**
    - Run D9 verification against @SpouseData.
    - Lock time based on 7th house and Venus/Jupiter configurations.
 
-6. **Lifecycle Shift Audit**
+5. **Lifecycle Shift Audit**
    - Map major Saturn/Jupiter sign ingresses to the user's chronology.
    - Verify if "flavor" of life shifts matches the planetary transitions.
 
-7. **Cuspal (KP) Precision**
+6. **Cuspal (KP) Precision**
    - Audit Sub-Lord and Sub-Sub-Lord positions for event triggers.
-   - Verify 1st House Sub-Lord supports physical @ForensicTraits.
+   - Verify 1st House Sub-Lord supports physical characteristics.
 
-8. **Pancha-Pakshi Activity Mapping**
+7. **Pancha-Pakshi Activity Mapping**
    - Verify 'Ruling Bird' activities align with event results.
    - Confirm birth time quality via bird strength.
 
-9. **Terminal Precision (D60/D150)**
-   - Audit D60 Karma deities for forensic alignment.
+8. **Terminal Precision (D60/D150)**
+   - Audit D60 Karma deities for alignment verification.
     - Review D1080 Nadi Amsha for seconds-level resolution.
 
-10. **Final Forensic Verdict**
-    - Apply weighted scoring based on narrative match.
-    - Select survivors for the Final Stage.
 
 ════════════════════════════════════════════════════════════════════════════════
-USER FORENSIC DATA:
-${forensicContext}
+
 SPOUSE DATA: ${spouseText}
 
 LIFE EVENTS:

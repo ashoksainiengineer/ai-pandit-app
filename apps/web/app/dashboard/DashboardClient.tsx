@@ -48,11 +48,11 @@ const StatCard = memo(function StatCard({
   return (
     <div className="bg-white border border-[rgba(0,0,0,0.08)] rounded-xl p-3 sm:p-4">
       <div className="flex items-center gap-2 sm:gap-3">
-        <div className="p-1.5 sm:p-2 bg-[#FAFAFA] rounded-lg">
+        <div className="p-1.5 sm:p-2 bg-[var(--prism-canvas)] rounded-lg">
           {icon}
         </div>
         <div className="min-w-0">
-          <div className="text-lg sm:text-2xl font-medium text-[#000000]">{value}</div>
+          <div className="text-lg sm:text-2xl font-medium text-black">{value}</div>
           <div className="text-xs sm:text-sm text-[#636363] truncate">{label}</div>
         </div>
       </div>
@@ -118,7 +118,7 @@ export function DashboardClient({ initialSessions, userName }: DashboardClientPr
         className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6 sm:mb-8"
       >
         <div>
-          <h1 className="text-xl sm:text-3xl font-medium text-[#000000] ">
+          <h1 className="text-xl sm:text-3xl font-medium text-black ">
             Welcome, {userName}
           </h1>
           <p className="text-sm sm:text-base text-[#636363] mt-1">
@@ -130,7 +130,7 @@ export function DashboardClient({ initialSessions, userName }: DashboardClientPr
           <button
             onClick={createNewSession}
             disabled={isCreatingDraft}
-            className="inline-flex items-center justify-center gap-2 px-3 sm:px-4 py-2.5 sm:py-3 border-2 border-[#000000] text-[#000000] rounded-xl font-medium hover:bg-[#000000]/10 transition-all text-xs sm:text-sm disabled:opacity-50"
+            className="inline-flex items-center justify-center gap-2 px-3 sm:px-4 py-2.5 sm:py-3 border-2 border-[#000000] text-black rounded-xl font-medium hover:bg-[#000000]/10 transition-all text-xs sm:text-sm disabled:opacity-50"
           >
             + New Person
           </button>
@@ -149,7 +149,7 @@ export function DashboardClient({ initialSessions, userName }: DashboardClientPr
         className="grid grid-cols-3 gap-3 sm:gap-4 mb-6 sm:mb-8"
       >
         <StatCard
-          icon={<BarChart3 className="w-4 h-4 sm:w-5 sm:h-5 text-[#000000]" />}
+          icon={<BarChart3 className="w-4 h-4 sm:w-5 sm:h-5 text-black" />}
           value={stats.total}
           label="Total"
         />
@@ -175,7 +175,7 @@ export function DashboardClient({ initialSessions, userName }: DashboardClientPr
           placeholder="Search by name..."
           value={searchInput}
           onChange={e => setSearchInput(e.target.value)}
-          className="w-full pl-12 pr-4 py-3 bg-white border border-[#E8E0D5] rounded-xl text-[#000000] placeholder-[#959595] focus:border-[#000000] focus:ring-2 focus:ring-[#000000]/10 outline-none transition-all"
+          className="w-full pl-12 pr-4 py-3 bg-white border border-[#E8E0D5] rounded-xl text-black placeholder-[#959595] focus:border-[#000000] focus:ring-2 focus:ring-[#000000]/10 outline-none transition-all"
         />
       </div>
 
@@ -187,7 +187,7 @@ export function DashboardClient({ initialSessions, userName }: DashboardClientPr
         {paginatedSessions.length === 0 ? (
           <div className="bg-white border border-[rgba(0,0,0,0.08)] rounded-2xl p-12 text-center">
             <div className="text-5xl mb-4">🔮</div>
-            <h3 className="text-xl font-medium text-[#000000] mb-2">
+            <h3 className="text-xl font-medium text-black mb-2">
               {searchQuery ? 'No matches found' : 'No sessions yet'}
             </h3>
             <p className="text-[#636363] mb-6">
@@ -228,7 +228,7 @@ export function DashboardClient({ initialSessions, userName }: DashboardClientPr
           <button
             onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
             disabled={currentPage === 1}
-            className="px-2 sm:px-4 py-2 text-xs sm:text-sm font-medium text-[#636363] hover:text-[#000000] disabled:opacity-30 transition-colors"
+            className="px-2 sm:px-4 py-2 text-xs sm:text-sm font-medium text-[#636363] hover:text-black disabled:opacity-30 transition-colors"
           >
             <span className="sm:hidden">←</span>
             <span className="hidden sm:inline">Previous</span>
@@ -240,7 +240,7 @@ export function DashboardClient({ initialSessions, userName }: DashboardClientPr
               onClick={() => navigateToPage(page)}
               className={`w-8 h-8 sm:w-10 sm:h-10 rounded-lg text-xs sm:text-sm font-medium transition-colors ${currentPage === page
                 ? 'bg-[#000000] text-white'
-                : 'text-[#636363] hover:bg-[#FAFAFA]'
+                : 'text-[#636363] hover:bg-[var(--prism-canvas)]'
                 }`}
             >
               {page}
@@ -250,7 +250,7 @@ export function DashboardClient({ initialSessions, userName }: DashboardClientPr
           <button
             onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
             disabled={currentPage === totalPages}
-            className="px-2 sm:px-4 py-2 text-xs sm:text-sm font-medium text-[#636363] hover:text-[#000000] disabled:opacity-30 transition-colors"
+            className="px-2 sm:px-4 py-2 text-xs sm:text-sm font-medium text-[#636363] hover:text-black disabled:opacity-30 transition-colors"
           >
             <span className="sm:hidden">→</span>
             <span className="hidden sm:inline">Next</span>

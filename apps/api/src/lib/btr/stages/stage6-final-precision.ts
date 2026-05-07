@@ -7,7 +7,7 @@ import { AppError } from '@ai-pandit/shared';
  * Performs the ultimate AI analysis to determine the exact birth time.
  */
 
-import { SecondsPrecisionInput, ForensicTraits, EphemerisData } from '@ai-pandit/shared';
+import { SecondsPrecisionInput, EphemerisData } from '@ai-pandit/shared';
 import { CandidateTime, getCandidateIdentity, getDynamicBatchSize, getDynamicSurvivors, sortCandidatesByMerit, splitIntoBatches } from '../../time-offset-manager.js';
 import { ProgressTracker } from '../../progress-tracker.js';
 import { _callAIWithStream, _executeAIInParallel } from '../../ai-client.js';
@@ -208,7 +208,7 @@ function buildPresentTransitLockMap(
  * @param input - BTR input parameters
  * @param candidates - Micro-precision candidates from Stage 5
  * @param progress - Progress tracker
- * @param forensicTraits - User's forensic traits
+ * @param globalLifecycle - Pre-calculated lifecycle shifts
  * @param globalLifecycle - Pre-calculated lifecycle shifts
  * @returns Final verdict with rectified time
  */
@@ -216,7 +216,6 @@ export async function stage6FinalPrecision(
     input: SecondsPrecisionInput,
     candidates: CandidateTime[],
     progress: ProgressTracker,
-    forensicTraits: ForensicTraits,
     globalLifecycle: LifecycleShift[] = []
 ): Promise<{
     finalCandidate: CandidateTime;
@@ -235,7 +234,7 @@ export async function stage6FinalPrecision(
 
     if (!candidates || candidates.length === 0) {
         logger.error('🔱 [STAGE-6] FAILED: No candidates provided for final precision judgment');
-        throw new AppError('AI_OUT_OF_CANDIDATES: No birth time candidates survived the previous analysis stages. This usually happens when life events and forensic traits are highly contradictory.', { errorCode: 'PROCESSING_ERROR', statusCode: 500 });
+        throw new AppError('AI_OUT_OF_CANDIDATES: No birth time candidates survived the previous analysis stages. This usually happens when life events are highly contradictory.', { errorCode: 'PROCESSING_ERROR', statusCode: 500 });
     }
 
     // Get offset from config for dynamic batch sizing
@@ -263,7 +262,7 @@ export async function stage6FinalPrecision(
         candidatesIn: candidates.length,
         sampleTime: candidates[0]?.time,
         lifeEventsCount: input.lifeEvents?.length,
-        hasForensicTraits: !!forensicTraits,
+        hasForensicTraits: false,
         hasSpouseData: !!input.spouseData
     });
 
@@ -296,7 +295,6 @@ export async function stage6FinalPrecision(
             const enhanced = enhanceCandidateWithPrecisionData(
                 baseCandidate,
                 input.lifeEvents,
-                input.forensicTraits,
                 input.tentativeTime
             );
 
@@ -345,8 +343,8 @@ export async function stage6FinalPrecision(
 
             const presentAnchor = buildPresentTransitLockMap(batchEnriched, currentEph, now);
             
-            const systemPrompt = 'FINAL FORENSIC JUDGEMENT. Pick THE ONE based on bio-Vedic alignment.';
-            const userPrompt = getFinalPrecisionPrompt(batchEnriched, input.lifeEvents, forensicTraits, input.spouseData, presentAnchor);
+            const systemPrompt = 'FINAL PRECISION JUDGEMENT. Pick THE ONE based on astrological alignment.';
+            const userPrompt = getFinalPrecisionPrompt(batchEnriched, input.lifeEvents, input.spouseData, presentAnchor);
             
             // Save batch metadata
             btrDataCapture.saveBatchMetadata(
@@ -385,8 +383,7 @@ export async function stage6FinalPrecision(
                     {
                         candidateCount: batchEnriched.length,
                         eventCount: input.lifeEvents.length,
-                        forensicTraitsPresent: !!forensicTraits,
-                        spouseDataPresent: !!input.spouseData
+                        spouseDataPresent: !!input.spouseData,
                     },
                     1,
                     i + 1
@@ -538,7 +535,7 @@ export async function stage6FinalPrecision(
                     kpData: {}
                 };
                 const enhanced = enhanceCandidateWithPrecisionData(
-                    baseCandidate, input.lifeEvents, input.forensicTraits, input.tentativeTime
+                    baseCandidate, input.lifeEvents, input.tentativeTime
                 );
                 enhancedFinalBatch.push({ ...enhanced, time: finalist.time, offsetMinutes: finalist.offsetMinutes });
             } catch (error: unknown) {
@@ -565,7 +562,7 @@ export async function stage6FinalPrecision(
     }
 
     const finalAnchor = buildPresentTransitLockMap(finalBatch, currentEph, now);
-    let prompt = getFinalPrecisionPrompt(finalBatch, input.lifeEvents, forensicTraits, input.spouseData, finalAnchor);
+    let prompt = getFinalPrecisionPrompt(finalBatch, input.lifeEvents, input.spouseData, finalAnchor);
 
     // FIXED: Aggregate God-Tier data from ALL finalists for comprehensive prompt
     // This provides the AI with consensus patterns across all finalists
@@ -608,7 +605,6 @@ Consensus Range: ${Math.min(...validEnhanced.map(c => c.precision?.consensus.ove
             moon: `${c.planets.moon.sign} ${c.planets.moon.degree}`
         })),
         lifeEventsCount: input.lifeEvents.length,
-        hasForensicTraits: !!forensicTraits
     });
 
     const response = await _callAIWithStream(

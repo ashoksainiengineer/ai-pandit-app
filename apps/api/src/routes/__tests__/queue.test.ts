@@ -105,7 +105,6 @@ const validSubmitBody = {
         { eventType: 'career', category: 'work', eventDate: '2012-06-01', datePrecision: 'exact_date', description: 'First job' },
         { eventType: 'health', category: 'health', eventDate: '2018-03-15', datePrecision: 'exact_date', description: 'Surgery' },
     ],
-    forensicTraits: { facial: { foreheadSize: 'broad' } },
     offsetConfig: { preset: '2hours' },
 };
 

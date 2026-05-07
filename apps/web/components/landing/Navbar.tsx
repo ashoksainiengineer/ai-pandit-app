@@ -56,7 +56,7 @@ export default function Navbar() {
             </div>
             {/* Text - Hidden on very small screens, visible on sm+ */}
             <div className="hidden sm:block">
-              <span className=" text-xl sm:text-2xl font-medium text-[#000000]">
+              <span className=" text-xl sm:text-2xl font-medium text-black">
                 AI Pandit
               </span>
               <span className="block text-[10px] text-[#636363] uppercase tracking-[0.2em]">
@@ -71,7 +71,7 @@ export default function Navbar() {
               <Link
                 key={link.href}
                 href={link.href}
-                className="text-[#636363] hover:text-[#000000] transition-colors duration-300 
+                className="text-[#636363] hover:text-black transition-colors duration-300 
                            text-sm font-medium relative group"
               >
                 {link.label}
@@ -108,7 +108,7 @@ export default function Navbar() {
               onClick={() => setIsOpen(!isOpen)}
               aria-label={isOpen ? "Close menu" : "Open menu"}
               className="w-10 h-10 flex items-center justify-center rounded-xl 
-                         bg-white border border-[rgba(0,0,0,0.08)] text-[#636363] hover:text-[#000000]
+                         bg-white border border-[rgba(0,0,0,0.08)] text-[#636363] hover:text-black
                          hover:border-[#000000]/50 transition-all duration-300"
             >
               {isOpen ? <X className="w-5 h-5" aria-hidden="true" /> : <Menu className="w-5 h-5" aria-hidden="true" />}
@@ -138,7 +138,7 @@ export default function Navbar() {
                   <Link
                     href={link.href}
                     onClick={() => setIsOpen(false)}
-                    className="block px-4 py-3 text-[#636363] hover:text-[#000000] 
+                    className="block px-4 py-3 text-[#636363] hover:text-black 
                                hover:bg-[#ffffff] rounded-xl transition-all duration-300"
                   >
                     {link.label}

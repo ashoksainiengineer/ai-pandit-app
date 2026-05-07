@@ -70,7 +70,7 @@ const statusConfig = {
   processing: {
     label: 'Analyzing',
     bgColor: 'bg-[#000000]/10',
-    textColor: 'text-[#000000]',
+    textColor: 'text-black',
     borderColor: 'border-[#000000]/30',
     icon: <Loader2 className="w-3.5 h-3.5 animate-spin" />,
   },
@@ -281,10 +281,10 @@ export const SessionCard = memo(function SessionCard({
           type="checkbox"
           checked={isSelected}
           onChange={() => { }}
-          className="w-4 h-4 rounded border-[#000000]/30 text-[#000000] focus:ring-[#000000]"
+          className="w-4 h-4 rounded border-[#000000]/30 text-black focus:ring-[#000000]"
         />
         <div className={`w-2 h-2 rounded-full ${status.bgColor.replace('/10', '')}`} />
-        <span className="flex-1 truncate text-sm text-[#000000]">{session.fullName}</span>
+        <span className="flex-1 truncate text-sm text-black">{session.fullName}</span>
         <span className="text-xs text-[#636363]">{formattedDate}</span>
       </motion.div>
     );
@@ -312,7 +312,7 @@ export const SessionCard = memo(function SessionCard({
               type="checkbox"
               checked={isSelected}
               onChange={() => onSelect(session.id)}
-              className="w-5 h-5 rounded border-[#000000]/30 text-[#000000] focus:ring-[#000000]"
+              className="w-5 h-5 rounded border-[#000000]/30 text-black focus:ring-[#000000]"
             />
           </div>
         )}
@@ -323,8 +323,8 @@ export const SessionCard = memo(function SessionCard({
           className={`
             absolute top-4 right-4 p-2 rounded-xl transition-all duration-200
             ${isFavorite
-              ? 'text-[#000000] bg-[#000000]/10'
-              : 'text-[#959595] hover:text-[#000000] hover:bg-[#000000]/5'
+              ? 'text-black bg-[#000000]/10'
+              : 'text-[#959595] hover:text-black hover:bg-[#000000]/5'
             }
           `}
         >
@@ -351,7 +351,7 @@ export const SessionCard = memo(function SessionCard({
             </div>
 
             {/* Name */}
-            <h3 className="mt-4 text-lg font-medium text-[#000000] truncate">
+            <h3 className="mt-4 text-lg font-medium text-black truncate">
               {session.fullName}
             </h3>
 
@@ -371,7 +371,7 @@ export const SessionCard = memo(function SessionCard({
             {session.rectifiedTime && (
               <div className="mt-4 p-3 bg-[#ffffff] rounded-xl border border-[#000000]/20">
                 <span className="text-xs text-[#636363] uppercase tracking-wider">Rectified Time</span>
-                <p className="text-[#000000] font-mono font-medium">{session.rectifiedTime}</p>
+                <p className="text-black font-mono font-medium">{session.rectifiedTime}</p>
               </div>
             )}
 
@@ -425,7 +425,7 @@ export const SessionCard = memo(function SessionCard({
             type="checkbox"
             checked={isSelected}
             onChange={() => onSelect(session.id)}
-            className="w-4 h-4 sm:w-5 sm:h-5 rounded border-[#000000]/30 text-[#000000] focus:ring-[#000000]"
+            className="w-4 h-4 sm:w-5 sm:h-5 rounded border-[#000000]/30 text-black focus:ring-[#000000]"
           />
         )}
 
@@ -434,7 +434,7 @@ export const SessionCard = memo(function SessionCard({
 
         {/* Name & Status - Mobile Only */}
         <div className="flex-1 min-w-0 sm:hidden">
-          <h3 className="font-medium text-[#000000] truncate text-sm">{session.fullName}</h3>
+          <h3 className="font-medium text-black truncate text-sm">{session.fullName}</h3>
           <span className={`
             inline-flex items-center gap-1 text-[10px] font-medium
             ${status.textColor}
@@ -458,7 +458,7 @@ export const SessionCard = memo(function SessionCard({
       >
         {/* Name & Status - Desktop Only */}
         <div className="hidden sm:block col-span-3 min-w-0">
-          <h3 className="font-medium text-[#000000] truncate">{session.fullName}</h3>
+          <h3 className="font-medium text-black truncate">{session.fullName}</h3>
           <span className={`
             inline-flex items-center gap-1 text-xs font-medium
             ${status.textColor}
@@ -482,7 +482,7 @@ export const SessionCard = memo(function SessionCard({
           </div>
           <div className="flex items-center gap-1">
             <Clock className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
-            <span className="text-[#000000] font-medium">{session.tentativeTime || 'Not set'}</span>
+            <span className="text-black font-medium">{session.tentativeTime || 'Not set'}</span>
           </div>
           <div className="flex items-center gap-1">
             <MapPin className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
@@ -491,7 +491,7 @@ export const SessionCard = memo(function SessionCard({
           {/* Offset Config */}
           {(session as any).offsetConfig && (
             <div className="flex items-center gap-1 text-[10px] text-[#959595]">
-              <span className="bg-[#FAFAFA] px-1.5 py-0.5 rounded">
+              <span className="bg-[var(--prism-canvas)] px-1.5 py-0.5 rounded">
                 ±{(session as any).offsetConfig.customMinutes || 60}min
               </span>
             </div>
@@ -502,7 +502,7 @@ export const SessionCard = memo(function SessionCard({
         <div className="col-span-12 sm:col-span-2">
           {session.rectifiedTime ? (
             <div className="flex items-center gap-2">
-              <span className="text-[#000000] font-mono font-medium text-sm">{session.rectifiedTime}</span>
+              <span className="text-black font-mono font-medium text-sm">{session.rectifiedTime}</span>
               {confidence && (
                 <span className="text-xs" style={{ color: confidence.color }}>
                   {confidence.label}
@@ -535,7 +535,7 @@ export const SessionCard = memo(function SessionCard({
         <div className="col-span-12 sm:col-span-2 text-xs text-[#636363] sm:text-right">
           <div className="text-[10px] uppercase tracking-wider text-[#959595] mb-0.5">Last Updated</div>
           <div>{formattedDate}</div>
-          <div className="text-[10px] text-[#000000] mt-0.5">
+          <div className="text-[10px] text-black mt-0.5">
             <ClientOnly>
               {new Date(session.updatedAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
             </ClientOnly>
@@ -550,8 +550,8 @@ export const SessionCard = memo(function SessionCard({
           className={`
             p-1.5 sm:p-2 rounded-lg transition-colors
             ${isFavorite
-              ? 'text-[#000000]'
-              : 'text-[#959595] hover:text-[#000000]'
+              ? 'text-black'
+              : 'text-[#959595] hover:text-black'
             }
           `}
         >
@@ -560,7 +560,7 @@ export const SessionCard = memo(function SessionCard({
 
         <Link
           href={sessionUrl}
-          className="p-1.5 sm:p-2 text-[#959595] hover:text-[#000000] rounded-lg transition-colors"
+          className="p-1.5 sm:p-2 text-[#959595] hover:text-black rounded-lg transition-colors"
         >
           <ExternalLink className="w-4 h-4 sm:w-5 sm:h-5" />
         </Link>
@@ -569,7 +569,7 @@ export const SessionCard = memo(function SessionCard({
         <button
           onClick={handleCloneClick}
           disabled={isCloning}
-          className="p-1.5 sm:p-2 text-[#959595] hover:text-[#000000] disabled:opacity-50 rounded-lg transition-colors"
+          className="p-1.5 sm:p-2 text-[#959595] hover:text-black disabled:opacity-50 rounded-lg transition-colors"
           title="Duplicate session"
         >
           {isCloning ? <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 animate-spin" /> : <CopyPlus className="w-4 h-4 sm:w-5 sm:h-5" />}

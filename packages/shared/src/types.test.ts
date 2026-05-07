@@ -574,15 +574,7 @@ describe('CalculateRequestSchema', () => {
     expect(res.success).toBe(false);
   });
 
-  it('allows null for physicalTraits and forensicTraits', () => {
-    const result = CalculateRequestSchema.parse({
-      ...validRequest(),
-      physicalTraits: null,
-      forensicTraits: null,
-    });
-    expect(result.physicalTraits).toBeNull();
   });
-});
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // OffsetConfigSchema
@@ -929,40 +921,11 @@ describe('Type-level interface exports', () => {
       events: [
         validLifeEvent({ id: 'evt_x', eventDate: '2010-05-15', datePrecision: 'exact_date' }),
       ],
-      forensicProfile: {
-        physical: {
-          facialStructure: {
-            forehead: 'broad',
-            eyeShape: 'almond',
-            noseType: 'sharp',
-            teethAlignment: 'perfect',
-            voicePitch: 'medium',
-          },
-          skinHair: { texture: 'dry', hairType: 'straight', complexion: 'medium', marks: [] },
-          build: 'medium',
-          height: { cm: 170, feet: 5, inches: 7 },
-        },
-        psychographic: {
-          speechStyle: 'measured_soft',
-          decisionMaking: 'deliberate',
-          stressResponse: 'calm',
-          sleepCycle: 'early_bird',
-          temperament: 'patient',
-        },
-        biological: {
-          prakriti: 'vata',
-          sensitivity: { heat: 'medium', cold: 'low' },
-          recurringHealthIssues: [],
-        },
-        family: {
-          siblingPosition: 'eldest',
-          brotherCount: 1,
-          sisterCount: 0,
-          fatherStatusAtBirth: 'stable',
-          motherHealthAtBirth: 'normal',
-        },
-      },
       tentativeTime: '12:00',
+    };
+    expect(vi.candidate.time).toBe('12:00');
+    expect(vi.events).toHaveLength(1);
+  });
     };
     expect(vi.candidate.time).toBe('12:00');
     expect(vi.events).toHaveLength(1);

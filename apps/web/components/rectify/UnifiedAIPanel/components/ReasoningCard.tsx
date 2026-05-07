@@ -85,7 +85,7 @@ export const ReasoningCard = memo(function ReasoningCard({
             <div className="flex items-center justify-between mb-2 shrink-0">
                 <div className="flex items-center gap-1.5">
                     <div className={`w-1.5 h-1.5 rounded-full ${isLive ? 'bg-amber-500 animate-pulse' : 'bg-stone-300'}`} />
-                    <span className="text-[10px] font-mono text-[#636363] truncate max-w-[100px]">
+                    <span className="text-[10px] font-mono text-black/60 truncate max-w-[100px]">
                         {title}
                     </span>
                 </div>
@@ -99,12 +99,12 @@ export const ReasoningCard = memo(function ReasoningCard({
             {/* Content — TRUNCATED preview only */}
             <div
                 ref={scrollRef}
-                className="text-[10px] text-[#636363] leading-relaxed font-mono overflow-y-auto flex-grow relative"
+                className="text-[10px] text-black/60 leading-relaxed font-mono overflow-y-auto flex-grow relative"
             >
                 {!content ? (
                     <span className="text-stone-400 italic text-[9px]">Evaluating...</span>
                 ) : (
-                    <pre className="whitespace-pre-wrap break-words font-mono text-[10px] text-[#636363] leading-relaxed">
+                    <pre className="whitespace-pre-wrap break-words font-mono text-[10px] text-black/60 leading-relaxed">
                         {highlightedContent}
                         {isLive && (
                             <span className="inline-block w-1 h-3 bg-[#000000] animate-pulse ml-0.5 align-middle" />
@@ -133,7 +133,7 @@ export const ReasoningCard = memo(function ReasoningCard({
                             🏆 MATCH
                         </span>
                     )}
-                    <span className="text-[8px] font-medium text-[#000000]">
+                    <span className="text-[8px] font-medium text-black">
                         View →
                     </span>
                 </div>

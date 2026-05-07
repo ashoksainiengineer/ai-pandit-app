@@ -20,10 +20,13 @@ describe('🤖 AI PROMPT SERIALIZATION AUDIT', () => {
     const mockCandidate: CandidateDataPackage = {
         time: '10:28:00',
         offsetMinutes: 0,
+        moonNakshatra: 'Mula',
+        d9Lagna: 'Pisces',
+        d10Lagna: 'Capricorn',
         ascendant: { sign: 'Sagittarius', degree: '8.5' },
         planets: {
-            jupiter: { sign: 'Libra', degree: 15, house: 11, avastha: 'Vriddha', d60Deity: 'Indra' },
-            saturn: { sign: 'Sagittarius', degree: 20, house: 1, isRetro: true }
+            jupiter: { sign: 'Libra', degree: 15, house: 11, nakshatra: 'Swati', avastha: 'Vriddha', d60Deity: 'Indra' },
+            saturn: { sign: 'Sagittarius', degree: 20, house: 1, nakshatra: 'Mula', isRetro: true }
         },
         houseLords: { 1: 'Jupiter', 7: 'Mercury' },
         vimshottariDasha: [
@@ -38,7 +41,8 @@ describe('🤖 AI PROMPT SERIALIZATION AUDIT', () => {
             '2017-12-11': {
                 dasha: 'Rahu-Saturn-Jupiter',
                 signatures: ['H7 Activated'],
-                planets: { Jupiter: 'Libra 18° | H11' }
+                planets: { Jupiter: 'Libra 18° | H11' },
+                doubleTransit: { isTriggered: false, details: [] },
             }
         },
         nadiData: {
@@ -48,7 +52,7 @@ describe('🤖 AI PROMPT SERIALIZATION AUDIT', () => {
     } as any;
 
     it('should successfully serialize high-precision astrological data into Stage 4 Deep Analysis text', () => {
-        const promptText = getDeepAnalysisPrompt([mockCandidate], mockEvents, {} as any, null, 30);
+        const promptText = getDeepAnalysisPrompt([mockCandidate], mockEvents, {} as any, 30);
 
         expect(promptText).toBeDefined();
 
@@ -63,7 +67,7 @@ describe('🤖 AI PROMPT SERIALIZATION AUDIT', () => {
     });
 
     it('should successfully serialize all data into the Stage 6 Terminal Precision text', () => {
-        const promptText = getFinalPrecisionPrompt([mockCandidate], mockEvents, {} as any, null, null);
+        const promptText = getFinalPrecisionPrompt([mockCandidate], mockEvents, {} as any, null);
 
         expect(promptText).toBeDefined();
 

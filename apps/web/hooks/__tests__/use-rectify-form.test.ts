@@ -85,7 +85,6 @@ describe('useRectifyForm', () => {
         expect(result.current.birthData).toBeDefined();
         expect(result.current.lifeEvents).toEqual([]);
         expect(typeof result.current.setLifeEvents).toBe('function');
-        expect(result.current.forensicTraits).toBeDefined();
         expect(result.current.spouseData).toBeDefined();
         expect(result.current.offsetConfig).toBeDefined();
         expect(typeof result.current.setOffsetConfig).toBe('function');
@@ -100,9 +99,7 @@ describe('useRectifyForm', () => {
         expect(typeof result.current.handleNext).toBe('function');
         expect(typeof result.current.handleSubmit).toBe('function');
         expect(typeof result.current.updateBirthData).toBe('function');
-        expect(typeof result.current.updateForensicTraits).toBe('function');
         expect(typeof result.current.updateSpouseData).toBe('function');
-        expect(typeof result.current.updatePhysicalTraits).toBe('function');
         expect(typeof result.current.handleBack).toBe('function');
     });
 
@@ -331,43 +328,7 @@ describe('useRectifyForm', () => {
         expect(result.current.draftSessionId).toBeNull();
     });
 
-    it('should update forensic traits via updateForensicTraits', async () => {
-        const { result } = renderHook(() => useRectifyForm());
 
-        act(() => {
-            vi.advanceTimersByTime(200);
-        });
-
-        await waitFor(() => {
-            expect(result.current.isLoading).toBe(false);
-        });
-
-        act(() => {
-            result.current.updateForensicTraits({
-                physical: { build: 'athletic' },
-            });
-        });
-
-        expect(result.current.forensicTraits.physical.build).toBe('athletic');
-    });
-
-    it('should update physical traits via updatePhysicalTraits', async () => {
-        const { result } = renderHook(() => useRectifyForm());
-
-        act(() => {
-            vi.advanceTimersByTime(200);
-        });
-
-        await waitFor(() => {
-            expect(result.current.isLoading).toBe(false);
-        });
-
-        act(() => {
-            result.current.updatePhysicalTraits({ build: 'slim' });
-        });
-
-        expect(result.current.forensicTraits.physical.build).toBe('slim');
-    });
 
     it('should update spouse data via updateSpouseData', async () => {
         const { result } = renderHook(() => useRectifyForm());

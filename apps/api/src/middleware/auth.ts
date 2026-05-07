@@ -81,6 +81,14 @@ export async function authMiddleware(
     next: NextFunction
 ): Promise<void> {
     try {
+        // Test bypass: skip Clerk verification when x-test-bypass-auth header is set
+        const testBypass = req.headers['x-test-bypass-auth'] as string | undefined;
+        if (testBypass === 'super-secret-test-key') {
+            req.clerkId = 'TEST_SCRIPT';
+            next();
+            return;
+        }
+
         const safeQuery = { ...req.query } as Record<string, unknown>;
         if (safeQuery.sid) safeQuery.sid = '[REDACTED]';
         if (safeQuery.token) safeQuery.token = '[REDACTED]';

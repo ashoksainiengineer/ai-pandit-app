@@ -40,7 +40,6 @@ async function runPipelineWithSession(input: SecondsPrecisionInput) {
     latitude: input.latitude,
     longitude: input.longitude,
     timezone: String(input.timezone),
-    forensicTraits: input.forensicTraits ? JSON.stringify(input.forensicTraits) : null,
     lifeEvents: JSON.stringify(input.lifeEvents),
     offsetConfig: JSON.stringify(input.offsetConfig),
     status: 'pending',
@@ -141,57 +140,6 @@ describe('BTR Pipeline - Integration Tests', () => {
       }, TEST_TIMEOUTS.E2E);
     });
 
-    describe('When processing with forensic traits', () => {
-      it('Then should incorporate physical and psychological traits', async () => {
-        const input = createBirthInput({
-          forensicTraits: {
-            physical: {
-              facialStructure: {
-                forehead: 'broad',
-                eyeShape: 'almond',
-                noseType: 'straight',
-                teethAlignment: 'perfect',
-                voicePitch: 'medium'
-              },
-              skinHair: {
-                texture: 'dry',
-                hairType: 'straight',
-                complexion: 'medium',
-                marks: []
-              },
-              build: 'medium',
-              height: { cm: 175, feet: 5, inches: 9 }
-            },
-            psychographic: {
-              speechStyle: 'measured_soft',
-              decisionMaking: 'deliberate',
-              stressResponse: 'calm',
-              sleepCycle: 'early_bird',
-              temperament: 'patient'
-            },
-            biological: {
-              prakriti: 'pitta',
-              sensitivity: { heat: 'medium', cold: 'medium' },
-              recurringHealthIssues: []
-            },
-            family: {
-              siblingPosition: 'eldest',
-              brotherCount: 1,
-              sisterCount: 0,
-              fatherStatusAtBirth: 'stable',
-              motherHealthAtBirth: 'normal'
-            }
-          }
-        });
-
-        const result = await runPipelineWithSession(input);
-
-        expect(result).toBeDefined();
-        // Verify forensic traits were processed - result should be valid
-        expect(result.stagesCompleted).toBe(6);
-        expect(result.confidence).toBeDefined();
-      }, TEST_TIMEOUTS.E2E);
-    });
   });
 
   describe('Given boundary time scenarios', () => {

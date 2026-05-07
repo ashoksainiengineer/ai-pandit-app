@@ -26,7 +26,6 @@ describe('getBatchPrompt life-event window propagation', () => {
           description: 'Intensive training phase',
         } as any,
       ],
-      {} as any,
       1,
       3,
       1,

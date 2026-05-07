@@ -8,7 +8,7 @@
  * HIERARCHY:
  * 1. Precision Layer (D150, KP, Prana) - Highest impact on seconds accuracy
  * 2. Core Timing Layer (Vimshottari, Varga, Kalachakra)
- * 3. Verification Layer (Forensic, Spouse, Transit, Gandanta)
+ * 3. Verification Layer (Spouse, Transit, Gandanta)
  * 4. Supporting Layer (Shadbala, Ashtakavarga, Yogini, Chara, Pakshi)
  * 5. Quality Control Layer (Tatwa, Boundary, AI)
  */
@@ -30,7 +30,6 @@ export const METHOD_WEIGHTS = {
   kalachakra: 1.5,     // Savya/Apasavya verification
 
   // TIER 3: VERIFICATION LAYER
-  forensic: 1.5,       // Physical/psychological DNA matching
   spouseD9: 1.4,       // Spouse D9 synastry verification
   transit: 1.3,        // Double transit (Jupiter-Saturn)
   gandanta: 1.3,       // Karmic knot detection

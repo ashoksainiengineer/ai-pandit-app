@@ -15,14 +15,14 @@ export default function AnalysisError({ error, reset }: ErrorBoundaryProps) {
   }, [error]);
 
   return (
-    <div className="min-h-screen bg-[#FAFAFA] flex items-center justify-center p-4">
+    <div className="min-h-screen bg-[var(--prism-canvas)] flex items-center justify-center p-4">
       <div className="max-w-md w-full">
         <div className="bg-white border border-[rgba(0,0,0,0.08)] rounded-2xl p-8 shadow-lg text-center">
           <div className="w-16 h-16 mx-auto mb-6 bg-[#C65D3B]/10 rounded-full flex items-center justify-center">
             <AlertTriangle className="w-8 h-8 text-[#C65D3B]" />
           </div>
 
-          <h1 className=" text-2xl font-medium text-[#000000] mb-2">
+          <h1 className=" text-2xl font-medium text-black mb-2">
             Analysis Error
           </h1>
           <p className="text-[#636363] mb-8">

@@ -80,7 +80,7 @@ export const RectifyProgressIndicator = memo(function RectifyProgressIndicator({
                             <h2 className="text-lg font-medium mb-2" style={{ color: '#000000' }}>
                                 {metadata?.status === 'failed' ? 'Analysis Failed' : 'Analysis Stopped'}
                             </h2>
-                            <p className="mb-6 text-sm text-[#636363]">{metadata?.errorMessage || 'The analysis was terminated.'}</p>
+                            <p className="mb-6 text-sm text-black/60">{metadata?.errorMessage || 'The analysis was terminated.'}</p>
                             <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
                                 <button
                                     onClick={onRestart}
@@ -115,13 +115,13 @@ export const RectifyProgressIndicator = memo(function RectifyProgressIndicator({
                                 <CheckCircle className="w-8 h-8 text-[#184131]" />
                             </div>
                             <div>
-                                <h2 className="text-xl font-black text-[#000000] mb-1">Analysis Successfully Completed</h2>
-                                <p className="text-sm text-[#636363] flex flex-wrap items-center gap-x-3 gap-y-1">
+                                <h2 className="text-xl font-black text-black mb-1">Analysis Successfully Completed</h2>
+                                <p className="text-sm text-black/60 flex flex-wrap items-center gap-x-3 gap-y-1">
                                     <span className="flex items-center gap-1.5 font-medium text-[#184131]">
                                         <Activity className="w-4 h-4" /> {result.rectifiedTime}
                                     </span>
                                     <span className="w-1 h-1 rounded-full bg-stone-300" />
-                                    <span className="flex items-center gap-1.5 font-medium text-[#000000]">
+                                    <span className="flex items-center gap-1.5 font-medium text-black">
                                         <Zap className="w-4 h-4" /> {result.confidence} Confidence
                                     </span>
                                     <span className="w-1 h-1 rounded-full bg-stone-300" />

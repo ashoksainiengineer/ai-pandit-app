@@ -14,7 +14,6 @@ describe('🌍 REAL-WORLD AUDIT: Virat Kohli Life Events', () => {
         longitude: 77.2090,
         timezone: 5.5,
         offsetConfig: { preset: '30min' as const, description: '' },
-        forensicTraits: {} as any,
         lifeEvents: [
             { id: '1', category: 'family', eventType: 'death', eventDate: '2006-12-18', datePrecision: 'exact_date', description: 'Father passed away', importance: 'critical', impact: 'major', source: 'document' },
             { id: '2', category: 'career', eventType: 'debut', eventDate: '2008-08-18', datePrecision: 'exact_date', description: 'ODI Debut', importance: 'high', impact: 'major', source: 'document' },

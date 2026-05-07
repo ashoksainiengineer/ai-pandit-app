@@ -60,7 +60,7 @@ const StatusIcon = memo(function StatusIcon({ status }: { status: StatusType }) 
         case 'differ':
             return <AlertTriangle className="w-3.5 h-3.5 text-amber-600" aria-hidden="true" />;
         default:
-            return <span className="w-3.5 h-3.5 text-[#636363]" aria-hidden="true">—</span>;
+            return <span className="w-3.5 h-3.5 text-black/60" aria-hidden="true">—</span>;
     }
 });
 
@@ -109,28 +109,28 @@ const CandidateCard = memo(function CandidateCard({
             <div className="flex items-center justify-between mb-2 sm:mb-3">
                 <div className="flex items-center gap-2">
                     {isWinner ? (
-                        <Trophy className="w-4 h-4 sm:w-5 sm:h-5 text-[#000000]" aria-hidden="true" />
+                        <Trophy className="w-4 h-4 sm:w-5 sm:h-5 text-black" aria-hidden="true" />
                     ) : (
-                        <Medal className="w-4 h-4 sm:w-5 sm:h-5 text-[#636363]" aria-hidden="true" />
+                        <Medal className="w-4 h-4 sm:w-5 sm:h-5 text-black/60" aria-hidden="true" />
                     )}
-                    <span className="text-[10px] sm:text-xs text-[#636363] font-medium uppercase">Rank #{rank}</span>
+                    <span className="text-[10px] sm:text-xs text-black/60 font-medium uppercase">Rank #{rank}</span>
                 </div>
                 {isWinner && (
-                    <span className="text-[8px] bg-[#000000]/20 text-[#000000] px-2 py-0.5 rounded-full font-medium uppercase">
+                    <span className="text-[8px] bg-[#000000]/20 text-black px-2 py-0.5 rounded-full font-medium uppercase">
                         Winner
                     </span>
                 )}
             </div>
 
             {/* Time */}
-            <div className="text-xl sm:text-2xl font-black text-[#000000] font-mono mb-2">
+            <div className="text-xl sm:text-2xl font-black text-black font-mono mb-2">
                 <span className="tabular-nums">{candidate.time}</span>
             </div>
 
             {/* Score */}
             <div className="mb-3">
                 <div className="flex items-center justify-between text-xs mb-1">
-                    <span className="text-[#636363]">Score</span>
+                    <span className="text-black/60">Score</span>
                     <span className={`font-medium ${scoreColor}`}>
                         {candidate.score.toFixed(1)}%
                     </span>
@@ -156,23 +156,23 @@ const CandidateCard = memo(function CandidateCard({
             {candidate.minifiedEph && (
                 <div className="space-y-1 text-[9px] sm:text-[10px] font-mono border-t border-[rgba(0,0,0,0.08)] pt-2 mt-2">
                     <div className="flex justify-between">
-                        <span className="text-[#636363]" aria-label="Sun position">☉ Sun</span>
-                        <span className="text-[#636363]">{candidate.minifiedEph.sun}</span>
+                        <span className="text-black/60" aria-label="Sun position">☉ Sun</span>
+                        <span className="text-black/60">{candidate.minifiedEph.sun}</span>
                     </div>
                     <div className="flex justify-between">
-                        <span className="text-[#636363]" aria-label="Moon position">☽ Moon</span>
-                        <span className="text-[#636363]">{candidate.minifiedEph.moon}</span>
+                        <span className="text-black/60" aria-label="Moon position">☽ Moon</span>
+                        <span className="text-black/60">{candidate.minifiedEph.moon}</span>
                     </div>
                     <div className="flex justify-between">
-                        <span className="text-[#636363]" aria-label="Ascendant">↑ Asc</span>
-                        <span className="text-[#636363]">{candidate.minifiedEph.ascendant}</span>
+                        <span className="text-black/60" aria-label="Ascendant">↑ Asc</span>
+                        <span className="text-black/60">{candidate.minifiedEph.ascendant}</span>
                     </div>
                 </div>
             )}
 
             {/* Reason */}
             {candidate.reason && (
-                <p className="text-[9px] sm:text-[10px] text-[#636363] mt-2 line-clamp-2 italic">
+                <p className="text-[9px] sm:text-[10px] text-black/60 mt-2 line-clamp-2 italic">
                     &ldquo;{candidate.reason}&rdquo;
                 </p>
             )}
@@ -196,17 +196,17 @@ const ComparisonRow = memo(function ComparisonRow({ label, leftValue, rightValue
 
     return (
         <div className="flex items-center gap-2 sm:gap-3 text-[9px] sm:text-[10px]">
-            <span className="w-16 sm:w-24 text-[#636363] font-medium flex-shrink-0">{label}</span>
+            <span className="w-16 sm:w-24 text-black/60 font-medium flex-shrink-0">{label}</span>
             <div
                 className="flex-1 flex items-center justify-between gap-1 sm:gap-2 bg-white rounded-lg px-2 py-1 border border-[rgba(0,0,0,0.08)]"
                 role="group"
                 aria-label={`${label} comparison`}
             >
-                <span className="font-mono text-[#636363] truncate">{leftValue || '-'}</span>
+                <span className="font-mono text-black/60 truncate">{leftValue || '-'}</span>
                 <span aria-label={matches ? 'Values match' : 'Values differ'}>
                     <StatusIcon status={status} />
                 </span>
-                <span className="font-mono text-[#636363] truncate">{rightValue || '-'}</span>
+                <span className="font-mono text-black/60 truncate">{rightValue || '-'}</span>
             </div>
         </div>
     );
@@ -242,7 +242,7 @@ const CandidateSelect = memo(function CandidateSelect({
                 id={selectId}
                 value={selectedIndex}
                 onChange={(e) => onChange(parseInt(e.target.value, 10))}
-                className="w-full appearance-none bg-[#ffffff] border border-[rgba(0,0,0,0.08)] rounded-lg px-3 py-2 text-xs sm:text-sm text-[#000000] cursor-pointer hover:border-[#000000]/50 transition-colors pr-8 focus:outline-none focus:ring-2 focus:ring-[#000000]/30"
+                className="w-full appearance-none bg-[#ffffff] border border-[rgba(0,0,0,0.08)] rounded-lg px-3 py-2 text-xs sm:text-sm text-black cursor-pointer hover:border-[#000000]/50 transition-colors pr-8 focus:outline-none focus:ring-2 focus:ring-[#000000]/30"
                 aria-label={label}
             >
                 {candidates.map((c, idx) => (
@@ -252,7 +252,7 @@ const CandidateSelect = memo(function CandidateSelect({
                     </option>
                 ))}
             </select>
-            <ChevronDown className="w-4 h-4 absolute right-2 top-1/2 -translate-y-1/2 text-[#636363] pointer-events-none" aria-hidden="true" />
+            <ChevronDown className="w-4 h-4 absolute right-2 top-1/2 -translate-y-1/2 text-black/60 pointer-events-none" aria-hidden="true" />
         </div>
     );
 });
@@ -295,8 +295,8 @@ export const CandidateComparisonView = memo(function CandidateComparisonView({
                 role="alert"
                 aria-live="polite"
             >
-                <Scale className="w-8 h-8 text-[#636363] mx-auto mb-3" aria-hidden="true" />
-                <p className="text-sm text-[#636363]">At least 2 candidates required for comparison</p>
+                <Scale className="w-8 h-8 text-black/60 mx-auto mb-3" aria-hidden="true" />
+                <p className="text-sm text-black/60">At least 2 candidates required for comparison</p>
             </div>
         );
     }
@@ -324,8 +324,8 @@ export const CandidateComparisonView = memo(function CandidateComparisonView({
                         <Scale className="w-5 h-5 text-white" />
                     </div>
                     <div>
-                        <h3 className="font-medium text-[#000000]">Candidate Comparison</h3>
-                        <p className="text-[10px] text-[#636363] uppercase tracking-wider">Side-by-side analysis</p>
+                        <h3 className="font-medium text-black">Candidate Comparison</h3>
+                        <p className="text-[10px] text-black/60 uppercase tracking-wider">Side-by-side analysis</p>
                     </div>
                 </div>
 
@@ -378,7 +378,7 @@ export const CandidateComparisonView = memo(function CandidateComparisonView({
 
             {/* Detailed Differences */}
             <div className="mt-4 sm:mt-6 bg-[#ffffff] rounded-xl p-3 sm:p-4 border border-[rgba(0,0,0,0.08)]">
-                <h4 className="text-[10px] text-[#636363] uppercase tracking-wider font-medium mb-3">Key Differences</h4>
+                <h4 className="text-[10px] text-black/60 uppercase tracking-wider font-medium mb-3">Key Differences</h4>
                 <div className="space-y-2">
                     <ComparisonRow
                         label="Sun Position"
@@ -408,10 +408,10 @@ export const CandidateComparisonView = memo(function CandidateComparisonView({
             {/* AI Verdict */}
             <div className="mt-4 p-3 sm:p-4 bg-[#000000]/10 rounded-xl border border-[#000000]/30">
                 <div className="flex items-start gap-3">
-                    <Trophy className="w-5 h-5 text-[#000000] mt-0.5 flex-shrink-0" aria-hidden="true" />
+                    <Trophy className="w-5 h-5 text-black mt-0.5 flex-shrink-0" aria-hidden="true" />
                     <div>
-                        <h4 className="text-sm font-medium text-[#000000] mb-1">AI Comparison Verdict</h4>
-                        <p className="text-xs text-[#636363] leading-relaxed">
+                        <h4 className="text-sm font-medium text-black mb-1">AI Comparison Verdict</h4>
+                        <p className="text-xs text-black/60 leading-relaxed">
                             <span className="font-medium">
                                 {winner === 'left' ? leftCandidate.time : rightCandidate.time}
                             </span>

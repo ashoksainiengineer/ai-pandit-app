@@ -70,7 +70,7 @@ function formatConsensus(pkg: EnhancedCandidate): string {
     if (c.redFlags?.conflictingMethods) flags.push('CM');
     if (c.redFlags?.weakSignificators) flags.push('WS');
     if (c.redFlags?.d60Instability) flags.push('D60');
-    if (c.redFlags?.forensicMismatch) flags.push('FM');
+
 
     const confMap: Record<string, string> = {
       STANDARD_PRECISION: 'SP',

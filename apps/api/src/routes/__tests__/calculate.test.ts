@@ -86,6 +86,11 @@ vi.mock('../../middleware/auth.js', () => ({
   AuthenticatedRequest: {} as any,
 }));
 
+vi.mock('../../middleware/validation.js', () => ({
+  validateBody: () => (_req: any, _res: any, next: any) => next(),
+  QueueSubmitSchema: {} as any,
+}));
+
 vi.mock('../../lib/session-ownership.js', () => ({
   resolveSessionOwnershipContext: vi.fn(async (clerkId: string) => ({
     clerkId,
@@ -146,6 +151,11 @@ vi.mock('../../errors/index.js', () => ({
     statusCode = 403;
     code = 'FORBIDDEN';
     constructor(msg?: string) { super(msg || 'Forbidden'); }
+  },
+  CalculationError: class CalculationError extends Error {
+    statusCode = 422;
+    code = 'CALCULATION_ERROR';
+    constructor(msg?: string) { super(msg || 'Calculation failed'); }
   },
   getErrorStatusCode: vi.fn((error: any) => error?.statusCode ?? 500),
   getErrorResponse: vi.fn((error: any) => ({

@@ -31,8 +31,10 @@ vi.mock('@ai-pandit/db/schema', () => ({
 }));
 
 vi.mock('drizzle-orm', () => ({
-  and: vi.fn((...args: unknown[]) => ({ op: 'and', args })),
-  eq: vi.fn((left: unknown, right: unknown) => ({ op: 'eq', left, right })),
+and: vi.fn((...args: unknown[]) => ({ op: 'and', args })),
+eq: vi.fn((left: unknown, right: unknown) => ({ op: 'eq', left, right })),
+    count: vi.fn(() => ({ op: 'count' })),
+    sql: vi.fn((strings: TemplateStringsArray, ...values: unknown[]) => ({ op: 'sql', strings, values })),
 }));
 
 vi.mock('@ai-pandit/shared', () => ({
@@ -89,12 +91,6 @@ const baseBody = {
       confidence: 'high',
     },
   ],
-  forensicTraits: {
-    bodyType: 'athletic',
-  },
-  physicalTraits: {
-    complexion: 'wheatish',
-  },
   offsetConfig: { type: 'minutes', value: 60 },
 };
 

@@ -5,7 +5,7 @@ import dynamic from 'next/dynamic';
 import type { LifeEvent, TimeOffsetConfig } from '@/lib/types';
 
 const Step3LifeEvents = dynamic(() => import('@/components/rectify/Step3LifeEvents'), {
-    loading: () => <div className="animate-pulse bg-[#FAFAFA] h-96 rounded-xl" />,
+    loading: () => <div className="animate-pulse bg-[var(--prism-canvas)] h-96 rounded-xl" />,
     ssr: false
 });
 

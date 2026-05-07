@@ -16,7 +16,11 @@ vi.mock('../../ephemeris.js', () => ({
 }));
 
 vi.mock('../../vedic-astrology-engine.js', () => ({
-    calculateAllVargas: vi.fn().mockReturnValue({}),
+    calculateAllVargas: vi.fn().mockReturnValue({
+        D9: { ascendant: { sign: 'Aries', degree: 10 }, planets: {} },
+        D10: { ascendant: { sign: 'Taurus', degree: 15 }, planets: {} },
+        D60: { ascendant: { sign: 'Gemini', degree: 20 }, planets: {} },
+    }),
     calculateAshtakavarga: vi.fn().mockReturnValue({}),
     calculateShadbala: vi.fn().mockReturnValue({}),
     detectYogas: vi.fn().mockReturnValue([]),

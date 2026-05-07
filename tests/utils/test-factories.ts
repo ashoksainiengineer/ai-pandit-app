@@ -32,8 +32,6 @@ export interface SessionFactoryOptions {
     longitude?: number;
     timezone?: number;
     gender?: string;
-    physicalTraits?: string;
-    forensicTraits?: string;
     status?: 'draft' | 'submitted' | 'processing' | 'completed' | 'error';
     rectifiedTime?: string | null;
     accuracy?: number | null;
@@ -115,8 +113,6 @@ export class SessionFactory {
             longitude: overrides.longitude ?? coords.lng,
             timezone: overrides.timezone ?? coords.timezone,
             gender: overrides.gender ?? 'male',
-            physicalTraits: JSON.stringify({ complexion: 'fair', height: 'average' }),
-            forensicTraits: JSON.stringify({}), 
             lifeEvents: JSON.stringify([]),
             status: overrides.status ?? 'draft',
             rectifiedTime: overrides.rectifiedTime ?? null,
@@ -138,8 +134,6 @@ export class SessionFactory {
         return this.create({
             ...overrides,
             status: 'submitted',
-            physicalTraits: JSON.stringify({ complexion: 'fair', height: 'average', build: 'medium' }),
-            forensicTraits: JSON.stringify({ dominantHand: 'right', hairType: 'straight' }),
         });
     }
 

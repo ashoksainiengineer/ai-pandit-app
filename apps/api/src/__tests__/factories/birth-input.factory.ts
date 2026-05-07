@@ -4,8 +4,8 @@
  * Follows Midday/OpenStatus factory patterns with `overrides` for full flexibility.
  */
 
-import type { SecondsPrecisionInput, LifeEvent, ForensicTraits } from '@ai-pandit/shared';
-import { createLifeEvent, createForensicTraits } from '../../lib/__tests__/test-utils.js';
+import type { SecondsPrecisionInput, LifeEvent } from '@ai-pandit/shared';
+import { createLifeEvent } from '../../lib/__tests__/test-utils.js';
 
 /**
  * Create a seconds-precision birth time rectification input.
@@ -33,7 +33,7 @@ export function createBirthInput(overrides: Partial<SecondsPrecisionInput> = {})
     longitude: 77.2090,
     timezone: 5.5,
     lifeEvents: [createLifeEvent()],
-    forensicTraits: createForensicTraits(),
+    offsetConfig: { description: 'Test offset' },
     offsetConfig: { description: 'Test offset' },
     ...overrides,
   };
@@ -57,7 +57,7 @@ export interface ApiBirthInput {
   timezone: number;
   gender: 'male' | 'female' | 'other';
   lifeEvents: LifeEvent[];
-  forensicTraits: ForensicTraits;
+  offsetConfig: { description: string };
   offsetConfig: { description: string };
 }
 
@@ -78,7 +78,7 @@ export function createApiBirthInput(overrides: Partial<ApiBirthInput> = {}): Api
     timezone: 5.5,
     gender: 'male',
     lifeEvents: [createLifeEvent()],
-    forensicTraits: createForensicTraits(),
+    offsetConfig: { description: 'Test offset' },
     offsetConfig: { description: 'Test offset' },
     ...overrides,
   };

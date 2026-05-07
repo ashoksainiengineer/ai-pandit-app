@@ -72,7 +72,7 @@ export default function StatsCard({
       className="bg-white rounded-xl border border-[rgba(0,0,0,0.08)] p-6 hover:shadow-lg transition-shadow"
     >
       <div className="flex items-start justify-between mb-4">
-        <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#000000]/10 to-[#000000]/10 flex items-center justify-center text-[#000000]">
+        <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#000000]/10 to-[#000000]/10 flex items-center justify-center text-black">
           {icon}
         </div>
         {change !== undefined && (
@@ -85,7 +85,7 @@ export default function StatsCard({
 
       <div className="space-y-1">
         <p className="text-sm text-[#636363]">{title}</p>
-        <p className="text-2xl font-medium text-[#000000] ">
+        <p className="text-2xl font-medium text-black ">
           {formatValue(value)}
         </p>
         {change !== undefined && (

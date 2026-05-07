@@ -1,8 +1,15 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { OffsetPreset } from '@/lib/types';
 import { Step1Props } from '../types';
 import { OFFSET_PRESETS } from '../constants';
 import { getDaysForMonth, isValidDate, convertTo24Hour, parseTimeToParts, sanitizeInput } from '../utils';
+
+function parseDateParts(dateStr: string | undefined): { day: string; month: string; year: string } {
+    if (!dateStr) return { day: '', month: '', year: '' };
+    const parts = dateStr.split('-');
+    if (parts.length !== 3) return { day: '', month: '', year: '' };
+    return { year: parts[0], month: parts[1], day: parts[2] };
+}
 
 export function useBirthDetails({
     data,
@@ -14,52 +21,55 @@ export function useBirthDetails({
 }: Step1Props) {
     const [showSpouse, setShowSpouse] = useState(false);
     const [touched, setTouched] = useState<Record<string, boolean>>({});
+    const isUpdatingFromParent = useRef(false);
 
-    // Parse date of birth
-    const [dobParts, setDobParts] = useState({
-        day: data.dateOfBirth?.split('-')[2] || '',
-        month: data.dateOfBirth?.split('-')[1] || '',
-        year: data.dateOfBirth?.split('-')[0] || ''
-    });
+    // Date of birth parts - sync from external data changes
+    const [dobParts, setDobParts] = useState(() => parseDateParts(data.dateOfBirth));
 
-    // Parse time with useEffect to sync with external data changes
+    useEffect(() => {
+        const parts = parseDateParts(data.dateOfBirth);
+        setDobParts(prev => {
+            if (prev.day === parts.day && prev.month === parts.month && prev.year === parts.year) return prev;
+            return parts;
+        });
+    }, [data.dateOfBirth]);
+
+    // Time parts
     const [timeParts, setTimeParts] = useState(() => parseTimeToParts(data.tentativeTime));
 
-    // Sync time parts when data changes externally
     useEffect(() => {
+        isUpdatingFromParent.current = true;
         setTimeParts(parseTimeToParts(data.tentativeTime));
+        isUpdatingFromParent.current = false;
     }, [data.tentativeTime]);
 
     // Offset state
     const [selectedOffset, setSelectedOffset] = useState<OffsetPreset>(offsetConfig?.preset || '1hour');
     const [customOffset, setCustomOffset] = useState<number>(offsetConfig?.customMinutes ?? 60);
 
-    // Sync offset with parent config
     useEffect(() => {
-        if (offsetConfig?.preset) {
-            setSelectedOffset(offsetConfig.preset);
-        }
-        if (offsetConfig?.customMinutes !== undefined) {
-            setCustomOffset(offsetConfig.customMinutes);
-        }
+        if (offsetConfig?.preset) setSelectedOffset(offsetConfig.preset);
+        if (offsetConfig?.customMinutes !== undefined) setCustomOffset(offsetConfig.customMinutes);
     }, [offsetConfig?.preset, offsetConfig?.customMinutes]);
 
-    // Spouse date parts
-    const [spouseDobParts, setSpouseDobParts] = useState({
-        day: spouseData?.dateOfBirth?.split('-')[2] || '',
-        month: spouseData?.dateOfBirth?.split('-')[1] || '',
-        year: spouseData?.dateOfBirth?.split('-')[0] || ''
-    });
+    // Spouse date parts - sync from external data
+    const [spouseDobParts, setSpouseDobParts] = useState(() => parseDateParts(spouseData?.dateOfBirth));
+
+    useEffect(() => {
+        const parts = parseDateParts(spouseData?.dateOfBirth);
+        setSpouseDobParts(prev => {
+            if (prev.day === parts.day && prev.month === parts.month && prev.year === parts.year) return prev;
+            return parts;
+        });
+    }, [spouseData?.dateOfBirth]);
 
     // Spouse time parts
     const [spouseTimeParts, setSpouseTimeParts] = useState(() => parseTimeToParts(spouseData?.birthTime));
 
-    // Sync spouse time when data changes
     useEffect(() => {
         setSpouseTimeParts(parseTimeToParts(spouseData?.birthTime));
     }, [spouseData?.birthTime]);
 
-    // Get available days based on selected month/year
     const availableDays = useMemo(() =>
         getDaysForMonth(dobParts.month, dobParts.year),
         [dobParts.month, dobParts.year]
@@ -70,10 +80,11 @@ export function useBirthDetails({
         [spouseDobParts.month, spouseDobParts.year]
     );
 
-    // Memoized validation
+    // Validation - checks ALL fields regardless of touched state
     const errors = useMemo(() => {
         const newErrors: Record<string, string> = {};
 
+        // Full Name (show error if touched OR if there's partial content to correct)
         if (touched.fullName || data.fullName) {
             if (!data.fullName?.trim()) {
                 newErrors.fullName = 'Full name is required';
@@ -82,7 +93,8 @@ export function useBirthDetails({
             }
         }
 
-        if (touched.dateOfBirth || dobParts.day) {
+        // Date of Birth
+        if (touched.dateOfBirth || dobParts.day || dobParts.month || dobParts.year) {
             if (!dobParts.day || !dobParts.month || !dobParts.year) {
                 newErrors.dateOfBirth = 'Complete date of birth is required';
             } else if (!isValidDate(dobParts.year, dobParts.month, dobParts.day)) {
@@ -90,12 +102,14 @@ export function useBirthDetails({
             }
         }
 
-        if (touched.tentativeTime || timeParts.hour) {
+        // Tentative Time
+        if (touched.tentativeTime || timeParts.hour || timeParts.minute) {
             if (!timeParts.hour || !timeParts.minute) {
                 newErrors.tentativeTime = 'Approximate birth time is required';
             }
         }
 
+        // Birth Place
         if (touched.birthPlace || data.birthPlace) {
             if (!data.birthPlace?.trim()) {
                 newErrors.birthPlace = 'Birth place is required';
@@ -105,11 +119,23 @@ export function useBirthDetails({
         return newErrors;
     }, [data.fullName, data.birthPlace, dobParts, timeParts, touched]);
 
+    // Full validation for step submission - checks EVERYTHING
+    const isStepComplete = useMemo(() => {
+        if (!data.fullName?.trim() || data.fullName.trim().length < 2) return false;
+        if (!dobParts.day || !dobParts.month || !dobParts.year) return false;
+        if (!isValidDate(dobParts.year, dobParts.month, dobParts.day)) return false;
+        if (!timeParts.hour || !timeParts.minute) return false;
+        if (!data.birthPlace?.trim()) return false;
+        // Coordinates must be explicitly set by place picker (not default 0,0)
+        if (!data.latitude || !data.longitude) return false;
+        if (data.latitude === 0 && data.longitude === 0 && !data.timezone) return false;
+        return true;
+    }, [data.fullName, data.birthPlace, data.latitude, data.longitude, data.timezone, dobParts, timeParts]);
+
     const handleDateChange = useCallback((part: 'day' | 'month' | 'year', value: string) => {
         setTouched(prev => ({ ...prev, dateOfBirth: true }));
         const newParts = { ...dobParts, [part]: value };
 
-        // Reset day if it's invalid for the new month
         if (part === 'month' || part === 'year') {
             const maxDays = getDaysForMonth(newParts.month, newParts.year).length;
             if (parseInt(newParts.day, 10) > maxDays) {
@@ -122,19 +148,23 @@ export function useBirthDetails({
         if (newParts.year && newParts.month && newParts.day &&
             isValidDate(newParts.year, newParts.month, newParts.day)) {
             updateData({ dateOfBirth: `${newParts.year}-${newParts.month}-${newParts.day}` });
+        } else if (!newParts.day || !newParts.month || !newParts.year) {
+            // Clear parent when date becomes incomplete (e.g., day reset on month change)
+            updateData({ dateOfBirth: '' });
         }
     }, [dobParts, updateData]);
 
     const handleTimeChange = useCallback((part: 'hour' | 'minute' | 'period', value: string) => {
         setTouched(prev => ({ ...prev, tentativeTime: true }));
-        const newParts = { ...timeParts, [part]: value } as typeof timeParts;
-        setTimeParts(newParts);
-
-        if (newParts.hour && newParts.minute) {
-            const time24 = convertTo24Hour(newParts.hour, newParts.minute, newParts.period);
-            updateData({ tentativeTime: time24 });
-        }
-    }, [timeParts, updateData]);
+        setTimeParts(prevParts => {
+            const newParts = { ...prevParts, [part]: value } as typeof prevParts;
+            if (newParts.hour && newParts.minute) {
+                const time24 = convertTo24Hour(newParts.hour, newParts.minute, newParts.period);
+                updateData({ tentativeTime: time24 });
+            }
+            return newParts;
+        });
+    }, [updateData]);
 
     const handleNameChange = useCallback((value: string) => {
         setTouched(prev => ({ ...prev, fullName: true }));
@@ -159,7 +189,7 @@ export function useBirthDetails({
     const handleCustomOffsetChange = useCallback((valStr: string) => {
         let val = parseInt(valStr, 10);
         if (isNaN(val)) val = 0;
-        if (val > 720) val = 720; // Max 12 hours
+        if (val > 720) val = 720;
         setCustomOffset(val);
         updateOffset?.({
             preset: 'custom',
@@ -171,7 +201,6 @@ export function useBirthDetails({
     const handleSpouseDateChange = useCallback((part: 'day' | 'month' | 'year', value: string) => {
         const newParts = { ...spouseDobParts, [part]: value };
 
-        // Reset day if it's invalid for the new month
         if (part === 'month' || part === 'year') {
             const maxDays = getDaysForMonth(newParts.month, newParts.year).length;
             if (parseInt(newParts.day, 10) > maxDays) {
@@ -188,14 +217,15 @@ export function useBirthDetails({
     }, [spouseDobParts, updateSpouse]);
 
     const handleSpouseTimeChange = useCallback((part: 'hour' | 'minute' | 'period', value: string) => {
-        const newParts = { ...spouseTimeParts, [part]: value } as typeof spouseTimeParts;
-        setSpouseTimeParts(newParts);
-
-        if (newParts.hour && newParts.minute) {
-            const time24 = convertTo24Hour(newParts.hour, newParts.minute, newParts.period);
-            updateSpouse?.({ birthTime: time24 });
-        }
-    }, [spouseTimeParts, updateSpouse]);
+        setSpouseTimeParts(prevParts => {
+            const newParts = { ...prevParts, [part]: value } as typeof prevParts;
+            if (newParts.hour && newParts.minute) {
+                const time24 = convertTo24Hour(newParts.hour, newParts.minute, newParts.period);
+                updateSpouse?.({ birthTime: time24 });
+            }
+            return newParts;
+        });
+    }, [updateSpouse]);
 
     return {
         showSpouse,
@@ -209,6 +239,7 @@ export function useBirthDetails({
         availableDays,
         spouseAvailableDays,
         errors,
+        isStepComplete,
         handleNameChange,
         handlePlaceChange,
         handleDateChange,

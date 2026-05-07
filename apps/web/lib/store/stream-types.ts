@@ -53,7 +53,6 @@ export interface AIContextData {
         moon?: string;
     }>;
     lifeEventsCount?: number;
-    hasForensicTraits?: boolean;
     batch?: number;
     totalBatches?: number;
 }
@@ -99,7 +98,6 @@ export interface StreamMetadata {
     status?: string;
     errorMessage?: string;
     lifeEvents?: unknown[];
-    physicalTraits?: unknown;
     offsetConfig?: { preset: string; customMinutes?: number; minutes?: number };
     aiModel?: string;
     updatedAt?: string;

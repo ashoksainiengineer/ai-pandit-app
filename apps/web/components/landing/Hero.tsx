@@ -86,9 +86,9 @@ export default function Hero() {
             style={{ animationDelay: '0.1s' }}
           >
             <h1 className=" text-4xl sm:text-5xl lg:text-6xl xl:text-7xl
-                           font-medium text-[#000000] leading-tight tracking-tight">
+                           font-medium text-black leading-tight tracking-tight">
               Discover Your{' '}
-              <span className="text-[#000000]">Exact Birth Time</span>
+              <span className="text-black">Exact Birth Time</span>
             </h1>
             <p className="mt-4 text-lg text-[#636363] font-light italic">
               by <span className=" text-2xl text-[#8A6A0B] font-medium not-italic">AI Pandit</span>
@@ -139,7 +139,7 @@ export default function Hero() {
                 >
                   <Icon className="w-5 h-5 flex-shrink-0" style={{ color: stat.color }} />
                   <div className="text-left">
-                    <div className=" text-lg sm:text-xl font-medium text-[#000000]">
+                    <div className=" text-lg sm:text-xl font-medium text-black">
                       {stat.value}
                     </div>
                     <div className="text-[11px] text-[#636363]">{stat.label}</div>
@@ -188,10 +188,10 @@ export default function Hero() {
                 <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
                 <div className="absolute inset-0 w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping opacity-40" />
               </div>
-              <span className="text-sm font-medium text-[#000000]">Live Analysis Engine</span>
+              <span className="text-sm font-medium text-black">Live Analysis Engine</span>
             </div>
             <button
-              className="flex items-center gap-2 px-4 py-2 bg-white border border-[#000000] text-[#000000]
+              className="flex items-center gap-2 px-4 py-2 bg-white border border-[#000000] text-black
                          text-sm rounded-lg hover:bg-[#ffffff] transition-colors"
             >
               <Play className="w-4 h-4" />

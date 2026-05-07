@@ -31,7 +31,6 @@ interface PromptData {
   contextData: {
     candidateCount: number;
     eventCount: number;
-    forensicTraitsPresent: boolean;
     spouseDataPresent: boolean;
   };
 }
@@ -176,7 +175,7 @@ Tokens: ${promptData.promptTokens}
 
 CANDIDATES: ${contextData.candidateCount}
 EVENTS: ${contextData.eventCount}
-FORENSIC: ${contextData.forensicTraitsPresent ? 'Yes' : 'No'}
+SPOUSE: ${contextData.spouseDataPresent ? 'Yes' : 'No'}
 SPOUSE: ${contextData.spouseDataPresent ? 'Yes' : 'No'}
 
 ════════════════════════════════════════════════════════════════

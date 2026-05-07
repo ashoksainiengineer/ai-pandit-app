@@ -50,8 +50,6 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
           gender: true,
           clerkId: true,
           lifeEvents: true,
-          physicalTraits: true,
-          forensicTraits: true,
           spouseData: true,
           offsetConfig: true,
           analysisResult: true,
@@ -83,8 +81,6 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
 
             // 2. Trait Clusters (All Encrypted)
             lifeEvents: parseSensitiveField(session.lifeEvents, sessionUserId, []),
-            physicalTraits: parseSensitiveField(session.physicalTraits, sessionUserId, null),
-            forensicTraits: parseSensitiveField(session.forensicTraits, sessionUserId, null),
             spouseData: parseSensitiveField(session.spouseData, sessionUserId, null),
 
             // 3. System & Results (Can be encrypted or plain depending on source)
@@ -170,12 +166,6 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
         // Encrypt & Stringify JSON fields (Full Security Suite)
         if (body.lifeEvents !== undefined) {
             updateData.lifeEvents = encrypt(JSON.stringify(body.lifeEvents), existingSession.userId);
-        }
-        if (body.physicalTraits !== undefined) {
-            updateData.physicalTraits = encrypt(JSON.stringify(body.physicalTraits), existingSession.userId);
-        }
-        if (body.forensicTraits !== undefined) {
-            updateData.forensicTraits = encrypt(JSON.stringify(body.forensicTraits), existingSession.userId);
         }
         if (body.spouseData !== undefined) {
             updateData.spouseData = encrypt(JSON.stringify(body.spouseData), existingSession.userId);

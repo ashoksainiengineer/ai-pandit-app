@@ -47,8 +47,6 @@ async function main(): Promise<void> {
     longitude: template.longitude,
     timezone: template.timezone,
     gender: template.gender,
-    physicalTraits: template.physicalTraits,
-    forensicTraits: template.forensicTraits,
     lifeEvents: template.lifeEvents,
     spouseData: template.spouseData,
     offsetConfig: template.offsetConfig,

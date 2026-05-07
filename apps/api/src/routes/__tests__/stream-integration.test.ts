@@ -75,7 +75,6 @@ vi.mock('@ai-pandit/db/schema', () => ({
     errorMessage: 'errorMessage', updatedAt: 'updatedAt',
     analysisResult: 'analysisResult', fullName: 'fullName',
     offsetConfig: 'offsetConfig', lifeEvents: 'lifeEvents',
-    physicalTraits: 'physicalTraits', forensicTraits: 'forensicTraits',
     dateOfBirth: 'dateOfBirth', tentativeTime: 'tentativeTime',
     birthPlace: 'birthPlace', completedAt: 'completedAt',
     startedProcessingAt: 'startedProcessingAt',

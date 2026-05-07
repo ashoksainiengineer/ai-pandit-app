@@ -3,7 +3,7 @@ import crypto from 'node:crypto';
 import { createServer, IncomingMessage, ServerResponse } from 'node:http';
 import { initEphemerisProvider, cleanup as triggerEphemerisCleanup } from '../lib/ephemeris.js';
 import { executeSecondsPrecisionRectification } from '../lib/seconds-precision-btr.js';
-import type { ForensicTraits, LifeEvent, SecondsPrecisionInput } from '@ai-pandit/shared';
+import type { LifeEvent, SecondsPrecisionInput } from '@ai-pandit/shared';
 import { TEST_PROFILES, type TestProfile } from '../lib/btr/__tests__/dataset/test-profiles.js';
 import { MODI_BLINDED_PROFILE } from '../lib/btr/__tests__/dataset/modi-blinded-profile.js';
 import { db, closeDatabaseConnection } from '@ai-pandit/db';
@@ -120,7 +120,7 @@ function buildMockReasoning(prompt: string): string {
     'The following reasoning payload is intentionally long to simulate real thinking streams.',
   ].join('\n');
 
-  const filler = 'Detailed astro-correlation across dasha, varga, transit, and forensic layers. ';
+  const filler = 'Detailed astro-correlation across dasha, varga, and transit layers. ';
   const expanded = filler.repeat(65); // > 1500 chars to pass short-response guard
 
   return `${header}\n${expanded}`;
@@ -346,7 +346,6 @@ function buildInputs(options: CliOptions): SecondsPrecisionInput[] {
       customMinutes: options.offsetMinutes,
       description: `Profiling ±${options.offsetMinutes}m`,
     },
-    forensicTraits: (profile.forensicTraits ?? {}) as ForensicTraits,
   }));
 }
 
@@ -387,7 +386,6 @@ async function insertSessionRows(inputs: SecondsPrecisionInput[]): Promise<void>
       latitude: input.latitude,
       longitude: input.longitude,
       timezone: String(input.timezone),
-      forensicTraits: JSON.stringify(input.forensicTraits ?? {}),
       lifeEvents: JSON.stringify(input.lifeEvents ?? []),
       offsetConfig: JSON.stringify(input.offsetConfig),
       status: 'processing',

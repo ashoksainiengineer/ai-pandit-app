@@ -16,7 +16,7 @@
  * 6. Ashtakavarga - Bindu-based strength verification
  * 7. Divisional Charts - Varga-specific event correlation
  * 8. Transit Analysis - Double transit verification
- * 9. Forensic Correlation - Physical/psychological matching
+ * 9. AI Reasoning - Deep pattern analysis
  * 10. AI Reasoning - Deep pattern analysis
  * 
  * CONSENSUS RULES:
@@ -110,10 +110,8 @@ export function calculateConsensus(input: ValidationInput): ConsensusResult {
   scores.transit = transit.score;
   details.push(transit);
 
-  // Method 9: Forensic Validation
-  const forensic = validateForensic(input);
-  scores.forensic = forensic.score;
-  details.push(forensic);
+
+  // Method 9: AI Reasoning Validation
 
   // Method 10: AI Reasoning Validation
   const ai = validateAI(input);
@@ -623,53 +621,8 @@ function validateTransit(input: ValidationInput): ValidationDetail {
   };
 }
 
-function validateForensic(input: ValidationInput): ValidationDetail {
-  const { candidate, forensicProfile } = input;
 
-  if (!forensicProfile || !candidate.ephemeris) {
-    return {
-      method: 'Forensic Correlation',
-        score: 0,
-      maxScore: 100,
-      status: 'warning',
-      details: 'Forensic data incomplete',
-      criticalFindings: []
-    };
-  }
 
-  // Calculate forensic match score
-  let score = 40; // Base score lowered to allow for mismatch detection
-  const findings: string[] = [];
-
-  // Lagna element vs prakriti
-  const lagna = candidate.ephemeris.ascendant?.sign;
-  const prakriti = forensicProfile.biological?.prakriti;
-
-  if (lagna && prakriti) {
-    const elementMatch = checkPrakritiLagnaMatch(prakriti, lagna);
-    if (elementMatch) {
-      score += 20;
-      findings.push(`Prakriti ${prakriti} matches Lagna ${lagna}`);
-    }
-  }
-
-  // Physical build vs planet influences
-  const build = forensicProfile.physical?.build;
-  if (build && candidate.ephemeris.planets) {
-    const buildScore = checkBuildPlanetaryMatch(build, candidate.ephemeris.planets);
-    score += buildScore;
-    if (buildScore > 10) findings.push('Physical build matches planetary signatures');
-  }
-
-  return {
-    method: 'Forensic Correlation',
-    score: Math.min(100, score),
-    maxScore: 100,
-    status: score >= 70 ? 'pass' : 'warning',
-    details: `Forensic match: ${score.toFixed(0)}%`,
-    criticalFindings: findings
-  };
-}
 
 function validateAI(input: ValidationInput): ValidationDetail {
   // AI score comes from previous AI analysis
@@ -745,7 +698,6 @@ function calculateWeightedConsensus(scores: ConsensusScores): number {
     ashtakavarga: METHOD_WEIGHTS.ashtakavarga,
     varga: METHOD_WEIGHTS.varga,
     transit: METHOD_WEIGHTS.transit,
-    forensic: METHOD_WEIGHTS.forensic,
     ai: METHOD_WEIGHTS.ai,
     nadi: METHOD_WEIGHTS.nadi,
     prana: METHOD_WEIGHTS.prana
@@ -812,7 +764,6 @@ function calculateMarginOfError(scores: ConsensusScores, redFlags: RedFlags): nu
   if (scores.vimshottari >= 80) { baseError -= 15; highScoreCount++; }
   if (scores.varga >= 80) { baseError -= 10; highScoreCount++; }
   if (scores.transit >= 80) { baseError -= 10; highScoreCount++; }
-  if (scores.forensic >= 80) { baseError -= 5; highScoreCount++; }
 
   // Bonus reduction if multiple methods agree (high consensus)
   if (highScoreCount >= 4) baseError -= 10;
@@ -842,7 +793,6 @@ function detectRedFlags(input: ValidationInput, scores: ConsensusScores, _detail
     conflictingMethods: detectConflicts(scores),
     weakSignificators: detectWeakSignificators(candidate),
     d60Instability: detectD60Instability(candidate),
-    forensicMismatch: scores.forensic < 50
   };
 }
 
@@ -859,7 +809,7 @@ function generateRecommendations(scores: ConsensusScores, redFlags: RedFlags): s
   if (scores.kp < 70) recs.push('Add more precise event timings for KP analysis');
   if (scores.varga < 70) recs.push('Include spouse data for D9 verification');
   if (scores.transit < 60) recs.push('Verify event dates for transit correlation');
-  if (scores.forensic < 70) recs.push('Complete forensic profile for better matching');
+  if (redFlags.sandhiBirth) recs.push('Birth near cusp - additional verification needed');
   if (redFlags.sandhiBirth) recs.push('Birth near cusp - additional verification needed');
   if (redFlags.d60Instability) recs.push('D60 changes in window - micro-grid analysis recommended');
 
@@ -974,25 +924,7 @@ function getSignElement(sign: string): string {
   return elements[sign] || 'fire';
 }
 
-function checkPrakritiLagnaMatch(prakriti: string, lagna: string): boolean {
-  const element = getSignElement(lagna);
-  const prakritiElement = prakriti.includes('pitta') ? 'fire' :
-    prakriti.includes('vata') ? 'air' :
-      prakriti.includes('kapha') ? 'water' : 'earth';
-  return element === prakritiElement;
-}
 
-function checkBuildPlanetaryMatch(build: string, planets: Record<string, { dignity?: string }>): number {
-  let score = 0;
-  const jupiterStrong = planets.jupiter?.dignity === 'exalted' || planets.jupiter?.dignity === 'own';
-  const saturnStrong = planets.saturn?.dignity === 'exalted' || planets.saturn?.dignity === 'own';
-
-  if (build === 'heavy' && jupiterStrong) score += 15;
-  if (build === 'slim' && saturnStrong) score += 15;
-  if (build === 'athletic' && planets.mars?.dignity === 'exalted') score += 15;
-
-  return score;
-}
 
 function detectSandhi(candidate: ValidationInput['candidate']): boolean {
   const ascDegree = candidate.ephemeris?.ascendant?.degree;

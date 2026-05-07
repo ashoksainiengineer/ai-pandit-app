@@ -81,7 +81,7 @@ export default function RootLayout({
           headerSubtitle: 'text-black/60',
           socialButtonsBlockButton: 'border-black/10 hover:bg-black/5',
           formFieldLabel: 'text-black/60',
-          formFieldInput: 'bg-[#FAFAFA] border-black/10 text-black focus:border-black',
+          formFieldInput: 'bg-[var(--prism-canvas)] border-black/10 text-black focus:border-black',
           footerActionLink: 'text-black hover:text-black/70',
         }
       }}

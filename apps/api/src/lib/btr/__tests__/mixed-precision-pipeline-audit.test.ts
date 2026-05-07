@@ -63,7 +63,7 @@ describe('Mixed-Precision Pipeline Audit (Stage payload continuity)', () => {
   it('preserves full mixed-precision life-event context and VSL payload across Stage 2/4/6 prompts', async () => {
     const capturedPrompts: CapturedPrompt[] = [];
 
-    const callAISpy = vi.spyOn(aiClient as any, 'callAIWithStream').mockImplementation(
+    const callAISpy = vi.spyOn(aiClient as any, '_callAIWithStream').mockImplementation(
       (async (_sessionId: string, stage: number, _systemPrompt: string, userPrompt: string) => {
         capturedPrompts.push({ stage, prompt: userPrompt });
 
@@ -104,17 +104,6 @@ describe('Mixed-Precision Pipeline Audit (Stage payload continuity)', () => {
       longitude: 77.2090,
       timezone: 5.5,
       offsetConfig: { preset: '30min', description: 'Mixed precision audit run' },
-      forensicTraits: {
-        physical: {
-          facialStructure: { forehead: 'average', eyeShape: 'almond', noseType: 'sharp', teethAlignment: 'perfect', voicePitch: 'medium' },
-          skinHair: { texture: 'combination', hairType: 'straight', complexion: 'fair', marks: [] },
-          build: 'medium',
-          height: { cm: 175, feet: 5, inches: 9 },
-        },
-        psychographic: { speechStyle: 'measured_soft', decisionMaking: 'deliberate', stressResponse: 'calm', sleepCycle: 'early_bird', temperament: 'patient' },
-        biological: { prakriti: 'pitta', sensitivity: { heat: 'high', cold: 'medium' }, recurringHealthIssues: [] },
-        family: { siblingPosition: 'eldest', brotherCount: 1, sisterCount: 0, fatherStatusAtBirth: 'stable', motherHealthAtBirth: 'excellent' },
-      },
       lifeEvents: [
         {
           id: 'evt_exact_dt',

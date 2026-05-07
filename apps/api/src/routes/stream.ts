@@ -382,8 +382,6 @@ router.get(['/', '/:sessionId'], authMiddleware, async (req: AuthenticatedReques
                             birthPlace: parseSensitiveField(session.birthPlace, clerkId, session.userId),
                             offsetConfig: parseSensitiveField(session.offsetConfig, clerkId, session.userId),
                             lifeEvents: parseSensitiveField(session.lifeEvents, clerkId, session.userId, []),
-                            physicalTraits: parseSensitiveField(session.physicalTraits, clerkId, session.userId),
-                            forensicTraits: parseSensitiveField(session.forensicTraits, clerkId, session.userId),
                             status: queueStatus.status,
                             aiModel: aiConfig.model,
                         }
@@ -434,8 +432,6 @@ router.get(['/', '/:sessionId'], authMiddleware, async (req: AuthenticatedReques
                             birthPlace: parseSensitiveField(session.birthPlace, clerkId, session.userId),
                             offsetConfig: parseSensitiveField(session.offsetConfig, clerkId, session.userId),
                             lifeEvents: parseSensitiveField(session.lifeEvents, clerkId, session.userId, []),
-                            physicalTraits: parseSensitiveField(session.physicalTraits, clerkId, session.userId),
-                            forensicTraits: parseSensitiveField(session.forensicTraits, clerkId, session.userId),
                             status: queueStatus.status,
                             aiModel: aiConfig.model,
                         }

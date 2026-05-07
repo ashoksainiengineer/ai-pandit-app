@@ -86,7 +86,7 @@ test.describe('Critical User Flows', () => {
       
       await page.click('button:has-text("Next")');
       
-      await page.waitForSelector('text=Forensic Traits');
+      await page.waitForSelector('text=Birth Details');
       await page.click('button:has-text("Medium")');
       await page.click('button:has-text("Round")');
       await page.click('button:has-text("Wheatish")');
@@ -151,7 +151,7 @@ test.describe('Critical User Flows', () => {
       await page.fill('input[name="birthPlace"]', 'Mumbai');
       
       await page.click('button:has-text("Next")');
-      await page.waitForSelector('text=Forensic Traits');
+      await page.waitForSelector('text=Birth Details');
       
       await page.click('button:has-text("Back")');
       await page.waitForSelector('text=Birth Details');
@@ -179,7 +179,7 @@ test.describe('Critical User Flows', () => {
       await page.selectOption('select[name="gender"]', 'male');
       
       await page.click('button:has-text("Next")');
-      await page.waitForSelector('text=Forensic Traits');
+      await page.waitForSelector('text=Birth Details');
       await page.click('button:has-text("Next")');
       await page.waitForSelector('text=Physical Traits');
       await page.click('button:has-text("Next")');
@@ -209,7 +209,7 @@ test.describe('Critical User Flows', () => {
       await page.selectOption('select[name="gender"]', 'male');
       
       await page.click('button:has-text("Next")');
-      await page.waitForSelector('text=Forensic Traits');
+      await page.waitForSelector('text=Birth Details');
       await page.click('button:has-text("Next")');
       await page.waitForSelector('text=Physical Traits');
       await page.click('button:has-text("Next")');
@@ -238,7 +238,7 @@ test.describe('Critical User Flows', () => {
       await page.selectOption('select[name="gender"]', 'male');
       
       await page.click('button:has-text("Next")');
-      await page.waitForSelector('text=Forensic Traits');
+      await page.waitForSelector('text=Birth Details');
       await page.click('button:has-text("Next")');
       await page.waitForSelector('text=Physical Traits');
       await page.click('button:has-text("Next")');

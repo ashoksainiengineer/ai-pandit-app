@@ -11,8 +11,8 @@ import { config } from '../../../../config/index.js';
 
 // Mock the AI client
 vi.mock('../../../ai-client.js', () => ({
-    callAIWithStream: vi.fn(),
-    executeAIInParallel: vi.fn(async (tasks: Array<() => Promise<unknown>>) => Promise.all(tasks.map((task) => task())))
+    _callAIWithStream: vi.fn(),
+    _executeAIInParallel: vi.fn(async (tasks: Array<() => Promise<unknown>>) => Promise.all(tasks.map((task) => task())))
 }));
 
 // Mock validation to bypass zero-trust gates in tests
@@ -129,14 +129,14 @@ describe('BTR Stage Model Routing', () => {
         };
         const candidates = [{ time: '12:00:00', offsetMinutes: 0, offsetDescription: '' }];
 
-        (aiClient as any).callAIWithStream.mockResolvedValue({
+        (aiClient as any)._callAIWithStream.mockResolvedValue({
             success: true,
             content: '<FINAL_SCORES>[{"time": "12:00:00", "score": 90}]</FINAL_SCORES>'
         });
 
         await stage2BatchTournament(input as any, candidates, mockProgress as any, {} as any);
 
-        expect((aiClient as any).callAIWithStream).toHaveBeenCalledWith(
+        expect((aiClient as any)._callAIWithStream).toHaveBeenCalledWith(
             expect.any(String),
             2,
             expect.any(String),
@@ -155,14 +155,14 @@ describe('BTR Stage Model Routing', () => {
         };
         const candidates = [{ time: '12:00:00', offsetMinutes: 0, offsetDescription: 'Exact' }];
 
-        (aiClient as any).callAIWithStream.mockResolvedValue({
+        (aiClient as any)._callAIWithStream.mockResolvedValue({
             success: true,
             content: 'MATCH'
         });
 
         await stage4DeepAnalysis(input as any, candidates, mockProgress as any, {} as any);
 
-        expect((aiClient as any).callAIWithStream).toHaveBeenCalledWith(
+        expect((aiClient as any)._callAIWithStream).toHaveBeenCalledWith(
             expect.any(String),
             4,
             expect.any(String),
@@ -184,14 +184,14 @@ describe('BTR Stage Model Routing', () => {
         };
         const candidates = [{ time: '12:00:00', offsetMinutes: 0, offsetDescription: 'Exact' }];
 
-        (aiClient as any).callAIWithStream.mockResolvedValue({
+        (aiClient as any)._callAIWithStream.mockResolvedValue({
             success: true,
             content: '<FINAL_VERDICT>{"time": "12:00:00"}</FINAL_VERDICT>'
         });
 
         await stage6FinalPrecision(input as any, candidates, mockProgress as any, {} as any);
 
-        expect((aiClient as any).callAIWithStream).toHaveBeenCalledWith(
+        expect((aiClient as any)._callAIWithStream).toHaveBeenCalledWith(
             expect.any(String),
             6,
             expect.any(String),
@@ -223,7 +223,7 @@ describe('BTR Stage Model Routing', () => {
             confidence: 'HIGH',
             margin: 4
         });
-        (aiClient as any).callAIWithStream.mockResolvedValue({
+        (aiClient as any)._callAIWithStream.mockResolvedValue({
             success: true,
             content: '<FINAL_VERDICT>{"time": "12:00:07"}</FINAL_VERDICT>'
         });
@@ -248,7 +248,7 @@ describe('BTR Stage Model Routing', () => {
         ];
 
         (extractors.extractFinalVerdict as any).mockReturnValue(null);
-        (aiClient as any).callAIWithStream.mockResolvedValue({
+        (aiClient as any)._callAIWithStream.mockResolvedValue({
             success: true,
             content: 'No final verdict returned'
         });
@@ -274,7 +274,7 @@ describe('BTR Stage Model Routing', () => {
         ];
 
         vi.mocked(extractors.extractBatchSurvivors).mockReturnValue([]);
-        vi.mocked((aiClient as any).callAIWithStream).mockResolvedValue({ success: false, content: '' } as never);
+        vi.mocked((aiClient as any)._callAIWithStream).mockResolvedValue({ success: false, content: '' } as never);
 
         await stage2BatchTournament(
             input,
@@ -317,7 +317,7 @@ describe('BTR Stage Model Routing', () => {
         ];
 
         vi.mocked(extractors.extractBatchSurvivors).mockReturnValue([]);
-        vi.mocked((aiClient as any).callAIWithStream).mockResolvedValue({ success: false, content: '' } as never);
+        vi.mocked((aiClient as any)._callAIWithStream).mockResolvedValue({ success: false, content: '' } as never);
 
         await stage4DeepAnalysis(
             input,
@@ -359,7 +359,7 @@ describe('BTR Stage Model Routing', () => {
             confidence: 'HIGH',
             margin: 5
         });
-        vi.mocked((aiClient as any).callAIWithStream).mockResolvedValue({
+        vi.mocked((aiClient as any)._callAIWithStream).mockResolvedValue({
             success: true,
             content: '<FINAL_VERDICT>{"time": "12:00:00", "accuracy": 95, "confidence": "HIGH", "margin": 5}</FINAL_VERDICT>'
         } as never);

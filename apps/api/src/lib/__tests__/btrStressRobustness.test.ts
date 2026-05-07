@@ -93,13 +93,12 @@ describe('Chapter 2.1: BTR Pipeline - Stress & Robustness', () => {
                 events: [
                     { category: 'marriage', impact: 'major', type: 'Marriage' }
                 ],
-                forensicProfile: { biological: { prakriti: 'kapha' } }
             };
 
             const result = calculateConsensus(input as any);
             expect(result.overallConsensus).toBeGreaterThan(0);
             expect(result.overallConsensus).toBeLessThan(100);
-            expect(result.redFlags.forensicMismatch).toBe(true);
+            expect(result.redFlags.conflictingMethods).toBeDefined();
         });
 
         it('should handle extreme precision requirements (STANDARD_PRECISION check)', () => {
@@ -129,7 +128,6 @@ describe('Chapter 2.1: BTR Pipeline - Stress & Robustness', () => {
                 events: [
                     { category: 'career', impact: 'critical', eventDate: '1995-01-01', transitData: { doubleTransit: { isTriggered: true } } }
                 ],
-                forensicProfile: { biological: { prakriti: 'pitta' } }
             };
 
             const result = calculateConsensus(input as any);

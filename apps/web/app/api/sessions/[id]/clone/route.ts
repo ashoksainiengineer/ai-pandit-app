@@ -61,8 +61,6 @@ export async function POST(
             gender: originalSession.gender,
 
             // Traits (Already Encrypted from DB)
-            physicalTraits: originalSession.physicalTraits,
-            forensicTraits: originalSession.forensicTraits,
             lifeEvents: originalSession.lifeEvents,
             spouseData: originalSession.spouseData,
 

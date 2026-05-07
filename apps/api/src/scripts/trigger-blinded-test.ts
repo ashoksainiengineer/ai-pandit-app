@@ -27,7 +27,6 @@ async function triggerBlindedTest() {
                     gender: 'male',
                 },
                 lifeEvents: MODI_BLINDED_PROFILE.lifeEvents,
-                forensicTraits: MODI_BLINDED_PROFILE.forensicTraits,
                 offsetConfig: MODI_BLINDED_PROFILE.offsetConfig
             })
         });

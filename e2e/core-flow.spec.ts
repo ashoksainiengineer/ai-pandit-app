@@ -53,55 +53,8 @@ test.describe('Rectification Core Flow', () => {
         await page.waitForSelector('button:has-text("Next Step"):not([disabled])', { timeout: 5000 });
         await page.getByRole('button', { name: /Next Step/i }).click();
 
-        // Step 2: Physical Appearance
-        await expect(page.getByRole('heading', { name: /Physical Appearance/i })).toBeVisible({ timeout: 15000 });
-        await page.getByRole('button', { name: /Almond/i }).click();
-        await page.getByRole('button', { name: /Next Step/i }).click();
 
-        // Step 3: Forensic Traits
-        await expect(page.getByRole('heading', { name: /Forensic Traits/i })).toBeVisible({ timeout: 20000 });
-
-        const clickStart = async () => {
-            const startBtn = page.getByRole('button', { name: /Start Assessment/i }).or(page.getByRole('button', { name: /Resume Assessment/i }));
-            if (await startBtn.count() > 0 && await startBtn.first().isVisible()) {
-                await startBtn.first().click();
-                await page.waitForSelector('button.w-full.text-left, button:has-text("Confirm & Continue")', { state: 'visible', timeout: 10000 });
-            }
-        };
-
-        await clickStart(); // First intro
-        await clickStart(); // Second intro (if exists)
-
-        let qCount = 0;
-        const MAX_QUESTIONS = 35;
-        while (qCount < MAX_QUESTIONS) {
-            const confirmBtn = page.getByRole('button', { name: /Confirm & Continue/i });
-            if (await confirmBtn.isVisible()) {
-                await confirmBtn.click();
-                break;
-            }
-
-            try {
-                const optionBtn = page.locator('button.w-full.text-left').filter({ has: page.locator('div.font-semibold') }).first();
-                await optionBtn.waitFor({ state: 'visible', timeout: 5000 });
-                await optionBtn.click();
-
-                const nextBtn = page.getByRole('button', { name: 'Next', exact: true })
-                    .or(page.getByRole('button', { name: 'See Results', exact: true }));
-                await nextBtn.scrollIntoViewIfNeeded();
-                await nextBtn.click();
-                await page.waitForSelector('button.w-full.text-left, button:has-text("Confirm & Continue")', { state: 'visible', timeout: 5000 });
-                qCount++;
-            } catch (error) {
-                console.error(`Failed at question ${qCount + 1}`);
-                break; // Stop loop and check if next step is possible
-            }
-        }
-
-        await expect(page.getByRole('heading', { name: /Assessment Complete/i }).last()).toBeVisible({ timeout: 15000 });
-        await page.getByRole('button', { name: 'Next Step →' }).click();
-
-        // Step 4: Life Events
+        // Step 2: Life Events
         await expect(page.getByRole('heading', { name: /Life Events/i })).toBeVisible({ timeout: 15000 });
 
         // Helper to add a life event (min 3 required)
@@ -136,8 +89,8 @@ test.describe('Rectification Core Flow', () => {
         await expect(page.locator('[data-testid="event-item"], .divide-y > div')).toHaveCount(3, { timeout: 5000 });
         await page.getByRole('button', { name: 'Next Step →' }).click({ force: true });
 
-        // Step 5: Review & Submit
-        console.log('Transitioning to Step 5: Review & Confirm...');
+        // Step 3: Review & Submit
+        console.log('Transitioning to Step 3: Review & Confirm...');
         await expect(page.getByRole('heading', { name: /Review|Confirm/i }).first()).toBeVisible({ timeout: 25000 });
         await page.waitForSelector('input[type="checkbox"]', { state: 'visible', timeout: 5000 });
         await page.locator('input[type="checkbox"]').check();

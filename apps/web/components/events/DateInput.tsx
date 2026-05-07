@@ -242,7 +242,7 @@ const TimeSelect: React.FC<{
           <option key={h} value={parseInt(h, 10).toString()}>{h}</option>
         ))}
       </select>
-      <span className="text-[#000000] font-medium">:</span>
+      <span className="text-black font-medium">:</span>
       <select
         value={normalizedMinute}
         onChange={(e) => onChange(hour, e.target.value)}
@@ -280,7 +280,7 @@ const ErrorDisplay: React.FC<{ error: string | null }> = ({ error }) => {
  */
 const RangeArrow: React.FC = () => (
   <div className="flex items-center justify-center py-1">
-    <span className="text-[#000000] text-xl">↓</span>
+    <span className="text-black text-xl">↓</span>
   </div>
 );
 
@@ -494,7 +494,7 @@ export default function DateInput({
    * Year Range: Start Year → End Year
    */
   const renderYearRange = () => (
-    <div className="bg-[#FAFAFA] p-4 rounded-lg space-y-3">
+    <div className="bg-[var(--prism-canvas)] p-4 rounded-lg space-y-3">
       <div className="flex items-center gap-3">
         <YearSelect
           value={localStartParts.year}
@@ -504,7 +504,7 @@ export default function DateInput({
           maxYear={maxYear}
           hasError={!!validation.error && validation.error.includes('Start')}
         />
-        <span className="text-[#000000] text-xl font-medium">→</span>
+        <span className="text-black text-xl font-medium">→</span>
         <YearSelect
           value={localEndParts.year}
           onChange={(year) => updateEndDate({ year })}
@@ -522,7 +522,7 @@ export default function DateInput({
    * Month Range: Start Month/Year → End Month/Year
    */
   const renderMonthRange = () => (
-    <div className="bg-[#FAFAFA] p-4 rounded-lg space-y-2">
+    <div className="bg-[var(--prism-canvas)] p-4 rounded-lg space-y-2">
       {/* Start Date */}
       <div className="flex gap-3">
         <MonthSelect
@@ -569,7 +569,7 @@ export default function DateInput({
    * Month & Year
    */
   const renderMonthYear = () => (
-    <div className="bg-[#FAFAFA] p-4 rounded-lg space-y-3">
+    <div className="bg-[var(--prism-canvas)] p-4 rounded-lg space-y-3">
       <div className="flex gap-3">
         <MonthSelect
           value={localStartParts.month}
@@ -594,7 +594,7 @@ export default function DateInput({
    * Date Range: Start Date → End Date
    */
   const renderDateRange = () => (
-    <div className="bg-[#FAFAFA] p-4 rounded-lg space-y-2">
+    <div className="bg-[var(--prism-canvas)] p-4 rounded-lg space-y-2">
       {/* Start Date */}
       <div className="flex gap-3">
         <DaySelect
@@ -658,7 +658,7 @@ export default function DateInput({
    */
   const renderExactDate = () => (
     <div className="space-y-3">
-      <div className="bg-[#FAFAFA] p-4 rounded-lg">
+      <div className="bg-[var(--prism-canvas)] p-4 rounded-lg">
         <div className="flex gap-3">
           <DaySelect
             value={localStartParts.day}
@@ -689,7 +689,7 @@ export default function DateInput({
 
       {/* Time selector for exact_date_time */}
       {precision === 'exact_date_time' && (
-        <div className="bg-[#FAFAFA] p-4 rounded-lg">
+        <div className="bg-[var(--prism-canvas)] p-4 rounded-lg">
           <div className="flex items-center gap-4">
             <label className="text-sm text-[#636363] font-medium">Time:</label>
             <TimeSelect

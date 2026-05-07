@@ -13,44 +13,6 @@ describe('Data Package Builder - Explicit Validation', () => {
         timezone: 5.5,
         lifeEvents: [],
         offsetConfig: { description: 'test' },
-        forensicTraits: {
-            physical: {
-                facialStructure: {
-                    forehead: 'broad',
-                    eyeShape: 'almond',
-                    noseType: 'sharp',
-                    teethAlignment: 'perfect',
-                    voicePitch: 'deep'
-                },
-                skinHair: {
-                    texture: 'dry',
-                    hairType: 'straight',
-                    complexion: 'fair',
-                    marks: []
-                },
-                build: 'medium',
-                height: { cm: 175, feet: 5, inches: 9 }
-            },
-            psychographic: {
-                speechStyle: 'measured_soft',
-                decisionMaking: 'deliberate',
-                stressResponse: 'calm',
-                sleepCycle: 'early_bird',
-                temperament: 'patient'
-            },
-            biological: {
-                prakriti: 'pitta',
-                sensitivity: { heat: 'high', cold: 'medium' },
-                recurringHealthIssues: []
-            },
-            family: {
-                siblingPosition: 'eldest',
-                brotherCount: 1,
-                sisterCount: 0,
-                fatherStatusAtBirth: 'stable',
-                motherHealthAtBirth: 'normal'
-            }
-        }
     };
 
     it('should produce a valid CandidateDataPackage structure', async () => {

@@ -99,6 +99,28 @@ vi.mock('../cancellation-manager.js', () => ({
     isCancellationError: vi.fn(() => false),
 }));
 
+vi.mock('@ai-pandit/db/jobs', () => ({
+    createJob: vi.fn(),
+    getJobById: vi.fn(),
+    getLatestJobForSession: vi.fn(),
+    listActiveJobs: vi.fn(),
+    countQueuedJobs: vi.fn(),
+    claimNextQueuedJob: vi.fn(),
+    completeJobAttempt: vi.fn(),
+    scheduleJobRetry: vi.fn(),
+    failJob: vi.fn(),
+    getJobHistory: vi.fn(),
+    cancelJob: vi.fn(),
+    appendJobEvent: vi.fn(),
+    createJobAttempt: vi.fn(async () => ({ id: 'attempt-mock-id' })),
+    incrementJobAttempt: vi.fn(async () => ({ attempt: 1 })),
+    listJobEvents: vi.fn(async () => []),
+    markJobRunning: vi.fn(),
+    requestJobCancellation: vi.fn(),
+    updateJobAttemptHeartbeat: vi.fn(),
+    updateJobProgress: vi.fn(),
+}));
+
 vi.mock('../session-events.js', () => ({
     emitComplete: vi.fn(),
     emitError: vi.fn(),
@@ -334,8 +356,8 @@ describe('Queue Manager', () => {
         });
 
         it('should return false when cancel CAS update is blocked by race', async () => {
-            // select -> flush update -> flush delete -> cancel update(rowsAffected=0)
-            setMockResults([[{ status: 'processing' }], [], [], { rowsAffected: 0 }]);
+            // select -> cancel update (rowsAffected=0) -> flush not reached
+            setMockResults([[{ status: 'processing' }], { rowsAffected: 0 }]);
             const res = await cancelSession('sess-race-cancel');
             expect(res).toBe(false);
         });
@@ -414,8 +436,6 @@ describe('Queue Manager', () => {
                     clerkId: 'valid-clerk',
                     userId: '1',
                     lifeEvents: 'encrypted-events',
-                    physicalTraits: null,
-                    forensicTraits: null,
                     dateOfBirth: '1990-01-01',
                     tentativeTime: '12:00:00',
                     latitude: 12.34,

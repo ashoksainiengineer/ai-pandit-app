@@ -8,7 +8,7 @@ import { FormCardProps } from './types';
 const variants = {
   default: 'bg-white border-[rgba(0,0,0,0.08)]',
   highlighted: 'bg-[#ffffff] border-[#000000]/30',
-  subtle: 'bg-[#FAFAFA] border-transparent',
+  subtle: 'bg-[var(--prism-canvas)] border-transparent',
 };
 
 export function FormCard({ children, className = '', variant = 'default' }: FormCardProps) {

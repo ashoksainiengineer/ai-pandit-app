@@ -96,7 +96,7 @@ export const pipelineSteps: PipelineStep[] = [
     number: '07',
     phase: 'Stage 6',
     title: 'Final Precision Judgement',
-    description: 'Apply God-Tier enhancement with DeepSeek R1. Full forensic context analysis and final verdict extraction.',
+    description: 'Apply God-Tier enhancement with DeepSeek R1. Full astrological context analysis and final verdict extraction.',
     technologies: ['God-Tier Enhancer', 'DeepSeek R1', 'Verdict Extractor'],
     metrics: { label: 'Precision', value: '±15s' },
     icon: Brain,

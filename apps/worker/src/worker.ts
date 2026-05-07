@@ -122,19 +122,6 @@ async function processJob(): Promise<void> {
       true,
     );
 
-    const physicalTraits = decryptOptionalSessionJsonField(
-      session.physicalTraits,
-      session.clerkId,
-      session.userId,
-      safeDecryptWithFallback,
-    );
-
-    const forensicTraits = decryptOptionalSessionJsonField(
-      session.forensicTraits,
-      session.clerkId,
-      session.userId,
-      safeDecryptWithFallback,
-    );
 
     const dateOfBirth =
       parseSensitiveField(session.dateOfBirth, session.clerkId, session.userId, '') as string;
@@ -177,8 +164,6 @@ async function processJob(): Promise<void> {
       timezone: session.timezone,
       lifeEvents: lifeEvents as SecondsPrecisionInput['lifeEvents'],
       offsetConfig: offsetConfig as unknown as SecondsPrecisionInput['offsetConfig'],
-      physicalTraits: physicalTraits as SecondsPrecisionInput['physicalTraits'],
-      forensicTraits: forensicTraits as SecondsPrecisionInput['forensicTraits'],
       spouseData: spouseData as SecondsPrecisionInput['spouseData'],
       abortSignal: new AbortController().signal,
     };

@@ -137,10 +137,10 @@ describe('Cancellation Manager - cleanupController', () => {
 describe('Cancellation Manager - isSessionCancelled', () => {
     beforeEach(() => vi.clearAllMocks());
 
-    it('should return true if session not found in DB', async () => {
+    it('should return false if session not found in DB (proceed normally)', async () => {
         (db as any).limit.mockResolvedValueOnce([]);
         const result = await isSessionCancelled('nonexistent');
-        expect(result).toBe(true);
+        expect(result).toBe(false);
     });
 
     it('should return true if status=failed AND errorMessage includes "Cancelled by user"', async () => {

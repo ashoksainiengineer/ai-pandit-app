@@ -71,7 +71,6 @@ export type {
   TatwaWindow,
   BoundaryAnalysis,
   ScanResult,
-  ForensicProfile,
   RectificationResult,
   ConfidenceLevel,
   EventSource,

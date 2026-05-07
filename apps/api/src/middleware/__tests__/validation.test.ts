@@ -18,7 +18,6 @@ import {
     QueueSubmitSchema,
     UuidParamSchema,
     TimeOffsetConfigSchema,
-    ForensicTraitsSchema,
 } from '../validation.js';
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -321,24 +320,8 @@ describe('Validation Middleware - QueueSubmitSchema', () => {
         const result = QueueSubmitSchema.safeParse(data);
         expect(result.success).toBe(false);
     });
-
-    it('should accept valid forensicTraits', () => {
-        const data = {
-            ...validSubmission,
-            forensicTraits: {
-                physical: {
-                    build: 'athletic',
-                    height: { cm: 175 },
-                },
-                psychographic: {
-                    temperament: 'patient',
-                },
-            },
-        };
-        const result = QueueSubmitSchema.safeParse(data);
-        expect(result.success).toBe(true);
-    });
 });
+
 
 // ═══════════════════════════════════════════════════════════════════════════
 // OFFSET CONFIG SCHEMA
@@ -487,116 +470,3 @@ describe('Validation Middleware - validateParams()', () => {
     });
 });
 
-// ═══════════════════════════════════════════════════════════════════════════
-// FORENSIC TRAITS SCHEMA (DEEP NESTED VALIDATION)
-// ═══════════════════════════════════════════════════════════════════════════
-
-describe('Validation Middleware - ForensicTraitsSchema (Deep Nested)', () => {
-    it('should accept valid complete forensic traits', () => {
-        const data = {
-            physical: {
-                facialStructure: {
-                    forehead: 'broad',
-                    eyeShape: 'almond',
-                    noseType: 'sharp',
-                },
-                skinHair: {
-                    texture: 'oily',
-                    hairType: 'curly',
-                    complexion: 'medium',
-                },
-                build: 'athletic',
-                height: { cm: 175 },
-            },
-            psychographic: {
-                speechStyle: 'fast_loud',
-                decisionMaking: 'impulsive',
-                stressResponse: 'calm',
-                sleepCycle: 'night_owl',
-                temperament: 'optimistic',
-            },
-            biological: {
-                prakriti: 'pitta',
-                sensitivity: { heat: 'high', cold: 'low' },
-                recurringHealthIssues: ['headache', 'acidity'],
-            },
-            family: {
-                siblingPosition: 'eldest',
-                brotherCount: 2,
-                sisterCount: 1,
-            },
-        };
-
-        const result = ForensicTraitsSchema.safeParse(data);
-        expect(result.success).toBe(true);
-    });
-
-    it('should accept empty/undefined (entire schema is optional)', () => {
-        const result = ForensicTraitsSchema.safeParse(undefined);
-        expect(result.success).toBe(true);
-    });
-
-    it('should reject invalid build value', () => {
-        const data = {
-            physical: { build: 'super_muscular' },
-        };
-        const result = ForensicTraitsSchema.safeParse(data);
-        expect(result.success).toBe(false);
-    });
-
-    it('should reject height.cm > 250', () => {
-        const data = {
-            physical: { height: { cm: 300 } },
-        };
-        const result = ForensicTraitsSchema.safeParse(data);
-        expect(result.success).toBe(false);
-    });
-
-    it('should reject height.cm < 50', () => {
-        const data = {
-            physical: { height: { cm: 10 } },
-        };
-        const result = ForensicTraitsSchema.safeParse(data);
-        expect(result.success).toBe(false);
-    });
-
-    it('should reject invalid prakriti', () => {
-        const data = {
-            biological: { prakriti: 'tridosha' },
-        };
-        const result = ForensicTraitsSchema.safeParse(data);
-        expect(result.success).toBe(false);
-    });
-
-    it('should accept all valid prakriti types', () => {
-        const types = ['vata', 'pitta', 'kapha', 'vata-pitta', 'pitta-kapha', 'vata-kapha'];
-        for (const prakriti of types) {
-            const data = { biological: { prakriti } };
-            const result = ForensicTraitsSchema.safeParse(data);
-            expect(result.success).toBe(true);
-        }
-    });
-
-    it('should reject brotherCount > 20', () => {
-        const data = { family: { brotherCount: 21 } };
-        const result = ForensicTraitsSchema.safeParse(data);
-        expect(result.success).toBe(false);
-    });
-
-    it('should reject negative sisterCount', () => {
-        const data = { family: { sisterCount: -1 } };
-        const result = ForensicTraitsSchema.safeParse(data);
-        expect(result.success).toBe(false);
-    });
-
-    it('should accept passthrough of extra fields', () => {
-        const data = {
-            physical: {
-                build: 'slim',
-                customMetric: 'extra',
-            },
-        };
-        const result = ForensicTraitsSchema.safeParse(data);
-        expect(result.success).toBe(true);
-    });
-});

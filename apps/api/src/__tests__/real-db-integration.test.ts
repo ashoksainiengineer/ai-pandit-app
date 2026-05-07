@@ -98,10 +98,6 @@ describe('Real Database Integration Tests', () => {
           lifeEvents: [
             { year: 1942, event: 'First major song recording' }
           ],
-          forensicTraits: {
-            height: 'short',
-            build: 'slim'
-          },
           offsetConfig: { preset: '2hours', minutes: 120, customMinutes: 120 }
         })
         .expect(200);

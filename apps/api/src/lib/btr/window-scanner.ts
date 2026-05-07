@@ -331,7 +331,6 @@ async function scoreCandidate(
     kp: 0,
     varga: 0,
     transit: 0,
-    forensic: 0,
     boundary: 0,
     tatwa: 0,
     shadbala: 0,

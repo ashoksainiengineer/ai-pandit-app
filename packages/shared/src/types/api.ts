@@ -12,8 +12,6 @@ import {
   BirthData,
   BirthDataSchema,
   OffsetConfigSchema,
-  PhysicalTraits,
-  ForensicTraits,
   TimeOffsetConfig,
 } from './core.js';
 
@@ -369,7 +367,6 @@ export interface AIContextEvent {
     moon?: string;
   }>;
   lifeEventsCount?: number;
-  hasForensicTraits?: boolean;
 }
 
 export interface DecisionEvent {
@@ -451,8 +448,6 @@ export interface AIResponse {
 export interface CalculateRequest {
   birthData: BirthData;
   lifeEvents: LifeEvent[];
-  physicalTraits?: PhysicalTraits;
-  forensicTraits?: ForensicTraits;
   offsetConfig: TimeOffsetConfig;
 }
 
@@ -461,8 +456,6 @@ export const CalculateRequestSchema = z.object({
     lifeEvents: z.array(LifeEventSchema)
         .min(3, "At least 3 life events are required")
         .max(100, "Maximum 100 life events allowed"),
-    physicalTraits: z.record(z.unknown()).optional().nullable(),
-    forensicTraits: z.record(z.unknown()).optional().nullable(),
     offsetConfig: OffsetConfigSchema,
 });
 

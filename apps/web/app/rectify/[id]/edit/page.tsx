@@ -53,8 +53,6 @@ const getSessionData = cache(async (sessionId: string, userId: string): Promise<
             ...session,
             birthData,
             lifeEvents: parseSensitiveField(session.lifeEvents, sessionUserId, []),
-            physicalTraits: parseSensitiveField(session.physicalTraits, sessionUserId, undefined),
-            forensicTraits: parseSensitiveField(session.forensicTraits, sessionUserId, undefined),
             spouseData: parseSensitiveField(session.spouseData, sessionUserId, undefined),
             offsetConfig: parseSensitiveField(session.offsetConfig, sessionUserId, undefined),
         };

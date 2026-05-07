@@ -66,13 +66,6 @@ async function runUserRectification() {
         { id: '23', category: 'relationship', eventType: 'breakup', eventDate: '2025-12-15', datePrecision: 'approx_month', description: 'Heavy breakup after 1 year talking', importance: 'medium' }
     ];
 
-    const forensicTraits = {
-        personality: 'academic_focused_hardworking',
-        family: 'eldest_cousin_father_eldest_of_3_mother_educated_emotional',
-        physical: 'skin_diseases_2011_health_conscious_weight_gain_2024',
-        sister: '6-7_years_older_neutral_relationship',
-        background: 'medium_till_8th_talented_from_9th'
-    };
 
     const offsetConfig = {
         preset: 'custom',
@@ -98,7 +91,6 @@ async function runUserRectification() {
             longitude: birthData.longitude,
             timezone: birthData.timezone,
             gender: birthData.gender,
-            forensicTraits: encryptData(JSON.stringify(forensicTraits), clerkId),
             lifeEvents: encryptData(JSON.stringify(lifeEvents), clerkId),
             offsetConfig: encryptData(JSON.stringify(offsetConfig), clerkId),
             status: 'pending',

@@ -6,7 +6,7 @@
  */
 
 import { vi, expect } from 'vitest';
-import type { SecondsPrecisionInput, LifeEvent, ForensicTraits } from '@ai-pandit/shared';
+import type { SecondsPrecisionInput, LifeEvent } from '@ai-pandit/shared';
 
 // ═════════════════════════════════════════════════════════════════════════════
 // TEST FIXTURES - Known Accurate Data
@@ -111,7 +111,7 @@ export function createBirthInput(overrides: Partial<SecondsPrecisionInput> = {})
     timezone: 5.5,
     lifeEvents: [createLifeEvent()],
     offsetConfig: { preset: '30min', description: 'Test offset' },
-    forensicTraits: createForensicTraits(),
+    offsetConfig: { preset: '30min', description: 'Test offset' },
     ...overrides
   };
   return base;
@@ -130,47 +130,8 @@ export function createLifeEvent(overrides: Partial<LifeEvent> = {}): LifeEvent {
   };
 }
 
-export function createForensicTraits(overrides: Partial<ForensicTraits> = {}): ForensicTraits {
-  return {
-    physical: {
-      facialStructure: {
-        forehead: 'broad',
-        eyeShape: 'almond',
-        noseType: 'straight',
-        teethAlignment: 'perfect',
-        voicePitch: 'medium'
-      },
-      skinHair: {
-        texture: 'dry',
-        hairType: 'straight',
-        complexion: 'medium',
-        marks: []
-      },
-      build: 'medium',
-      height: { cm: 175, feet: 5, inches: 9 }
-    },
-    psychographic: {
-      speechStyle: 'measured_soft',
-      decisionMaking: 'deliberate',
-      stressResponse: 'calm',
-      sleepCycle: 'early_bird',
-      temperament: 'patient'
-    },
-    biological: {
-      prakriti: 'pitta',
-      sensitivity: { heat: 'medium', cold: 'medium' },
-      recurringHealthIssues: []
-    },
-    family: {
-      siblingPosition: 'eldest',
-      brotherCount: 1,
-      sisterCount: 0,
-      fatherStatusAtBirth: 'stable',
-      motherHealthAtBirth: 'normal'
-    },
-    ...overrides
-  };
-}
+
+// ═════════════════════════════════════════════════════════════════════════════
 
 // ═════════════════════════════════════════════════════════════════════════════
 // MOCK HELPERS - Create Consistent Mocks

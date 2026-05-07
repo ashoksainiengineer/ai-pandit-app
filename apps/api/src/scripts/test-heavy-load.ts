@@ -35,8 +35,6 @@ async function runHeavyLoadTest() {
         longitude: template.longitude,
         timezone: template.timezone,
         lifeEvents: template.lifeEvents,
-        physicalTraits: template.physicalTraits,
-        forensicTraits: template.forensicTraits,
         spouseData: template.spouseData,
         offsetConfig: template.offsetConfig,
         progressData: null,

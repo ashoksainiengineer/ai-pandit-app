@@ -48,7 +48,7 @@ export default function DashboardLayout({ children, user }: DashboardLayoutProps
   };
 
   return (
-    <div className="min-h-screen bg-[#FAFAFA] flex">
+    <div className="min-h-screen bg-[var(--prism-canvas)] flex">
       {/* Mobile Sidebar Overlay */}
       <AnimatePresence>
         {sidebarOpen && (
@@ -74,7 +74,7 @@ export default function DashboardLayout({ children, user }: DashboardLayoutProps
             <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#000000] to-[#000000] flex items-center justify-center">
               <Sparkles className="w-4 h-4 text-white" />
             </div>
-            <span className=" text-xl font-medium text-[#000000]">
+            <span className=" text-xl font-medium text-black">
               AI Pandit
             </span>
           </Link>
@@ -93,8 +93,8 @@ export default function DashboardLayout({ children, user }: DashboardLayoutProps
                 onClick={() => setSidebarOpen(false)}
                 className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-colors ${
                   active
-                    ? 'bg-[#000000]/10 text-[#000000]'
-                    : 'text-[#636363] hover:bg-[#ffffff] hover:text-[#000000]'
+                    ? 'bg-[#000000]/10 text-black'
+                    : 'text-[#636363] hover:bg-[#ffffff] hover:text-black'
                 }`}
               >
                 <Icon className="w-5 h-5" />
@@ -117,14 +117,14 @@ export default function DashboardLayout({ children, user }: DashboardLayoutProps
               {user?.name?.charAt(0) || 'A'}
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-[#000000] truncate">
+              <p className="text-sm font-medium text-black truncate">
                 {user?.name || 'Admin User'}
               </p>
               <p className="text-xs text-[#636363] truncate">
                 {user?.email || 'app.aipandit@gmail.com'}
               </p>
             </div>
-            <button className="p-2 rounded-lg hover:bg-[rgba(0,0,0,0.08)]/50 text-[#636363] hover:text-[#000000] transition-colors">
+            <button className="p-2 rounded-lg hover:bg-[rgba(0,0,0,0.08)]/50 text-[#636363] hover:text-black transition-colors">
               <LogOut className="w-4 h-4" />
             </button>
           </div>
@@ -145,13 +145,13 @@ export default function DashboardLayout({ children, user }: DashboardLayoutProps
 
             {/* Breadcrumbs */}
             <nav className="hidden md:flex items-center gap-2 text-sm">
-              <Link href="/admin/dashboard" className="text-[#636363] hover:text-[#000000]">
+              <Link href="/admin/dashboard" className="text-[#636363] hover:text-black">
                 Dashboard
               </Link>
               {pathname !== '/admin/dashboard' && pathname !== '/admin' && (
                 <>
                   <ChevronRight className="w-4 h-4 text-[#D0CBC5]" />
-                  <span className="text-[#000000] font-medium capitalize">
+                  <span className="text-black font-medium capitalize">
                     {pathname.split('/').pop()?.replace('-', ' ')}
                   </span>
                 </>

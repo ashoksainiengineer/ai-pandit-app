@@ -54,7 +54,7 @@ describe('📡 FRONTEND REAL-TIME SYNC AUDIT (SSE)', () => {
 
         // 3. Engine Stage 4: AI Thinking Stream (Simulating LLM chunking)
         emitAIThinking(SESSION_ID, 'Analyzing D60 Lagna...', 4, '10:28:00');
-        emitAIThinking(SESSION_ID, ' Shifted to Gemini. Matching forensic traits.', 4, '10:28:00');
+        emitAIThinking(SESSION_ID, ' Shifted to Gemini. Matching astrological traits.', 4, '10:28:00');
 
         // 4. Engine Stage: Candidate Score
         emitCandidateScore(SESSION_ID, '10:28:00', 95.5, 4, 1);

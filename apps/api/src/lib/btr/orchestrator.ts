@@ -23,7 +23,6 @@ import {
   CandidateScore,
   ConfidenceLevel,
   BtrEvent,
-  ForensicProfile,
   TatwaType,
   ScanConfiguration,
   MethodScores,
@@ -43,7 +42,6 @@ export interface RectificationInput {
   longitude: number;
   timezone: string | number;
   events: BtrEvent[];
-  forensicProfile?: ForensicProfile;
   knownTatwa?: TatwaType;
   timeRangeMinutes?: number;
   config?: Partial<ScanConfiguration>;
@@ -54,7 +52,6 @@ export interface RectificationContext {
   sunriseTime: Date | null;
   scoredEvents: ScoredEvent[];
   eventSummary: EventScoreSummary;
-  prakritiTatwaMatch: TatwaType[] | null;
 }
 
 export interface DetailedResult extends RectificationResult {
@@ -74,7 +71,8 @@ export async function rectifyBirthTime(input: RectificationInput): Promise<Detai
   try {
     const context = await buildContext(input, sessionId);
     const scannerInput = prepareScannerInput(input);
-    applyTatwaNarrowing(input, context, scannerInput);
+
+
 
     const scanResult = await WindowScanner.scan(scannerInput, sessionId);
     if (!scanResult.success || !scanResult.bestCandidate) {
@@ -290,18 +288,13 @@ async function buildContext(input: RectificationInput, sessionId: string): Promi
   const scoredEvents = EventScorer.scoreEvents(input.events);
   const eventSummary = EventScorer.generateSummary(scoredEvents);
 
-  let prakritiTatwaMatch: TatwaType[] | null = null;
-  if (input.forensicProfile?.prakriti?.dominant) {
-    prakritiTatwaMatch = TatwaShuddhi.inferFromPrakriti(
-      input.forensicProfile.prakriti.dominant
-    );
-  }
+
+  // Build context with astrological data
 
   return {
     sunriseTime,
     scoredEvents,
     eventSummary,
-    prakritiTatwaMatch
   };
 }
 
@@ -401,7 +394,7 @@ function buildFailedResult(
     marginOfErrorSeconds: 3600,
     methodConsensus: {
       vimshottari: 0, yogini: 0, chara: 0, kalachakra: 0,
-      kp: 0, varga: 0, transit: 0, forensic: 0, boundary: 0, tatwa: 0,
+      kp: 0, varga: 0, transit: 0, boundary: 0, tatwa: 0,
       shadbala: 0, nadi: 0, spouseD9: 0
     },
     evidence: {
@@ -508,39 +501,6 @@ function prepareScannerInput(input: RectificationInput): ScannerInput {
 }
 
 /**
- * Narrow the scan range using Tatwa Shuddhi when a Prakriti match is available.
- * Mutates the provided scannerInput in place.
- */
-function applyTatwaNarrowing(
-  input: RectificationInput,
-  context: RectificationContext,
-  scannerInput: ScannerInput
-): void {
-  if (!context.prakritiTatwaMatch || input.knownTatwa || !context.sunriseTime) {
-    return;
-  }
-
-  const tatwaResult = TatwaShuddhi.findCorrections({
-    sunriseTime: context.sunriseTime,
-    birthTime: parseBirthTime(input.tentativeTime, input.birthDate, input.timezone),
-    knownPrakriti: input.forensicProfile?.prakriti?.dominant
-  });
-
-  if (tatwaResult.correctionWindows.length === 0) {
-    return;
-  }
-
-  const bestWindow = tatwaResult.correctionWindows[0];
-  scannerInput.knownTatwa = bestWindow.tatwa;
-  scannerInput.rangeMinutes = Math.min(
-    scannerInput.rangeMinutes || 30,
-    15
-  );
-  logger.info('[BTR] Tatwa-based time narrowing applied', {
-    tatwa: bestWindow.tatwa,
-    confidence: bestWindow.confidence
-  });
-}
 
 /**
  * Handle rectification errors by logging and returning a failed result.
@@ -557,7 +517,6 @@ async function logAndRecoverRectificationFailure(
     sunriseTime: null,
     scoredEvents: [],
     eventSummary: { averageReliability: 0, totalEvents: 0, totalWeight: 0, highConfidenceCount: 0, mediumConfidenceCount: 0, lowConfidenceCount: 0, categoryDistribution: {}, recommendations: [] },
-    prakritiTatwaMatch: null,
   };
   return buildFailedResult(input, fallbackCtx, [errorMessage], startTime);
 }

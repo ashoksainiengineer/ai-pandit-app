@@ -12,5 +12,5 @@ export const STAGES: StageConfig[] = [
     { id: 3, name: 'Temporal Refinement: High-resolution time window search', shortName: 'Zoom', description: 'High-resolution time window search for potential candidates' },
     { id: 4, name: 'Divisional Analysis: Deep AI evaluation of sub-charts', shortName: 'Varga', description: 'Deep AI evaluation of sub-charts and lifecycle events' },
     { id: 5, name: 'Nadi-Amsha Convergence: 48-second window precision check', shortName: 'Nadi', description: '48-second window precision check across Shashtiamsha boundaries' },
-    { id: 6, name: 'Prana-Dasha Verdict: Final alignment calculation', shortName: 'Prana', description: 'Final alignment calculation and forensic event synthesis' },
+    { id: 6, name: 'Prana-Dasha Verdict: Final alignment calculation', shortName: 'Prana', description: 'Final alignment calculation and astrological event synthesis' },
 ];

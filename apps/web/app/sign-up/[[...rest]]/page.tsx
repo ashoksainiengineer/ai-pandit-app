@@ -6,7 +6,7 @@ import Link from 'next/link';
 
 export default function SignUpPage() {
     return (
-        <main className="min-h-screen bg-[#FAFAFA] flex items-center justify-center relative overflow-hidden">
+        <main className="min-h-screen bg-[var(--prism-canvas)] flex items-center justify-center relative overflow-hidden">
             {/* Logo */}
             <Link href="/" className="absolute top-8 left-1/2 -translate-x-1/2 flex items-center gap-3 group z-20">
                 <span className="font-medium text-2xl text-black">
@@ -59,12 +59,12 @@ export default function SignUpPage() {
                             alert: 'bg-red-50 border border-red-200 rounded-xl p-4 mb-4',
 
                             // Links
-                            footer: 'p-6 pt-4 bg-[#FAFAFA] border-t border-[#d9d9d9]',
+                            footer: 'p-6 pt-4 bg-[var(--prism-canvas)] border-t border-[#d9d9d9]',
                             footerAction: 'text-center text-sm text-[#636363]',
                             footerActionLink: 'text-black font-medium hover:text-black/70 transition-colors',
 
                             // Social buttons
-                            socialButtonsBlockButton: 'w-full border border-[#d9d9d9] bg-white text-[#636363] hover:bg-[#FAFAFA] hover:border-black/10 py-3 rounded-xl transition-all font-medium',
+                            socialButtonsBlockButton: 'w-full border border-[#d9d9d9] bg-white text-[#636363] hover:bg-[var(--prism-canvas)] hover:border-black/10 py-3 rounded-xl transition-all font-medium',
                             socialButtonsBlockButtonText: 'text-[#636363] font-medium',
                             socialButtonsProviderIcon: 'w-5 h-5',
 
@@ -74,7 +74,7 @@ export default function SignUpPage() {
                             dividerRow: 'my-4',
 
                             // Identity preview
-                            identityPreview: 'bg-[#FAFAFA] border border-[#d9d9d9] rounded-xl p-4 mb-4',
+                            identityPreview: 'bg-[var(--prism-canvas)] border border-[#d9d9d9] rounded-xl p-4 mb-4',
                             identityPreviewText: 'text-black',
                             identityPreviewEditButton: 'text-black font-medium hover:text-black/70',
 

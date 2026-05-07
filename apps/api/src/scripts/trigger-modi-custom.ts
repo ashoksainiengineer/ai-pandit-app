@@ -36,7 +36,6 @@ async function triggerModiAnalysis() {
                     ...event,
                     id: crypto.randomUUID()
                 })),
-                forensicTraits: modiProfile.forensicTraits,
                 offsetConfig: {
                     preset: '30min',
                     minutes: 30,

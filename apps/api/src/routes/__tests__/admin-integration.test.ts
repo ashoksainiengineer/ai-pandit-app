@@ -136,11 +136,12 @@ vi.mock('../../config/index.js', () => ({
 // ── Test App ────────────────────────────────────────────────
 
 import adminRouter from '../../routes/admin.js';
+import { authMiddleware } from '../../middleware/auth.js';
 
 function createApp() {
   const app = express();
   app.use(express.json());
-  app.use('/api/admin', adminRouter);
+  app.use('/api/admin', authMiddleware, adminRouter);
   return app;
 }
 

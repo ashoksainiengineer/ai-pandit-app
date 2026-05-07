@@ -7,7 +7,7 @@
  * preserving the true birth time through safety net mechanisms.
  */
 
-import { SecondsPrecisionInput, ForensicTraits } from '@ai-pandit/shared';
+import { SecondsPrecisionInput } from '@ai-pandit/shared';
 import { CandidateTime, getCandidateIdentity, getDynamicBatchSize, getDynamicSurvivors, sortCandidatesByMerit, splitIntoBatches } from '../../time-offset-manager.js';
 import { ProgressTracker } from '../../progress-tracker.js';
 import { _callAIWithStream, _executeAIInParallel } from '../../ai-client.js';
@@ -34,7 +34,7 @@ type LifecycleShift = NonNullable<CandidateDataPackage['lifecycleShifts']>[numbe
  * @param input - BTR input parameters
  * @param candidates - Initial candidate list from Stage 1
  * @param progress - Progress tracker
- * @param forensicTraits - User's forensic traits
+ * @param globalLifecycle - Pre-calculated lifecycle shifts
  * @param globalLifecycle - Pre-calculated lifecycle shifts
  * @returns Tournament survivors and round statistics
  */
@@ -42,7 +42,6 @@ export async function stage2BatchTournament(
     input: SecondsPrecisionInput,
     candidates: CandidateTime[],
     progress: ProgressTracker,
-    forensicTraits: ForensicTraits,
     globalLifecycle: LifecycleShift[] = []
 ): Promise<{ survivors: CandidateTime[]; stageResult: StageResult; rounds: TournamentRound[] }> {
     await progress.startStep('coarse', 'Stage 2: Batch Tournament...');
@@ -52,7 +51,6 @@ export async function stage2BatchTournament(
         totalCandidates: candidates.length,
         sampleCandidate: candidates[0]?.time,
         hasInputData: !!input.lifeEvents?.length,
-        forensicTraitsPresent: !!forensicTraits
     });
 
     const rounds: TournamentRound[] = [];
@@ -108,11 +106,10 @@ export async function stage2BatchTournament(
                     moon: `${c.planets.moon.sign} ${c.planets.moon.degree}`
                 })),
                 lifeEventsCount: input.lifeEvents.length,
-                hasForensicTraits: !!forensicTraits
             });
 
-            const systemPrompt = 'You are the SUPREME VEDIC ASTROLOGER. Analyze candidate birth times for primary alignment using forensic markers.';
-            const userPrompt = getBatchPrompt(batchEnriched, input.lifeEvents, forensicTraits, i + 1, batches.length, survivorsPerBatch, input.spouseData, offsetMinutes);
+            const systemPrompt = 'You are the SUPREME VEDIC ASTROLOGER. Analyze candidate birth times for primary astrological alignment.';
+            const userPrompt = getBatchPrompt(batchEnriched, input.lifeEvents, i + 1, batches.length, survivorsPerBatch, input.spouseData, offsetMinutes);
             
             // Save batch metadata
             btrDataCapture.saveBatchMetadata(
@@ -152,8 +149,7 @@ export async function stage2BatchTournament(
                     {
                         candidateCount: batchEnriched.length,
                         eventCount: input.lifeEvents.length,
-                        forensicTraitsPresent: !!forensicTraits,
-                        spouseDataPresent: !!input.spouseData
+                        spouseDataPresent: !!input.spouseData,
                     },
                     roundNumber,
                     i + 1
@@ -225,7 +221,7 @@ export async function stage2BatchTournament(
                 // If AI failed, use fallback scores
                 const scoreObj = aiScores.find(s => getCandidateIdentity(referenceMap.get(s.time) || { time: s.time }) === candidateId);
                 const score = scoreObj ? scoreObj.score : (isSurvivor ? config.btr.fallbackPromotedScore : config.btr.fallbackRejectedScore);
-                const reason = scoreObj ? scoreObj.reason : (isSurvivor ? "Meets primary alignment criteria (Fallback)" : "Low forensic match score");
+                const reason = scoreObj ? scoreObj.reason : (isSurvivor ? "Meets primary alignment criteria (Fallback)" : "Low astrological match score");
 
                 if (isSurvivor) {
                     batchSurvivors.push(originalTimeInfo);
@@ -356,8 +352,8 @@ export async function stage2BatchTournament(
                 }))
             });
 
-            const systemPrompt = 'You are the SUPREME VEDIC ASTROLOGER. Tournament analysis: prune based on forensic alignment.';
-            const userPrompt = getBatchPrompt(batchEnriched, input.lifeEvents, forensicTraits, i + 1, batches.length, roundSurvivorsPerBatch, input.spouseData, offsetMinutes);
+            const systemPrompt = 'You are the SUPREME VEDIC ASTROLOGER. Tournament analysis: prune based on astrological alignment.';
+            const userPrompt = getBatchPrompt(batchEnriched, input.lifeEvents, i + 1, batches.length, roundSurvivorsPerBatch, input.spouseData, offsetMinutes);
             
             // Save batch metadata
             btrDataCapture.saveBatchMetadata(
@@ -396,8 +392,7 @@ export async function stage2BatchTournament(
                     {
                         candidateCount: batchEnriched.length,
                         eventCount: input.lifeEvents.length,
-                        forensicTraitsPresent: !!forensicTraits,
-                        spouseDataPresent: !!input.spouseData
+                        spouseDataPresent: !!input.spouseData,
                     },
                     roundNumber,
                     i + 1

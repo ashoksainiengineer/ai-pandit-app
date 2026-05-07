@@ -46,10 +46,10 @@ export function EventEditor({
                 <div className="flex items-center gap-3">
                     <span className="text-3xl">{editingEvent.icon}</span>
                     <div>
-                        <h2 className=" text-xl font-medium text-[#000000]">
+                        <h2 className=" text-xl font-medium text-black">
                             {editingEvent.eventType}
                         </h2>
-                        <p className="text-xs text-[#636363]">
+                        <p className="text-xs text-black/60">
                             {getCategoryById(allCategories, editingEvent.category)?.label}
                         </p>
                     </div>
@@ -99,7 +99,7 @@ export function EventEditor({
                                 type="text"
                                 value={editingEvent.eventType}
                                 onChange={(e) => updateEvent(editingEvent.id, { eventType: e.target.value })}
-                                className="w-full h-11 px-4 bg-white border border-[#E8E0D5] rounded-lg text-[#000000] focus:border-[#000000] focus:ring-2 focus:ring-[#000000]/10 outline-none transition-all"
+                                className="w-full h-11 px-4 bg-white border border-[#E8E0D5] rounded-lg text-black focus:border-[#000000] focus:ring-2 focus:ring-[#000000]/10 outline-none transition-all"
                                 placeholder="e.g. Graduation"
                             />
                         </FormField>
@@ -108,7 +108,7 @@ export function EventEditor({
                             <select
                                 value={editingEvent.category}
                                 onChange={(e) => updateEvent(editingEvent.id, { category: e.target.value as any })}
-                                className="w-full h-11 px-4 bg-white border border-[#E8E0D5] rounded-lg text-[#000000] focus:border-[#000000] focus:ring-2 focus:ring-[#000000]/10 outline-none cursor-pointer appearance-none"
+                                className="w-full h-11 px-4 bg-white border border-[#E8E0D5] rounded-lg text-black focus:border-[#000000] focus:ring-2 focus:ring-[#000000]/10 outline-none cursor-pointer appearance-none"
                             >
                                 {allCategories.map((cat) => (
                                     <option key={cat.id} value={cat.id}>
@@ -129,11 +129,11 @@ export function EventEditor({
                                 onClick={() => updateEventDatePrecision(editingEvent.id, opt.value)}
                                 className={`py-3 px-2 rounded-lg text-center transition-all border ${editingEvent.datePrecision === opt.value
                                     ? 'bg-[#000000] text-white border-[#000000] shadow-md'
-                                    : 'bg-white border-[#E8E0D5] text-[#636363] hover:border-[#000000] hover:bg-[#ffffff]'
+                                    : 'bg-white border-[#E8E0D5] text-black/60 hover:border-[#000000] hover:bg-[#ffffff]'
                                     }`}
                             >
                                 <div className="font-medium text-[10px] leading-tight">{opt.label}</div>
-                                <div className={`text-[9px] mt-1 ${editingEvent.datePrecision === opt.value ? 'text-white/80' : 'text-[#636363]'}`}>{opt.desc}</div>
+                                <div className={`text-[9px] mt-1 ${editingEvent.datePrecision === opt.value ? 'text-white/80' : 'text-black/60'}`}>{opt.desc}</div>
                             </button>
                         ))}
                     </div>
@@ -162,11 +162,11 @@ export function EventEditor({
                                 >
                                     <div className="flex items-center gap-1.5 mb-1">
                                         <span className="text-base">{opt.icon}</span>
-                                        <span className={`font-medium text-xs ${isSelected ? 'text-[#000000]' : 'text-[#636363]'}`}>
+                                        <span className={`font-medium text-xs ${isSelected ? 'text-black' : 'text-black/60'}`}>
                                             {opt.label}
                                         </span>
                                     </div>
-                                    <div className={`text-[10px] ${isSelected ? 'text-[#000000]' : 'text-[#636363]'}`}>
+                                    <div className={`text-[10px] ${isSelected ? 'text-black' : 'text-black/60'}`}>
                                         {opt.desc}
                                     </div>
                                 </button>
@@ -192,7 +192,7 @@ export function EventEditor({
                             e.stopPropagation();
                         }}
                         placeholder="What happened? How did you feel?..."
-                        className={`w-full h-24 p-4 bg-white border-2 rounded-lg text-sm text-[#000000] placeholder-[#959595] resize-none focus:ring-2 outline-none transition-all ${editingEvent.description && editingEvent.description.length >= 10
+                        className={`w-full h-24 p-4 bg-white border-2 rounded-lg text-sm text-black placeholder-[#959595] resize-none focus:ring-2 outline-none transition-all ${editingEvent.description && editingEvent.description.length >= 10
                             ? 'border-[#184131]/50 focus:border-[#184131]'
                             : 'border-[#C65D3B]/50 focus:border-[#C65D3B]'
                             }`}
@@ -205,7 +205,7 @@ export function EventEditor({
                             </svg>
                             <span>Encrypted</span>
                         </div>
-                        <div className={`text-[10px] ${(editingEvent.description?.length || 0) < 10 ? 'text-[#C65D3B]' : 'text-[#636363]'}`}>
+                        <div className={`text-[10px] ${(editingEvent.description?.length || 0) < 10 ? 'text-[#C65D3B]' : 'text-black/60'}`}>
                             {editingEvent.description?.length || 0} / 1000 chars (min 10)
                         </div>
                     </div>

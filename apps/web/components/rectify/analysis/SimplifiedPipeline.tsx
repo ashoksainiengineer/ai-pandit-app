@@ -54,7 +54,7 @@ export const SimplifiedPipeline = memo(function SimplifiedPipeline({
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
           <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-[#184131] animate-pulse' : 'bg-[#C65D3B]'}`} />
-          <span className="text-xs font-medium text-[#636363]">
+          <span className="text-xs font-medium text-black/60">
             {isConnected ? 'Processing' : 'Reconnecting'}
           </span>
         </div>
@@ -78,7 +78,7 @@ export const SimplifiedPipeline = memo(function SimplifiedPipeline({
                   transition-all duration-300 group relative
                   ${state === 'completed' ? 'bg-[#184131] text-white hover:bg-[#184131]/90' : ''}
                   ${state === 'active' ? 'bg-[#000000] text-white ring-2 ring-[#000000]/30 ring-offset-1' : ''}
-                  ${state === 'pending' ? 'bg-[#FAFAFA] text-[#959595]' : ''}
+                  ${state === 'pending' ? 'bg-[var(--prism-canvas)] text-[#959595]' : ''}
                 `}
                 title={stage.name}
               >
@@ -112,8 +112,8 @@ export const SimplifiedPipeline = memo(function SimplifiedPipeline({
       <div className="flex items-center justify-between mt-4 pt-3 border-t border-[rgba(0,0,0,0.08)]">
         <div className="flex items-center gap-2">
           <div className="flex flex-col items-start">
-            <span className="text-xs text-[#636363]">Stage</span>
-            <span className="text-sm font-medium text-[#000000]">
+            <span className="text-xs text-black/60">Stage</span>
+            <span className="text-sm font-medium text-black">
               {isComplete ? 'Complete' : STAGES[effectiveStageIndex]?.name || 'Unknown'}
             </span>
           </div>
@@ -131,14 +131,14 @@ export const SimplifiedPipeline = memo(function SimplifiedPipeline({
 
             if (!phaseLabel) return null;
             return (
-              <span className="text-[9px] px-1.5 py-0.5 rounded bg-[#FAFAFA] text-[#000000] border border-[#000000]/10 font-medium uppercase mt-1">
+              <span className="text-[9px] px-1.5 py-0.5 rounded bg-[var(--prism-canvas)] text-black border border-[#000000]/10 font-medium uppercase mt-1">
                 {phaseLabel}
               </span>
             );
           })()}
         </div>
         <div className="flex items-center gap-2">
-          <div className="h-1.5 w-20 sm:w-32 bg-[#FAFAFA] rounded-full overflow-hidden">
+          <div className="h-1.5 w-20 sm:w-32 bg-[var(--prism-canvas)] rounded-full overflow-hidden">
             <motion.div
               className="h-full bg-gradient-to-r from-[#000000] to-[#184131] rounded-full"
               initial={{ width: 0 }}
@@ -146,7 +146,7 @@ export const SimplifiedPipeline = memo(function SimplifiedPipeline({
               transition={{ duration: 0.5 }}
             />
           </div>
-          <span className="text-xs font-mono font-medium text-[#000000]">
+          <span className="text-xs font-mono font-medium text-black">
             {progressPercent}%
           </span>
         </div>

@@ -40,14 +40,14 @@ export default function ChartCard({
     >
       <div className="flex items-start justify-between mb-6">
         <div>
-          <h3 className="text-lg font-medium text-[#000000] ">
+          <h3 className="text-lg font-medium text-black ">
             {title}
           </h3>
           {subtitle && (
             <p className="text-sm text-[#636363] mt-1">{subtitle}</p>
           )}
         </div>
-        <button className="p-2 rounded-lg hover:bg-[#ffffff] text-[#636363] hover:text-[#000000] transition-colors">
+        <button className="p-2 rounded-lg hover:bg-[#ffffff] text-[#636363] hover:text-black transition-colors">
           <MoreHorizontal className="w-5 h-5" />
         </button>
       </div>

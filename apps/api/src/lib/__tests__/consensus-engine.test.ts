@@ -20,8 +20,7 @@ vi.mock('../kp-sublords.js', () => ({
 vi.mock('../btr/god-tier-weights.js', () => ({
     METHOD_WEIGHTS: {
         vimshottari: 0.15, yogini: 0.10, chara: 0.08, kalachakra: 0.08,
-        kp: 0.15, ashtakavarga: 0.08, varga: 0.10, transit: 0.10,
-        forensic: 0.08, ai: 0.08,
+        kp: 0.15, ashtakavarga: 0.08, varga: 0.10, transit: 0.10, ai: 0.08,
     },
     CONFIDENCE_THRESHOLDS: {
         god_tier: { minScore: 95, allMethodsAbove: 90 },
@@ -82,10 +81,8 @@ function makeMinimalInput(overrides?: any) {
             { type: 'Career Start', category: 'career', impact: 'major', eventDate: '1992-01-01', yearOffset: 2 },
             { type: 'Health Issue', category: 'health', impact: 'moderate', eventDate: '1997-03-01', yearOffset: 7 },
         ],
-        forensicProfile: overrides?.forensicProfile || {
-            biological: { prakriti: 'pitta' },
-            physical: { build: 'athletic' },
-        },
+
+        ...overrides,
         ...overrides,
     };
 }
@@ -110,16 +107,16 @@ describe('Consensus Engine - calculateConsensus', () => {
         expect(result.validatedAt).toBeInstanceOf(Date);
     });
 
-    it('should return 12 validation details (10 methods + 2 meta)', () => {
+    it('should return 11 validation details (9 methods + 2 meta)', () => {
         const input = makeMinimalInput();
         const result = calculateConsensus(input);
-        expect(result.validationDetails.length).toBe(12);
+        expect(result.validationDetails.length).toBe(11);
     });
 
-    it('should have all 10 score fields', () => {
+    it('should have all 9 score fields', () => {
         const input = makeMinimalInput();
         const result = calculateConsensus(input);
-        const expectedKeys = ['vimshottari', 'yogini', 'chara', 'kalachakra', 'kp', 'ashtakavarga', 'varga', 'transit', 'forensic', 'ai'];
+        const expectedKeys = ['vimshottari', 'yogini', 'chara', 'kalachakra', 'kp', 'ashtakavarga', 'varga', 'transit', 'ai']
         for (const key of expectedKeys) {
             expect((result.scores as any)[key]).toBeDefined();
             expect(typeof (result.scores as any)[key]).toBe('number');
@@ -168,12 +165,6 @@ describe('Consensus Engine - Missing Data Handling', () => {
         const input = makeMinimalInput({ candidate: { vargas: undefined } });
         const result = calculateConsensus(input);
         expect(result.scores.varga).toBe(40); // Fail score
-    });
-
-    it('should handle missing forensic profile gracefully', () => {
-        const input = makeMinimalInput({ forensicProfile: undefined });
-        const result = calculateConsensus(input);
-        expect(result.scores.forensic).toBe(0);
     });
 
     it('should handle missing AI score with default 70', () => {
@@ -292,12 +283,8 @@ describe('Consensus Engine - Red Flags Detection', () => {
         expect(typeof result.redFlags.conflictingMethods).toBe('boolean');
     });
 
-    it('should detect forensicMismatch when forensic score < 50', () => {
-        const input = makeMinimalInput({ forensicProfile: undefined });
-        const result = calculateConsensus(input);
-        expect(result.redFlags.forensicMismatch).toBe(true);
     });
-});
+
 
 // ═══════════════════════════════════════════════════════════════════════════
 // CONSENSUS ENGINE EXPORT OBJECT
@@ -312,7 +299,7 @@ describe('Consensus Engine - Export Object', () => {
         const input = makeMinimalInput();
         const result = ConsensusEngine.calculate(input);
         expect(result.scores).toBeDefined();
-        expect(result.validationDetails.length).toBe(12);
+        expect(result.validationDetails.length).toBe(11);
     });
 });
 
