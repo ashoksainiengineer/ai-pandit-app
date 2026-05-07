@@ -20,12 +20,12 @@ export function ErrorDisplay({ error, onRetry }: { error?: string, onRetry: () =
             <div className="flex gap-4">
                 <button
                     onClick={onRetry}
-                    className="inline-flex items-center justify-center bg-zinc-900 border border-zinc-700 hover:bg-zinc-800 text-white rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 gap-2 h-12 px-8"
+                    className="inline-flex items-center justify-center bg-black border border-black/20 hover:bg-black/80 text-white rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 gap-2 h-12 px-8"
                 >
                     <RefreshCw className="h-5 w-5" /> Retry Connection
                 </button>
                 <button
-                    className="inline-flex items-center justify-center border border-zinc-700 bg-transparent hover:bg-zinc-800 text-zinc-300 rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 gap-2 h-12 px-8"
+                    className="inline-flex items-center justify-center border border-black/20 bg-transparent hover:bg-black/5 text-black rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 gap-2 h-12 px-8"
                     onClick={() => router.push('/dashboard')}
                 >
                     Exit Analysis
@@ -36,7 +36,7 @@ export function ErrorDisplay({ error, onRetry }: { error?: string, onRetry: () =
                 <div className="p-2 bg-red-500/20 rounded-lg shrink-0">
                     <AlertCircle className="h-5 w-5 text-red-500" />
                 </div>
-                <div className="text-sm text-red-200/80">
+                <div className="text-sm text-red-600/80">
                     <strong>Auto-Recovery Disabled:</strong> We detected multiple catastrophic failures. Please try again manually in a few moments.
                 </div>
             </div>

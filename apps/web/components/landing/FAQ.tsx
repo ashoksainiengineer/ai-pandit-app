@@ -25,7 +25,7 @@ const FAQS = [
 
 export default function FAQ() {
   return (
-    <section className="py-20 bg-[#f8f8f8]">
+    <section className="py-20 bg-[#FAFAFA]">
       <div className="max-w-2xl mx-auto px-4">
         <motion.div
           initial={{ opacity: 0, y: 16 }}

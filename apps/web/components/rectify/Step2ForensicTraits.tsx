@@ -98,7 +98,7 @@ function AssessmentCompleteView({ traitSummary, onRetake, onContinue }: {
                 </div>
             </div>
             <div className="flex gap-3">
-                <button onClick={onRetake} className="flex-1 py-3 border-2 border-[#E8E0D5] text-[#636363] rounded-xl font-medium hover:bg-[#f8f8f8] transition-colors">
+                <button onClick={onRetake} className="flex-1 py-3 border-2 border-[#E8E0D5] text-[#636363] rounded-xl font-medium hover:bg-[#FAFAFA] transition-colors">
                     Retake Assessment
                 </button>
                 <button onClick={onContinue} className="flex-1 py-3 bg-gradient-to-r from-[#184131] to-[#4ADE80] text-white rounded-xl font-medium hover:shadow-lg transition-all">

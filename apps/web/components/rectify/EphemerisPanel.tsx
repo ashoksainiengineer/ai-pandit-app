@@ -94,7 +94,7 @@ export function EphemerisPanel({
             {/* Header */}
             <button
                 onClick={() => setIsExpanded(!isExpanded)}
-                className="w-full px-4 py-3 flex items-center justify-between hover:bg-[#f8f8f8] transition-colors"
+                className="w-full px-4 py-3 flex items-center justify-between hover:bg-[#FAFAFA] transition-colors"
             >
                 <div className="flex items-center gap-3">
                     <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center">

@@ -28,7 +28,7 @@ export default function GlobalError({ error, reset }: GlobalErrorProps) {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          backgroundColor: '#f8f8f8',
+          backgroundColor: '#FAFAFA',
           fontFamily: 'system-ui, -apple-system, sans-serif',
           padding: '20px'
         }}>

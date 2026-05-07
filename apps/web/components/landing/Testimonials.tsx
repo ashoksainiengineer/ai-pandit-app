@@ -90,7 +90,7 @@ function TestimonialCard({ testimonial, renderStars }: TestimonialCardProps) {
 
           {/* Result Badge */}
           <div className="flex flex-wrap items-center gap-3 mb-4">
-            <div className="px-3 py-1.5 bg-[#f8f8f8] rounded-lg">
+            <div className="px-3 py-1.5 bg-[#FAFAFA] rounded-lg">
               <span className="text-xs text-[#636363] block">Original</span>
               <span className="text-sm font-mono text-red-600 line-through">{testimonial.result.originalTime}</span>
             </div>

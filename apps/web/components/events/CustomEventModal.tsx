@@ -159,7 +159,7 @@ export default function CustomEventModal({
               </div>
               <button
                 onClick={handleClose}
-                className="w-8 h-8 rounded-full hover:bg-[#f8f8f8] flex items-center justify-center transition-colors"
+                className="w-8 h-8 rounded-full hover:bg-[#FAFAFA] flex items-center justify-center transition-colors"
               >
                 <X className="w-5 h-5 text-[#636363]" />
               </button>
@@ -220,7 +220,7 @@ export default function CustomEventModal({
                 </div>
 
                 {isCreatingCategory ? (
-                  <div className="space-y-2 p-3 bg-[#f8f8f8] rounded-xl">
+                  <div className="space-y-2 p-3 bg-[#FAFAFA] rounded-xl">
                     <input
                       type="text"
                       value={newCategoryName}

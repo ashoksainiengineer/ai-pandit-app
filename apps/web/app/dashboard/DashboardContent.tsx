@@ -35,10 +35,10 @@ export function DashboardContent({ clerkId, userName }: Props) {
   if (error) {
     return (
       <div className="text-center py-20">
-        <p className="text-destructive mb-4">Failed to load dashboard.</p>
+        <p className="text-black/60 mb-4">Failed to load dashboard.</p>
         <button
           onClick={() => { setError(null); setSessions(null); }}
-          className="px-4 py-2 bg-primary text-white rounded-lg text-sm"
+          className="px-4 py-2 bg-black text-white rounded-lg text-sm"
         >
           Retry
         </button>

@@ -28,7 +28,7 @@ export const VedicShuddhiRadar: React.FC<ShuddhiProps> = ({ shuddhi }) => {
                         <span className="text-[#636363] uppercase font-mono">Kunda (Lunar-Asc) Alignment</span>
                         <span className="text-[#000000] font-medium">{shuddhi.kunda.score}%</span>
                     </div>
-                    <div className="h-2 bg-[#f8f8f8] rounded-full overflow-hidden border border-[rgba(0,0,0,0.08)]">
+                    <div className="h-2 bg-[#FAFAFA] rounded-full overflow-hidden border border-[rgba(0,0,0,0.08)]">
                         <motion.div
                             initial={{ width: 0 }}
                             animate={{ width: `${shuddhi.kunda.score}%` }}
@@ -46,7 +46,7 @@ export const VedicShuddhiRadar: React.FC<ShuddhiProps> = ({ shuddhi }) => {
                         <span className="text-[#636363] uppercase font-mono">Tatwa (Elemental Path)</span>
                         <span className="text-[#000000] font-medium">{shuddhi.tatwa.score}%</span>
                     </div>
-                    <div className="h-2 bg-[#f8f8f8] rounded-full overflow-hidden border border-[rgba(0,0,0,0.08)]">
+                    <div className="h-2 bg-[#FAFAFA] rounded-full overflow-hidden border border-[rgba(0,0,0,0.08)]">
                         <motion.div
                             initial={{ width: 0 }}
                             animate={{ width: `${shuddhi.tatwa.score}%` }}

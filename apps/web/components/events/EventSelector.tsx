@@ -105,7 +105,7 @@ export default function EventSelector({
           animate={{ opacity: 1, height: 'auto' }}
           className="bg-white rounded-xl border border-[#E8E0D5] overflow-hidden"
         >
-          <div className="p-3 bg-[#f8f8f8] border-b border-[#E8E0D5] text-xs text-[#636363]">
+          <div className="p-3 bg-[#FAFAFA] border-b border-[#E8E0D5] text-xs text-[#636363]">
             Found {searchResults.length} results for &quot;{searchQuery}&quot;
           </div>
           <div className="max-h-64 overflow-y-auto">
@@ -118,7 +118,7 @@ export default function EventSelector({
                   disabled={added}
                   className={`w-full text-left px-4 py-3 border-b border-[rgba(0,0,0,0.08)] last:border-0 transition-colors ${added
                       ? 'bg-[#184131]/5 text-[#184131]'
-                      : 'hover:bg-[#f8f8f8]'
+                      : 'hover:bg-[#FAFAFA]'
                     }`}
                 >
                   <div className="flex items-center justify-between">
@@ -152,7 +152,7 @@ export default function EventSelector({
                 onClick={() => toggleImportance(importance)}
                 className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${importanceFilter.includes(importance)
                     ? 'bg-[#000000] text-white'
-                    : 'bg-[#f8f8f8] text-[#636363] hover:bg-[#E8E0D5]'
+                    : 'bg-[#FAFAFA] text-[#636363] hover:bg-[#E8E0D5]'
                   }`}
               >
                 {getImportanceLabel(importance)}
@@ -181,7 +181,7 @@ export default function EventSelector({
               onClick={() => setShowSensitive(!showSensitive)}
               className={`text-xs flex items-center gap-1 px-3 py-1.5 rounded-full transition-colors ${showSensitive
                   ? 'bg-[#DC143C]/10 text-[#DC143C]'
-                  : 'bg-[#f8f8f8] text-[#636363] hover:bg-[#E8E0D5]'
+                  : 'bg-[#FAFAFA] text-[#636363] hover:bg-[#E8E0D5]'
                 }`}
             >
               <AlertTriangle className="w-3 h-3" />
@@ -212,7 +212,7 @@ export default function EventSelector({
                   <span
                     className={`text-xs px-2 py-0.5 rounded-full ${selectedCategory === category.id
                         ? 'bg-white/20'
-                        : 'bg-[#f8f8f8] text-[#636363]'
+                        : 'bg-[#FAFAFA] text-[#636363]'
                       }`}
                   >
                     {category.events.length}
@@ -247,7 +247,7 @@ export default function EventSelector({
               .filter((cat) => cat.id === selectedCategory)
               .map((category) => (
                 <div key={category.id}>
-                  <div className="p-4 bg-[#f8f8f8] border-b border-[#E8E0D5] flex items-center justify-between">
+                  <div className="p-4 bg-[#FAFAFA] border-b border-[#E8E0D5] flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <span className="text-xl">{category.icon}</span>
                       <div>
@@ -277,7 +277,7 @@ export default function EventSelector({
                             disabled={added}
                             className={`px-3 py-2 rounded-lg text-sm transition-all ${added
                                 ? 'bg-[#184131]/10 text-[#184131] cursor-default'
-                                : 'bg-[#f8f8f8] text-[#636363] hover:bg-[#000000]/10 hover:text-[#000000] border border-transparent hover:border-[#000000]/30'
+                                : 'bg-[#FAFAFA] text-[#636363] hover:bg-[#000000]/10 hover:text-[#000000] border border-transparent hover:border-[#000000]/30'
                               }`}
                           >
                             {added && <span className="mr-1">✓</span>}

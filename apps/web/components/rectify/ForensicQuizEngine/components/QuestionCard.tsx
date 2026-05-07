@@ -53,7 +53,7 @@ export function QuestionCard({
                         </div>
                         <button
                             onClick={() => setShowHelp(!showHelp)}
-                            className={`p-2 rounded-lg transition-colors ${showHelp ? 'bg-[#000000]/10 text-[#000000]' : 'hover:bg-[#f8f8f8] text-[#636363]'}`}
+                            className={`p-2 rounded-lg transition-colors ${showHelp ? 'bg-[#000000]/10 text-[#000000]' : 'hover:bg-[#FAFAFA] text-[#636363]'}`}
                         >
                             <HelpCircle className="w-5 h-5" />
                         </button>
@@ -95,7 +95,7 @@ export function QuestionCard({
                                 onClick={() => recordQuizAnswer(option.id)}
                                 className={`w-full p-4 rounded-xl border-2 text-left transition-all ${isSelected
                                     ? 'border-[#000000] bg-[#000000]/5'
-                                    : 'border-[rgba(0,0,0,0.08)] hover:border-[#000000]/50 hover:bg-[#f8f8f8]/50'
+                                    : 'border-[rgba(0,0,0,0.08)] hover:border-[#000000]/50 hover:bg-[#FAFAFA]/50'
                                     }`}
                             >
                                 <div className="flex items-start gap-3">

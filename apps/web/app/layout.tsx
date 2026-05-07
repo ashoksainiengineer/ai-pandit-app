@@ -1,6 +1,6 @@
 /**
  * AI Pandit - Root Layout
- * Dia Browser Design System — Clean, Minimal, Monochrome
+ * Light Theme Design System
  *
  * Fonts loaded via next/font for optimal Core Web Vitals.
  */
@@ -11,13 +11,14 @@ const dmSans = DM_Sans({
   subsets: ['latin'],
   variable: '--font-dm-sans',
   display: 'swap',
-  weight: ['300', '400', '500'],
+  weight: ['300', '400', '500', '600', '700'],
 });
 
 const jetbrainsMono = JetBrains_Mono({
   subsets: ['latin'],
   variable: '--font-mono',
   display: 'swap',
+  weight: ['400', '500', '700'],
 });
 
 import { ClerkProvider } from '@clerk/nextjs';
@@ -51,7 +52,7 @@ export const viewport: Viewport = {
   maximumScale: 5,
   userScalable: true,
   viewportFit: 'cover',
-  themeColor: '#a8c4e8',
+  themeColor: '#FAFAFA',
   colorScheme: 'light',
 };
 
@@ -66,21 +67,21 @@ export default function RootLayout({
       appearance={{
         variables: {
           colorPrimary: '#000000',
-          colorBackground: '#f8f8f8',
+          colorBackground: '#FFFFFF',
           colorText: '#000000',
           colorTextSecondary: '#636363',
-          colorInputBackground: '#ffffff',
+          colorInputBackground: '#FAFAFA',
           colorInputText: '#000000',
-          borderRadius: '16px',
+          borderRadius: '20px',
         },
         elements: {
-          formButtonPrimary: 'bg-black hover:bg-black/85 text-white font-medium',
-          card: 'bg-white border border-black/8',
-          headerTitle: 'text-black font-[family-name:var(--font-dm-sans)]',
+          formButtonPrimary: 'bg-black hover:bg-black/80 text-white font-medium py-3 rounded-xl transition-all',
+          card: 'bg-white border border-black/10',
+          headerTitle: 'text-black font-medium text-xl',
           headerSubtitle: 'text-black/60',
           socialButtonsBlockButton: 'border-black/10 hover:bg-black/5',
           formFieldLabel: 'text-black/60',
-          formFieldInput: 'bg-white border-black/10 text-black focus:border-black',
+          formFieldInput: 'bg-[#FAFAFA] border-black/10 text-black focus:border-black',
           footerActionLink: 'text-black hover:text-black/70',
         }
       }}
@@ -91,9 +92,9 @@ export default function RootLayout({
           <link rel="preconnect" href="https://nominatim.openstreetmap.org" />
           <link rel="preconnect" href="https://tile.openstreetmap.org" />
         </head>
-        <body className={`${dmSans.variable} ${jetbrainsMono.variable} min-h-screen bg-dia-bg text-dia-ink antialiased overflow-x-hidden`}>
-          {/* Dia Browser Clean Background */}
-          <div className="fixed inset-0 pointer-events-none z-0 bg-dia-bg" />
+        <body className={`${dmSans.variable} ${jetbrainsMono.variable} min-h-screen bg-[#FAFAFA] text-black antialiased overflow-x-hidden`}>
+          {/* Light Background Base */}
+          <div className="fixed inset-0 pointer-events-none z-0 bg-[#FAFAFA]" />
 
           {/* Main Content */}
           <DebugProvider>

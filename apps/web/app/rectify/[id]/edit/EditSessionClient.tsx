@@ -261,8 +261,8 @@ export function EditSessionClient({ sessionId, initialData }: EditSessionClientP
 
     return (
         <Layout hideFooter>
-            <main className="min-h-screen bg-[#f8f8f8] text-[#000000] pt-16">
-                <nav className="sticky top-0 z-50 bg-[#f8f8f8]/90 backdrop-blur-xl border-b border-[rgba(0,0,0,0.08)]">
+            <main className="min-h-screen bg-[#FAFAFA] text-[#000000] pt-16">
+                <nav className="sticky top-0 z-50 bg-[#FAFAFA]/90 backdrop-blur-xl border-b border-[rgba(0,0,0,0.08)]">
                     <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
                         <Link href="/" className="flex items-center gap-3 group">
                             <span className="font-medium text-xl text-[#000000] tracking-tight">AI Pandit</span>
@@ -303,14 +303,14 @@ export function EditSessionClient({ sessionId, initialData }: EditSessionClientP
                                 <button
                                     key={s}
                                     onClick={() => updateStep(s)}
-                                    className="flex flex-col items-center bg-[#f8f8f8] px-2 outline-none focus:outline-none"
+                                    className="flex flex-col items-center bg-[#FAFAFA] px-2 outline-none focus:outline-none"
                                 >
                                     <div
                                         className={`w-10 h-10 rounded-full flex items-center justify-center font-medium text-sm transition-all border-2 ${s < step
                                             ? 'bg-[#184131] border-[#184131] text-white'
                                             : s === step
                                                 ? 'bg-white border-[#000000] text-[#000000] shadow-[0_0_15px_rgba(184,134,11,0.3)]'
-                                                : 'bg-[#f8f8f8] border-[#EBE2D6] text-[#959595]'
+                                                : 'bg-[#FAFAFA] border-[#EBE2D6] text-[#959595]'
                                             }`}
                                     >
                                         {s < step ? '✓' : ['👤', '🪞', '📏', '📅', '✅'][s - 1]}

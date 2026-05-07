@@ -73,7 +73,7 @@ export default function WhyForensicTraits() {
     >
       {/* Header */}
       <div
-        className="p-5 cursor-pointer hover:bg-[#f8f8f8]/50 transition-colors"
+        className="p-5 cursor-pointer hover:bg-[#FAFAFA]/50 transition-colors"
         onClick={() => setIsExpanded(!isExpanded)}
       >
         <div className="flex items-start justify-between gap-4">
@@ -94,7 +94,7 @@ export default function WhyForensicTraits() {
           </div>
           <motion.div
             animate={{ rotate: isExpanded ? 180 : 0 }}
-            className="p-2 rounded-lg bg-[#f8f8f8] text-[#636363]"
+            className="p-2 rounded-lg bg-[#FAFAFA] text-[#636363]"
           >
             <ChevronDown className="w-5 h-5" />
           </motion.div>
@@ -122,7 +122,7 @@ export default function WhyForensicTraits() {
             className="border-t border-[rgba(0,0,0,0.08)]"
           >
             {/* Tab Navigation */}
-            <div className="flex p-1 bg-[#f8f8f8] mx-4 mt-4 rounded-xl">
+            <div className="flex p-1 bg-[#FAFAFA] mx-4 mt-4 rounded-xl">
               {[
                 { id: 'intro', label: 'The Science', icon: BookOpen },
                 { id: 'traits', label: '8 Markers', icon: ScanFace }

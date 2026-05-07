@@ -3,7 +3,7 @@
 import { memo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Sparkles, Loader2 } from 'lucide-react';
-import '@/app/prism-design-system.css';
+import '@/app/globals.css';
 
 interface LoadingOverlayProps {
     isVisible: boolean;

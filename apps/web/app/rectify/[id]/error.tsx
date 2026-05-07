@@ -15,7 +15,7 @@ export default function AnalysisError({ error, reset }: ErrorBoundaryProps) {
   }, [error]);
 
   return (
-    <div className="min-h-screen bg-[#f8f8f8] flex items-center justify-center p-4">
+    <div className="min-h-screen bg-[#FAFAFA] flex items-center justify-center p-4">
       <div className="max-w-md w-full">
         <div className="bg-white border border-[rgba(0,0,0,0.08)] rounded-2xl p-8 shadow-lg text-center">
           <div className="w-16 h-16 mx-auto mb-6 bg-[#C65D3B]/10 rounded-full flex items-center justify-center">

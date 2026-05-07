@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import '@/app/prism-design-system.css';
+import '@/app/globals.css';
 
 type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'destructive';
 type ButtonSize = 'sm' | 'md' | 'lg';

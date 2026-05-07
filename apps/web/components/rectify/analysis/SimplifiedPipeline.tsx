@@ -78,7 +78,7 @@ export const SimplifiedPipeline = memo(function SimplifiedPipeline({
                   transition-all duration-300 group relative
                   ${state === 'completed' ? 'bg-[#184131] text-white hover:bg-[#184131]/90' : ''}
                   ${state === 'active' ? 'bg-[#000000] text-white ring-2 ring-[#000000]/30 ring-offset-1' : ''}
-                  ${state === 'pending' ? 'bg-[#f8f8f8] text-[#959595]' : ''}
+                  ${state === 'pending' ? 'bg-[#FAFAFA] text-[#959595]' : ''}
                 `}
                 title={stage.name}
               >
@@ -131,14 +131,14 @@ export const SimplifiedPipeline = memo(function SimplifiedPipeline({
 
             if (!phaseLabel) return null;
             return (
-              <span className="text-[9px] px-1.5 py-0.5 rounded bg-[#f8f8f8] text-[#000000] border border-[#000000]/10 font-medium uppercase mt-1">
+              <span className="text-[9px] px-1.5 py-0.5 rounded bg-[#FAFAFA] text-[#000000] border border-[#000000]/10 font-medium uppercase mt-1">
                 {phaseLabel}
               </span>
             );
           })()}
         </div>
         <div className="flex items-center gap-2">
-          <div className="h-1.5 w-20 sm:w-32 bg-[#f8f8f8] rounded-full overflow-hidden">
+          <div className="h-1.5 w-20 sm:w-32 bg-[#FAFAFA] rounded-full overflow-hidden">
             <motion.div
               className="h-full bg-gradient-to-r from-[#000000] to-[#184131] rounded-full"
               initial={{ width: 0 }}

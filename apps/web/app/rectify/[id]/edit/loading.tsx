@@ -4,12 +4,12 @@
  */
 export default function EditSessionLoading() {
   return (
-    <div className="min-h-screen bg-[#f8f8f8]">
+    <div className="min-h-screen bg-[#FAFAFA]">
       {/* Nav */}
       <nav className="bg-white border-b border-[rgba(0,0,0,0.08)]">
         <div className="max-w-4xl mx-auto px-6 py-4 flex items-center gap-4">
-          <div className="h-10 w-10 bg-[#f8f8f8] rounded-lg animate-pulse" />
-          <div className="h-6 bg-[#f8f8f8] rounded-lg animate-pulse w-48" />
+          <div className="h-10 w-10 bg-[#FAFAFA] rounded-lg animate-pulse" />
+          <div className="h-6 bg-[#FAFAFA] rounded-lg animate-pulse w-48" />
         </div>
       </nav>
 
@@ -17,31 +17,31 @@ export default function EditSessionLoading() {
       <div className="max-w-2xl mx-auto px-6 py-12 space-y-8">
         {/* Header */}
         <div className="space-y-3 mb-8">
-          <div className="h-8 bg-[#f8f8f8] rounded-xl animate-pulse w-64" />
-          <div className="h-4 bg-[#f8f8f8] rounded-lg animate-pulse w-80" />
+          <div className="h-8 bg-[#FAFAFA] rounded-xl animate-pulse w-64" />
+          <div className="h-4 bg-[#FAFAFA] rounded-lg animate-pulse w-80" />
         </div>
 
         {/* Sections */}
         <div className="bg-white border border-[rgba(0,0,0,0.08)] rounded-2xl p-6 space-y-6">
-          <div className="h-5 bg-[#f8f8f8] rounded-lg animate-pulse w-32" />
+          <div className="h-5 bg-[#FAFAFA] rounded-lg animate-pulse w-32" />
           {[...Array(4)].map((_, i) => (
             <div key={i} className="space-y-2">
-              <div className="h-4 bg-[#f8f8f8] rounded-lg animate-pulse w-20" />
-              <div className="h-12 bg-[#f8f8f8] rounded-xl animate-pulse w-full" />
+              <div className="h-4 bg-[#FAFAFA] rounded-lg animate-pulse w-20" />
+              <div className="h-12 bg-[#FAFAFA] rounded-xl animate-pulse w-full" />
             </div>
           ))}
         </div>
 
         <div className="bg-white border border-[rgba(0,0,0,0.08)] rounded-2xl p-6 space-y-4">
-          <div className="h-5 bg-[#f8f8f8] rounded-lg animate-pulse w-36" />
+          <div className="h-5 bg-[#FAFAFA] rounded-lg animate-pulse w-36" />
           {[...Array(3)].map((_, i) => (
-            <div key={i} className="h-16 bg-[#f8f8f8] rounded-xl animate-pulse w-full" />
+            <div key={i} className="h-16 bg-[#FAFAFA] rounded-xl animate-pulse w-full" />
           ))}
         </div>
 
         {/* Submit Button */}
         <div className="flex justify-end pt-4">
-          <div className="h-12 bg-[#f8f8f8] rounded-xl animate-pulse w-36" />
+          <div className="h-12 bg-[#FAFAFA] rounded-xl animate-pulse w-36" />
         </div>
       </div>
     </div>

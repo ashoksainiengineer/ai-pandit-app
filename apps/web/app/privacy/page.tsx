@@ -5,7 +5,7 @@
 import { Metadata } from 'next';
 import Link from 'next/link';
 import { ArrowLeft, Shield, Lock, Eye, Database, Trash2, FileText, Server, Key, Cpu, UserX, CheckCircle, XCircle } from 'lucide-react';
-import '@/app/prism-design-system.css';
+import '@/app/globals.css';
 
 export const metadata: Metadata = {
   title: 'Privacy Policy | AI Pandit',
@@ -14,7 +14,7 @@ export const metadata: Metadata = {
 
 export default function PrivacyPage() {
   return (
-    <main className="min-h-screen bg-dia-bg">
+    <main className="min-h-screen bg-[#FAFAFA]">
       {/* Header */}
       <div className="bg-white/90 backdrop-blur-xl border-b border-black/10">
         <div className="max-w-4xl mx-auto px-6 py-6">

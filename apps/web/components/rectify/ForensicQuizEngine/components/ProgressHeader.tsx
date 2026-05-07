@@ -84,7 +84,7 @@ export function ProgressHeader({
                                 ? 'bg-[#000000] text-white'
                                 : isComplete
                                     ? 'bg-[#184131]/20 text-[#184131]'
-                                    : 'bg-[#f8f8f8] text-[#636363]'
+                                    : 'bg-[#FAFAFA] text-[#636363]'
                                 }`}
                         >
                             {cat.icon} {catProg.answered}/{catProg.total}

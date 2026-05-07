@@ -48,7 +48,7 @@ export default function DashboardLayout({ children, user }: DashboardLayoutProps
   };
 
   return (
-    <div className="min-h-screen bg-[#f8f8f8] flex">
+    <div className="min-h-screen bg-[#FAFAFA] flex">
       {/* Mobile Sidebar Overlay */}
       <AnimatePresence>
         {sidebarOpen && (

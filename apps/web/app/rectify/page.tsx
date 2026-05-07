@@ -11,14 +11,13 @@ import RectifySubmitBar from '@/components/rectify/RectifySubmitBar';
 import BirthDataForm from '@/components/rectify/BirthDataForm';
 import LifeEventsEditor from '@/components/rectify/LifeEventsEditor';
 import { useRectifyForm } from '@/hooks/use-rectify-form';
-import '@/app/prism-design-system.css';
 
 const Step2PhysicalTraits = dynamic(() => import('@/components/rectify/Step2PhysicalTraits'), {
-    loading: () => <div className="animate-pulse bg-[#f8f8f8] h-96 rounded-xl" />,
+    loading: () => <div className="animate-pulse bg-[#FAFAFA] h-96 rounded-xl" />,
     ssr: false
 });
 const Step4Review = dynamic(() => import('@/components/rectify/Step4Review'), {
-    loading: () => <div className="animate-pulse bg-[#f8f8f8] h-96 rounded-xl" />,
+    loading: () => <div className="animate-pulse bg-[#FAFAFA] h-96 rounded-xl" />,
     ssr: false
 });
 
@@ -53,13 +52,6 @@ function RectifyPageContent() {
                             />
                         )}
                         {form.step === 3 && (
-                            <LifeEventsEditor
-                                lifeEvents={form.lifeEvents}
-                                offsetConfig={form.offsetConfig}
-                                onUpdateEvents={form.setLifeEvents}
-                            />
-                        )}
-                        {form.step === 4 && (
                             <LifeEventsEditor
                                 lifeEvents={form.lifeEvents}
                                 offsetConfig={form.offsetConfig}

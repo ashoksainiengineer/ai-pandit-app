@@ -28,14 +28,14 @@ export const PlanetaryVitals: React.FC<PlanetaryProps> = ({ ephemeris, divCharts
                         </tr>
                     </thead>
                     <tbody>
-                        <tr className="border-b border-[rgba(0,0,0,0.08)]/50 hover:bg-[#f8f8f8]">
+                        <tr className="border-b border-[rgba(0,0,0,0.08)]/50 hover:bg-[#FAFAFA]">
                             <td className="py-3 text-[#000000] font-medium">ASCENDANT</td>
                             <td className="py-3 text-[#000000]">{ephemeris.ascendant.sign}</td>
                             <td className="py-3 text-right text-[#636363]">{(ephemeris.ascendant.longitude % 30).toFixed(6)}°</td>
                             <td className="py-3 text-right text-[#000000]">{divCharts.D9.ascendant.sign.slice(0, 3)}</td>
                         </tr>
                         {planets.map(([name, data]) => (
-                            <tr key={name} className="border-b border-[rgba(0,0,0,0.08)]/50 hover:bg-[#f8f8f8]">
+                            <tr key={name} className="border-b border-[rgba(0,0,0,0.08)]/50 hover:bg-[#FAFAFA]">
                                 <td className="py-2 text-[#000000] capitalize">{name}</td>
                                 <td className="py-2 text-[#636363]">{data.sign}</td>
                                 <td className="py-2 text-right text-[#000000]">{(data.longitude % 30).toFixed(4)}°</td>
