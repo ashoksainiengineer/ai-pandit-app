@@ -21,7 +21,6 @@ fi
 
 BUILD_ARGS=""
 SECRET_VARS=""
-ENV_VARS_FILE=""
 
 case "$SERVICE_KIND" in
   api)
@@ -35,8 +34,7 @@ case "$SERVICE_KIND" in
     CPU_THROTTLING_FLAG="--cpu-throttling"
     EXTRA_VARS="NODE_ENV=production,APP_REGION=${REGION},CLOUD_RUN_REGION=${REGION},JOB_EXECUTION_MODE=external_worker,QUEUE_ARCHITECTURE=${QUEUE_ARCHITECTURE:-db_polling},USE_ASYNC_JOB_PIPELINE=${USE_ASYNC_JOB_PIPELINE:-true},USE_NEW_STREAM_PATH=${USE_NEW_STREAM_PATH:-true},AI_BASE_URL=${AI_BASE_URL:-https://api.deepseek.com},AI_MODEL=${AI_MODEL:-deepseek-chat},EPHEMERIS_PROVIDER=${EPHEMERIS_PROVIDER:-skyfield},EPHEMERIS_ALLOW_ALGORITHMIC_FALLBACK=${EPHEMERIS_ALLOW_ALGORITHMIC_FALLBACK:-false},EPHEMERIS_SERVICE_URL=${EPHEMERIS_SERVICE_URL:?EPHEMERIS_SERVICE_URL is required for api deploy},EPHEMERIS_SERVICE_TIMEOUT_MS=${EPHEMERIS_SERVICE_TIMEOUT_MS:-15000},EPHEMERIS_BATCH_SIZE=${EPHEMERIS_BATCH_SIZE:-250},EPHEMERIS_HOUSE_SYSTEM=${EPHEMERIS_HOUSE_SYSTEM:-placidus},FRONTEND_URL=${WEB_FRONTEND_URL:-${FRONTEND_URL:-}},WORKER_POLL_INTERVAL_MS=${WORKER_POLL_INTERVAL_MS:-2000},JOB_SYNC_POLL_INTERVAL_MS=${JOB_SYNC_POLL_INTERVAL_MS:-2000}"
     ALLOWED_ORIGINS_VAR="${ALLOWED_ORIGINS:-${WEB_FRONTEND_URL:-${FRONTEND_URL:-}}}"
-    ENV_VARS_FILE="${TMPDIR:-/tmp}/api-env-vars.$$"
-    printf 'ALLOWED_ORIGINS: "%s"\n' "${ALLOWED_ORIGINS_VAR}" > "${ENV_VARS_FILE}"
+    ;;
     ;;
   web)
     SERVICE_NAME="${WEB_SERVICE_NAME:-web-service}"
@@ -176,7 +174,7 @@ if [ -n "${SECRET_VARS}" ]; then
     "${CPU_THROTTLING_FLAG}" \
     --set-env-vars="${EXTRA_VARS}" \
     --set-secrets="${SECRET_VARS}" \
-    ${ENV_VARS_FILE:+--env-vars-file="${ENV_VARS_FILE}"}
+    --set-secrets="${SECRET_VARS}"
 else
   gcloud run deploy "${SERVICE_NAME}" \
     --project="${PROJECT_ID}" \
@@ -190,13 +188,9 @@ else
     --min="${MIN_INSTANCES}" \
     --max-instances="${MAX_INSTANCES}" \
     "${CPU_THROTTLING_FLAG}" \
-    --set-env-vars="${EXTRA_VARS}" \
-    ${ENV_VARS_FILE:+--env-vars-file="${ENV_VARS_FILE}"}
+    --set-env-vars="${EXTRA_VARS}"
 fi
-# Cleanup env vars file if created
-if [ -n "${ENV_VARS_FILE:-}" ] && [ -f "${ENV_VARS_FILE}" ]; then
-  rm -f "${ENV_VARS_FILE}"
-fi
+# Set ALLOWED_ORIGINS separately to avoid comma-separator conflicts
 # Set ALLOWED_ORIGINS separately to avoid comma-separator conflicts
 if [ "${SERVICE_KIND}" = "api" ] && [ -n "${ALLOWED_ORIGINS_VAR}" ]; then
   echo "Setting ALLOWED_ORIGINS for ${SERVICE_NAME}"
