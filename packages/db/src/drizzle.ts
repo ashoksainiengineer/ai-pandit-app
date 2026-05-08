@@ -67,7 +67,7 @@ function ensureInit(): void {
     idleTimeoutMillis: 30000,
     connectionTimeoutMillis: 10000,
     ssl: shouldUseSsl(connectionString)
-      ? { rejectUnauthorized: process.env.NODE_ENV === 'production' || process.env.DB_SSL_REJECT_UNAUTHORIZED !== 'false' }
+      ? { rejectUnauthorized: false }
       : undefined,
   });
   _db = drizzle(_pool, { schema });
