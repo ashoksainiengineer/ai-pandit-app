@@ -114,6 +114,7 @@ echo "Building image: ${IMAGE_URI}"
 gcloud builds submit \
   --project="${PROJECT_ID}" \
   --config="${TMP_CLOUDBUILD_CONFIG}" \
+  --suppress-logs \
   .
 
 echo "Deploying Cloud Run service: ${SERVICE_NAME}"
