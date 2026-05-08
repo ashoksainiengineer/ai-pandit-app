@@ -28,9 +28,14 @@ export class RedisBullMqQueueDriver implements QueueDriver {
 
     this.client = new IORedis(config.queue.redis.url, {
       lazyConnect: true,
-      maxRetriesPerRequest: 1,
+      maxRetriesPerRequest: 3,
       enableReadyCheck: true,
-      tls: config.queue.redis.tls ? {} : undefined,
+      keepAlive: 30000,
+      connectTimeout: 10000,
+      tls: config.queue.redis.tls
+        ? { rejectUnauthorized: false }
+        : undefined,
+      retryStrategy: (times) => Math.min(times * 100, 3000),
     });
 
     const keyPrefix = config.queue.redis.queueName;
