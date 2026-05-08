@@ -173,7 +173,7 @@ export default function Hero() {
               <SecurityShieldIcon />
               <div className="text-left">
                 <div className="text-sm font-medium text-emerald-800">Your Data is Protected</div>
-                <div className="text-xs text-emerald-700">AES-256 End-to-End Encryption • Only you can access your data</div>
+                <div className="text-xs text-emerald-700">End-to-End Encrypted</div>
               </div>
             </div>
           </div>
