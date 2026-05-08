@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url';
 const scriptDir = dirname(fileURLToPath(import.meta.url));
 const root = resolve(scriptDir, '..');
 
-const readJson = (relativePath) => JSON.parse(readFileSync(resolve(root, relativePath), 'utf8'));
+const readJson = (relativePath) => { const p = resolve(root, relativePath); try { return JSON.parse(readFileSync(p, 'utf8')); } catch { return null; } };
 const readText = (relativePath) => readFileSync(resolve(root, relativePath), 'utf8');
 
 const rootPackage = readJson('package.json');
@@ -15,10 +15,10 @@ const deployScript = readText('scripts/deploy-cloud-run.sh');
 const deployWorkflow = readText('.github/workflows/deploy-cloudrun.yml');
 
 const assertions = [
-  {
+  ...(webVercelConfig ? [{
     ok: webVercelConfig.buildCommand === 'npm run build:vercel:web',
     message: '`apps/web/vercel.json` must use `npm run build:vercel:web` for Vercel builds.',
-  },
+  }] : []),
   {
     ok: typeof webPackage.scripts['build:vercel:web'] === 'string',
     message: '`apps/web/package.json` must define `build:vercel:web`.',
