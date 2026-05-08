@@ -20,6 +20,8 @@ if [ -z "$PROJECT_ID" ]; then
 fi
 
 BUILD_ARGS=""
+SECRET_VARS=""
+ENV_VARS_FILE=""
 
 case "$SERVICE_KIND" in
   api)
