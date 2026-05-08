@@ -4,6 +4,8 @@ import type { AIResponse } from '@ai-pandit/shared';
 // debug-logger may be excluded; fall back to no-op
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 let logAnalysisContainerAction: any = () => {};
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore debug-logger may be excluded from build
 try { ({ logAnalysisContainerAction } = await import('../utils/debug-logger.js')); } catch {}
 import { thinkingPersistence } from './btr/thinking-persistence.js';
 import { emitAIThinking } from './session-events.js';

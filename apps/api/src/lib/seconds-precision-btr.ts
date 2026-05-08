@@ -56,6 +56,8 @@ import { _getMinifiedEphemeris } from './utils/index.js';
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 let logAnalysisContainerAction: any = () => {};
 let clearDebugLog: any = () => {};
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore debug-logger may be excluded from build
 try { ({ logAnalysisContainerAction, clearDebugLog } = await import('../utils/debug-logger.js')); } catch {}
 
 // Import from modular BTR components

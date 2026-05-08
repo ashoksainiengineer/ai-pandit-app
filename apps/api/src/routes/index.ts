@@ -115,6 +115,8 @@ router.use('/candidate', progressRateLimiter, candidateDetailRouter);
 let debugAnalysisRouter: Router | undefined;
 async function getDebugRouter(): Promise<Router> {
   if (!debugAnalysisRouter) {
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-ignore debug-analysis may be excluded from build
     try { debugAnalysisRouter = (await import('./debug-analysis.js')).default; } catch { debugAnalysisRouter = Router(); }
   }
   return debugAnalysisRouter;
