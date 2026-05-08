@@ -177,7 +177,7 @@ if [ -n "${SECRET_VARS}" ]; then
     --max-instances="${MAX_INSTANCES}" \
     "${CPU_THROTTLING_FLAG}" \
     --set-env-vars="${EXTRA_VARS}" \
-    --set-secrets="${SECRET_VARS}" \
+    --set-secrets="${SECRET_VARS}"
 else
   gcloud run deploy "${SERVICE_NAME}" \
     --project="${PROJECT_ID}" \
