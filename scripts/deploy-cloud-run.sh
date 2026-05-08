@@ -204,3 +204,4 @@ if [ "${SERVICE_KIND}" = "api" ] && [ -n "${ALLOWED_ORIGINS_VAR}" ]; then
 fi
 
 echo "Deployed ${SERVICE_NAME} to ${REGION}"
+# Deploy verification - 2026-05-08 14:50:35 UTC
