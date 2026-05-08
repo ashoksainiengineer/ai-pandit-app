@@ -169,11 +169,7 @@ export const DeleteConfirmModal = memo(function DeleteConfirmModal({
                 <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
                 <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
               </svg>
-              <span className="text-[11px] text-black/30">Your data is encrypted</span>
-            </div>
-            <div className="flex items-center justify-center gap-2 mb-6 text-xs text-[#636363]">
-              <Shield className="w-4 h-4 text-black" />
-              <span>Your data is end-to-end encrypted</span>
+              <span className="text-[11px] text-black/30">End-to-end encrypted</span>
             </div>
 
             {/* Error Message */}
