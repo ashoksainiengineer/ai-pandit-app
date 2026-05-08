@@ -4,8 +4,6 @@
  * Production-grade Express server with robust middleware,
  * error handling, and performance monitoring.
  */
-// Load local .env files in dev (harmless no-op in Cloud Run)
-import './scripts/load-env.js';
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
