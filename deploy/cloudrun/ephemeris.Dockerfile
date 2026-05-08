@@ -8,12 +8,17 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 
+# Copy source and pyproject.toml only (kernel downloaded at build time)
 COPY services/ephemeris/pyproject.toml /app/pyproject.toml
 COPY services/ephemeris/app /app/app
-COPY services/ephemeris/data /app/data
+RUN mkdir -p /app/data
 
+# Install Python deps + skyfield
 RUN pip install --no-cache-dir --upgrade pip \
   && pip install --no-cache-dir .
+
+# Download JPL DE440 kernel (~115MB)
+RUN python -c "from skyfield.api import Loader; l = Loader('/app/data'); l('de440s.bsp'); print('Kernel downloaded successfully.')"
 
 EXPOSE 8080
 
