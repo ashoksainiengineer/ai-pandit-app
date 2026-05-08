@@ -52,7 +52,11 @@ import {
     CandidateWithPrecisionData,
 } from './btr-precision-integrator.js';
 import { _getMinifiedEphemeris } from './utils/index.js';
-import { logAnalysisContainerAction, clearDebugLog } from '../utils/debug-logger.js';
+// debug-logger may be excluded; fall back to no-ops
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let logAnalysisContainerAction: any = () => {};
+let clearDebugLog: any = () => {};
+try { ({ logAnalysisContainerAction, clearDebugLog } = await import('../utils/debug-logger.js')); } catch {}
 
 // Import from modular BTR components
 import {

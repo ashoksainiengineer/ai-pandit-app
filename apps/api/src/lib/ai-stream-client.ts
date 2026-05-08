@@ -1,7 +1,10 @@
 import { logger } from '../utils/logger.js';
 import { config } from '../config/index.js';
 import type { AIResponse } from '@ai-pandit/shared';
-import { logAnalysisContainerAction } from '../utils/debug-logger.js';
+// debug-logger may be excluded; fall back to no-op
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let logAnalysisContainerAction: any = () => {};
+try { ({ logAnalysisContainerAction } = await import('../utils/debug-logger.js')); } catch {}
 import { thinkingPersistence } from './btr/thinking-persistence.js';
 import { emitAIThinking } from './session-events.js';
 import {

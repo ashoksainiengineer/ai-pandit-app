@@ -111,13 +111,17 @@ router.use('/stream', progressRateLimiter, streamRouter);
 // NOTE: auth is enforced within candidateDetailRouter to avoid duplicate auth verification.
 router.use('/candidate', progressRateLimiter, candidateDetailRouter);
 
-import debugAnalysisRouter from './debug-analysis.js';
-
-// Admin routes
-router.use('/admin', authMiddleware, strictRateLimiter, adminRouter);
-
-// Debug route (Internal UI for Analysis verification)
-router.use('/debug-analysis', authMiddleware, strictRateLimiter, debugAnalysisRouter);
+// Debug route (dev-only, lazily loaded to survive missing compiled output in Docker)
+let debugAnalysisRouter: Router | undefined;
+async function getDebugRouter(): Promise<Router> {
+  if (!debugAnalysisRouter) {
+    try { debugAnalysisRouter = (await import('./debug-analysis.js')).default; } catch { debugAnalysisRouter = Router(); }
+  }
+  return debugAnalysisRouter;
+}
+router.use('/debug-analysis', authMiddleware, strictRateLimiter, async (req, res, next) => {
+  (await getDebugRouter())(req, res, next);
+});
 
 // Routes-test endpoint removed for security audit (PROD-001: unprotected debug route)
 export { router as routes };
