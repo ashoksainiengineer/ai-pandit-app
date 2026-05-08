@@ -5,7 +5,7 @@
  * error handling, and performance monitoring.
  */
 // Load local .env files in dev (harmless no-op in Cloud Run)
-try { await import('./scripts/load-env.js'); } catch { /* file excluded from build — OK in production */ }
+import './scripts/load-env.js';
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
