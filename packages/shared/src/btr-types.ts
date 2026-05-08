@@ -252,7 +252,6 @@ export interface CandidateDataPackage {
       };
     };
   };
-}
 
 export const TransitPlanetSchema = z.string().min(1).refine(val => val.includes('| H'), {
     message: 'Transit planet must include house position indicator (| H)'

@@ -926,10 +926,6 @@ describe('Type-level interface exports', () => {
     expect(vi.candidate.time).toBe('12:00');
     expect(vi.events).toHaveLength(1);
   });
-    };
-    expect(vi.candidate.time).toBe('12:00');
-    expect(vi.events).toHaveLength(1);
-  });
 
   it('OffsetPreset supports all presets', () => {
     const p: OffsetPreset = 'seconds-6';

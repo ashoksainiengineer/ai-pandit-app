@@ -25,7 +25,6 @@ export interface ConsensusScores {
   varga: number;
   transit: number;
   ai: number;
-  ai: number;
   nadi?: number;
   prana?: number;
 }
