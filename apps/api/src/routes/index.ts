@@ -119,7 +119,7 @@ async function getDebugRouter(): Promise<Router> {
     // @ts-ignore debug-analysis may be excluded from build
     try { debugAnalysisRouter = (await import('./debug-analysis.js')).default; } catch { debugAnalysisRouter = Router(); }
   }
-  return debugAnalysisRouter;
+  return debugAnalysisRouter!;
 }
 router.use('/debug-analysis', authMiddleware, strictRateLimiter, async (req, res, next) => {
   (await getDebugRouter())(req, res, next);
