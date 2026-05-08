@@ -111,11 +111,51 @@ images:
 EOF
 
 echo "Building image: ${IMAGE_URI}"
-gcloud builds submit \
+# Submit build asynchronously (avoids log-streaming permission requirement)
+BUILD_OUTPUT=$(gcloud builds submit \
   --project="${PROJECT_ID}" \
   --config="${TMP_CLOUDBUILD_CONFIG}" \
-  --suppress-logs \
-  .
+  --async \
+  --format='value(id)' \
+  . 2>&1)
+BUILD_ID=$(echo "${BUILD_OUTPUT}" | grep -E '^[a-f0-9-]{36}$' | tail -1)
+if [ -z "${BUILD_ID}" ]; then
+  echo "ERROR: Could not extract build ID from output:"
+  echo "${BUILD_OUTPUT}"
+  exit 1
+fi
+echo "Cloud Build ID: ${BUILD_ID}"
+echo "Waiting for build to complete..."
+# Poll build status (only needs cloudbuild.builds.get, not logging.viewer)
+TIMEOUT=600
+START=$(date +%s)
+while true; do
+  STATUS=$(gcloud builds describe "${BUILD_ID}" \
+    --project="${PROJECT_ID}" \
+    --format='value(status)' 2>/dev/null || echo 'UNKNOWN')
+  case "${STATUS}" in
+    SUCCESS)
+      echo "Build completed successfully."
+      break
+      ;;
+    FAILURE|INTERNAL_ERROR|TIMEOUT|CANCELLED)
+      echo "ERROR: Build failed with status: ${STATUS}"
+      echo "Logs: https://console.cloud.google.com/cloud-build/builds/${BUILD_ID}?project=${PROJECT_ID}"
+      exit 1
+      ;;
+    QUEUED|WORKING)
+      ELAPSED=$(($(date +%s) - START))
+      if [ ${ELAPSED} -gt ${TIMEOUT} ]; then
+        echo "ERROR: Build timed out after ${TIMEOUT}s"
+        exit 1
+      fi
+      sleep 10
+      ;;
+    *)
+      sleep 5
+      ;;
+  esac
+done
 
 echo "Deploying Cloud Run service: ${SERVICE_NAME}"
 echo "Cloud Run deploy mode: ${DEPLOY_MODE}; min instances: ${MIN_INSTANCES}; max instances: ${MAX_INSTANCES}; cpu flag: ${CPU_THROTTLING_FLAG}"
