@@ -16,8 +16,8 @@ import { sleep } from '../lib/ai-helpers.js';
 
 const router = Router();
 
-const SESSION_VISIBILITY_MAX_ATTEMPTS = 12;
-const SESSION_VISIBILITY_DELAY_MS = 250;
+const SESSION_VISIBILITY_MAX_ATTEMPTS = 20;
+const SESSION_VISIBILITY_DELAY_MS = 300;
 
 
 async function waitForSessionVisibility(
@@ -44,10 +44,12 @@ async function waitForSessionVisibility(
             return true;
         }
 
-        await sleep(SESSION_VISIBILITY_DELAY_MS);
+        // Exponential backoff: 300ms, 600ms, 1200ms, ... capped at 5s
+        const delay = Math.min(SESSION_VISIBILITY_DELAY_MS * Math.pow(2, attempt - 1), 5000);
+        await sleep(delay);
     }
 
-    logger.warn('[QUEUE] Session visibility timed out after submit', { sessionId });
+    logger.warn('[QUEUE] Session visibility timed out — session may become visible shortly', { sessionId });
     return false;
 }
 
@@ -67,8 +69,8 @@ router.post('/', authMiddleware, validateBody(QueueSubmitSchema), async (req: Au
 
         const isVisible = await waitForSessionVisibility(result.job.sessionId, ownershipContext);
         if (!isVisible) {
-            sendError(res, new Error('Session initialization delayed. Please try again.'));
-            return;
+            logger.warn('[QUEUE] Session created but not immediately visible — returning sessionId anyway', { sessionId: result.job.sessionId });
+            // Return the sessionId anyway — the frontend can poll for readiness
         }
 
         sendSuccess(res, {
@@ -106,7 +108,7 @@ router.get('/', authMiddleware, async (req: AuthenticatedRequest, res: Response)
         );
 
         if (session.length === 0) {
-            sendNotFound(res, 'Session not found');
+            sendNotFound(res, 'Session');
             return;
         }
 
@@ -201,7 +203,7 @@ router.post('/cancel', authMiddleware, async (req: AuthenticatedRequest, res: Re
         );
 
         if (session.length === 0) {
-            sendNotFound(res, 'Session not found');
+            sendNotFound(res, 'Session');
             return;
         }
 
@@ -247,7 +249,7 @@ async function requeueAnalysisSession(req: AuthenticatedRequest, res: Response, 
         );
 
         if (session.length === 0) {
-            sendNotFound(res, 'Session not found');
+            sendNotFound(res, 'Session');
             return;
         }
 

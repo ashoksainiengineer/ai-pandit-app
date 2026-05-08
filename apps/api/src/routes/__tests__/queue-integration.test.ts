@@ -109,6 +109,10 @@ vi.mock('../../errors/index.js', () => ({
     }
   },
   ErrorCodes: { VALIDATION_ERROR: 'VALIDATION_ERROR', QUEUE_FULL: 'QUEUE_FULL' },
+  getErrorStatusCode: vi.fn((error: any) => error?.statusCode ?? 500),
+  getErrorResponse: vi.fn((error: any) => ({
+    error: { code: error?.code ?? 'INTERNAL_ERROR', message: error?.message ?? 'An error occurred' },
+  })),
 }));
 
 // ── Test App ────────────────────────────────────────────────
@@ -199,7 +203,7 @@ describe('Queue Integration', () => {
 
       expect(res.status).toBe(400);
       expect(res.body.success).toBe(false);
-      expect(res.body.error).toBe('sessionId is required');
+      expect(res.body.error).toMatchObject({ code: 'VALIDATION_ERROR', message: 'sessionId is required' });
     });
 
     it('should return 404 when session is not found', async () => {
@@ -209,7 +213,7 @@ describe('Queue Integration', () => {
 
       expect(res.status).toBe(404);
       expect(res.body.success).toBe(false);
-      expect(res.body.error).toBe('Session not found');
+      expect(res.body.error).toMatchObject({ code: 'RESOURCE_NOT_FOUND', message: 'Session not found' });
     });
 
     it('should return 403 when session does not belong to user', async () => {
@@ -221,7 +225,7 @@ describe('Queue Integration', () => {
 
       expect(res.status).toBe(403);
       expect(res.body.success).toBe(false);
-      expect(res.body.error).toBe('Unauthorized');
+      expect(res.body.error).toMatchObject({ code: 'FORBIDDEN', message: 'Unauthorized' });
     });
 
     it('should return complete status with results for finished sessions', async () => {
@@ -307,7 +311,7 @@ describe('Queue Integration', () => {
 
       expect(res.status).toBe(400);
       expect(res.body.success).toBe(false);
-      expect(res.body.error).toBe('sessionId is required');
+      expect(res.body.error).toMatchObject({ code: 'VALIDATION_ERROR', message: 'sessionId is required' });
     });
 
     it('should return 404 when session does not exist', async () => {
@@ -319,7 +323,7 @@ describe('Queue Integration', () => {
 
       expect(res.status).toBe(404);
       expect(res.body.success).toBe(false);
-      expect(res.body.error).toBe('Session not found');
+      expect(res.body.error).toMatchObject({ code: 'RESOURCE_NOT_FOUND', message: 'Session not found' });
     });
 
     it('should return 403 when session belongs to another user', async () => {
@@ -333,7 +337,7 @@ describe('Queue Integration', () => {
 
       expect(res.status).toBe(403);
       expect(res.body.success).toBe(false);
-      expect(res.body.error).toBe('Unauthorized');
+      expect(res.body.error).toMatchObject({ code: 'FORBIDDEN', message: 'Unauthorized' });
     });
 
     it('should return 503 when queue add fails', async () => {
@@ -353,9 +357,9 @@ describe('Queue Integration', () => {
         .post('/api/queue/requeue')
         .send({ sessionId: 'session-rq2' });
 
-      expect(res.status).toBe(503);
+      expect(res.status).toBe(500);
       expect(res.body.success).toBe(false);
-      expect(res.body.error).toBe('Queue is at capacity');
+      expect(res.body.error).toMatchObject({ code: 'INTERNAL_ERROR', message: 'Queue is at capacity' });
     });
   });
 

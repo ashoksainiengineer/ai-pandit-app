@@ -371,6 +371,9 @@ export const useStreamStore = create<StreamStore>()(
                     const payload = data.data || data;
 
                     if (type === 'ai_thinking' && (payload as AIThinkingEventData).chunk !== undefined) {
+                        // Guard: skip if store was cleared (session changed)
+                        if (!get().sessionId) return;
+
                         const { chunk, stage, candidateTime = 'general' } = payload as AIThinkingEventData;
                         const bufferKey = `${stage}_${candidateTime}`;
                         const existing = thinkingBuffer.chunks.get(bufferKey);
@@ -388,7 +391,6 @@ export const useStreamStore = create<StreamStore>()(
                         set((prev) => (prev.activeAIStage !== stage ? { activeAIStage: stage } : {}));
                         return;
                     }
-
                     set((prev) => {
                         switch (type) {
                             case 'initial_state': {
@@ -422,23 +424,25 @@ case 'progress': {
 const p = payload as Record<string, unknown>;
 const newPct = (p.percentage ?? p.progress);
 const prevPct = prev.progress?.percentage ?? 0;
-// Never allow progress to go backwards
-if (typeof newPct === 'number' && newPct < prevPct) return {};
+const pctBackwards = typeof newPct === 'number' && newPct < prevPct;
 
 const stepIndex = (p.stepIndex ?? p.currentStep ?? 0) as number;
 const message = (typeof p.message === 'string' ? p.message : typeof p.liveMessage === 'string' ? p.liveMessage : '');
 const steps = Array.isArray(p.steps) ? p.steps as Array<Record<string, unknown>> : undefined;
 
-const updates: Partial<StreamState> = {
-progress: {
-step: String(steps?.[stepIndex]?.id || p.step || DEFAULT_STEPS[stepIndex].id),
-stepIndex,
-totalSteps: Number(p.totalSteps || 7),
-percentage: typeof newPct === 'number' ? newPct : Number(p.percentage ?? 0),
-message,
-details: (steps?.[stepIndex]?.details as string[] | undefined) || (p.details as string[] | undefined) || []
+const updates: Partial<StreamState> = {};
+
+// Never allow progress to go backwards, but still process candidate scores
+if (!pctBackwards) {
+    updates.progress = {
+        step: String(steps?.[stepIndex]?.id || p.step || DEFAULT_STEPS[stepIndex].id),
+        stepIndex,
+        totalSteps: Number(p.totalSteps || 7),
+        percentage: typeof newPct === 'number' ? newPct : Number(p.percentage ?? 0),
+        message,
+        details: (steps?.[stepIndex]?.details as string[] | undefined) || (p.details as string[] | undefined) || []
+    };
 }
-};
 
 if (p.candidateScores && Array.isArray(p.candidateScores) && p.candidateScores.length > 0) {
 const scoreMap = new Map<string, CandidateScore>();
@@ -451,8 +455,7 @@ updates.candidateScores = newScores;
 const maxStage = newScores.length > 0 ? Math.max(...newScores.map(s => s.stage)) : stepIndex;
 updates.activeAIStage = maxStage;
 updates.analyzedCount = new Set(newScores.filter(s => s.stage === maxStage).map(s => s.time)).size;
-} else {
-// Clamp to navSTAGES logic if needed, but for now just sync
+} else if (!pctBackwards) {
 updates.activeAIStage = (stepIndex === 1 || stepIndex === 2 || stepIndex === 4 || stepIndex === 6) ? stepIndex : prev.activeAIStage;
 }
 
@@ -589,3 +592,27 @@ return updates;
         { name: 'BTR-StreamStore', enabled: env.app?.isDevelopment ?? false }
     )
 );
+
+// ── Flush pending IndexedDB writes on tab close ──
+if (typeof window !== 'undefined') {
+    window.addEventListener('beforeunload', () => {
+        const state = useStreamStore.getState();
+        // Write current state directly, bypassing the debounce
+        const payload = JSON.stringify({
+            state: {
+                sessionId: state.sessionId,
+                isComplete: state.isComplete,
+                candidateScores: state.candidateScores,
+                progress: state.progress,
+                activeAIStage: state.activeAIStage,
+                result: state.result,
+                startedAt: state.startedAt
+            },
+            version: 0,
+        });
+        // Use synchronous set via a best-effort approach
+        try {
+            set('btr-stream-storage', payload).catch(() => {});
+        } catch {}
+    });
+}

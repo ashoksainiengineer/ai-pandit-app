@@ -71,10 +71,10 @@ export function useAnalysisSession(
 
     const sortedCandidateScores = useMemo(() => {
         if (!candidateScores || candidateScores.length === 0) return [];
-        const maxStage = Math.max(...candidateScores.map(s => s.stage));
+        // Dedup by time across ALL stages — keep the highest score per candidate time
         const uniqueMap = new Map<string, CandidateScore>();
-        const latestStageScores = candidateScores.filter(s => s.stage === maxStage);
-        latestStageScores.forEach(s => {
+        candidateScores.forEach(s => {
+            if (!s || !s.time) return;
             const existing = uniqueMap.get(s.time);
             if (!existing || s.score > existing.score) {
                 uniqueMap.set(s.time, s);
@@ -82,7 +82,6 @@ export function useAnalysisSession(
         });
         return Array.from(uniqueMap.values()).sort((a, b) => b.score - a.score);
     }, [candidateScores]);
-
     const offsetMinutes = useMemo(() => {
         return metadata?.offsetConfig?.customMinutes ??
             (metadata?.offsetConfig?.preset === '30min' ? 30 :

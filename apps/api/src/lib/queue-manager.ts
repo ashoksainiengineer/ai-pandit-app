@@ -821,6 +821,7 @@ async function handleQueueBlocked(): Promise<void> {
 function startSessionProcessing(sessionId: string): void {
   analyzeBirthTimeWithRetry(sessionId).catch((err) => {
     logger.error('UNHANDLED ERROR in analyzeBirthTimeWithRetry', { sessionId, error: err });
+    releaseWorkerSlot(sessionId);
     recordDependencyFailure('processing');
   });
 }
@@ -862,7 +863,7 @@ async function analyzeSessionAsync(sessionId: string): Promise<void> {
         clearInterval(heartbeatTimer);
       }
     } catch (error) {
-      handleProcessingException(error, sessionId);
+      await handleProcessingException(error, sessionId);
     }
   } catch (error) {
     logger.error('Async worker error', error);
@@ -1044,14 +1045,12 @@ async function serializeAndComplete(
   });
 }
 
-function handleProcessingException(error: unknown, sessionId: string): void {
+async function handleProcessingException(error: unknown, sessionId: string): Promise<void> {
   if (isCancellationError(error)) {
     logger.info('Session processing cancelled', { sessionId });
     cleanupController(sessionId);
-    // Mark session as failed so it doesn't stay stuck in 'processing'
-    markAsFailed(sessionId, 'Cancelled by user').catch((e) => {
-      logger.error('Failed to mark cancelled session as failed', { sessionId, error: e instanceof Error ? e.message : e });
-    });
+    emitError(sessionId, 'Analysis cancelled by user', 'cancelled');
+    await markAsFailed(sessionId, 'Cancelled by user');
     return;
   }
 
@@ -1063,6 +1062,7 @@ function handleProcessingException(error: unknown, sessionId: string): void {
     errorStack: errorStack?.substring(0, 500),
   });
   cleanupController(sessionId);
+  emitError(sessionId, errorMsg, 'processing');
   throw error;
 }
 

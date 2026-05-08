@@ -1,3 +1,5 @@
+import { logger } from '../../utils/logger.js';
+
 import { config } from '../../config/index.js';
 import {
     encryptData as rawEncryptData,
@@ -100,9 +102,14 @@ export function parseSensitiveField<T = unknown>(
                     return decrypted;
                 }
             }
+            logger.warn('[parseSensitiveField] Decryption failed for encrypted field — returning default', {
+                hasClerkId: !!clerkId,
+                hasInternalUserId: !!internalUserId,
+            });
+            return defaultValue;
         }
     } catch {
-        // Fallback to legacy path
+        // isEncrypted threw — fall through to legacy path
     }
 
     try {

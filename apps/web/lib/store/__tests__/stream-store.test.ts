@@ -116,6 +116,7 @@ describe('useStreamStore (Zustand State Management)', () => {
                 return 1;
             }));
 
+            useStreamStore.getState().setSessionId('test-session');
             useStreamStore.getState().dispatchStreamEvent('ai_thinking', {
                 chunk: 'Thinking step 1...',
                 stage: 1,
@@ -142,6 +143,7 @@ describe('useStreamStore (Zustand State Management)', () => {
                 return 1;
             }));
 
+            useStreamStore.getState().setSessionId('test-session');
             const baseText = "We are testing the deduplication logic.";
             const extendedText = baseText + " Additional text appended later.";
 
@@ -171,6 +173,7 @@ describe('useStreamStore (Zustand State Management)', () => {
                 return 1;
             }));
 
+            useStreamStore.getState().setSessionId('test-session');
             // Initial state: stage 1
             useStreamStore.setState({ activeAIStage: 1, displayedCandidate: null });
 
@@ -204,6 +207,7 @@ describe('useStreamStore (Zustand State Management)', () => {
                 return 1;
             }));
 
+            useStreamStore.getState().setSessionId('test-session');
             // Set a low score (40) for this candidate
             useStreamStore.setState({
                 candidateScores: [{ time: '12:00', score: 40, stage: 1 }]

@@ -271,7 +271,7 @@ export class ProgressTracker {
         }
 
         this.progress.lastUpdate = new Date().toISOString();
-        await this.saveProgress();
+        await this.saveProgress(true); // Force DB flush on step boundaries
 
         // Emit SSE event for real-time streaming
         emitProgress(

@@ -101,9 +101,9 @@ const validSubmitBody = {
         gender: 'male',
     },
     lifeEvents: [
-        { eventType: 'marriage', category: 'relationship', eventDate: '2015-01-01', datePrecision: 'exact_date', description: 'Got married' },
-        { eventType: 'career', category: 'work', eventDate: '2012-06-01', datePrecision: 'exact_date', description: 'First job' },
-        { eventType: 'health', category: 'health', eventDate: '2018-03-15', datePrecision: 'exact_date', description: 'Surgery' },
+        { eventType: 'marriage', category: 'relationship', eventDate: '2015-01-01', datePrecision: 'exact_date', description: 'Got married', importance: 'high' },
+        { eventType: 'career', category: 'work', eventDate: '2012-06-01', datePrecision: 'exact_date', description: 'First job', importance: 'medium' },
+        { eventType: 'health', category: 'health', eventDate: '2018-03-15', datePrecision: 'exact_date', description: 'Surgery', importance: 'medium' },
     ],
     offsetConfig: { preset: '2hours' },
 };
@@ -206,7 +206,7 @@ describe('Queue Route', () => {
             expect(res.status).toBe(400);
             expect(res.body).toMatchObject({
                 success: false,
-                error: 'sessionId is required',
+                error: { code: 'VALIDATION_ERROR', message: 'sessionId is required' },
             });
         });
 
@@ -218,7 +218,7 @@ describe('Queue Route', () => {
             expect(res.status).toBe(404);
             expect(res.body).toMatchObject({
                 success: false,
-                error: 'Session not found',
+                error: { code: 'RESOURCE_NOT_FOUND', message: 'Session not found' },
             });
         });
 
@@ -249,7 +249,7 @@ describe('Queue Route', () => {
             expect(res.status).toBe(400);
             expect(res.body).toMatchObject({
                 success: false,
-                error: 'sessionId is required',
+                error: { code: 'VALIDATION_ERROR', message: 'sessionId is required' },
             });
         });
 
@@ -278,7 +278,7 @@ describe('Queue Route', () => {
             expect(res.status).toBe(404);
             expect(res.body).toMatchObject({
                 success: false,
-                error: 'Session not found',
+                error: { code: 'RESOURCE_NOT_FOUND', message: 'Session not found' },
             });
         });
 

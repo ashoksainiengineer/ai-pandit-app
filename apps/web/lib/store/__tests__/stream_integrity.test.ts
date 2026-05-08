@@ -107,6 +107,7 @@ describe('Chapter 5: Stream Store Integrity (Zustand)', () => {
             vi.stubGlobal('cancelAnimationFrame', vi.fn());
 
             const store = useStreamStore.getState();
+            store.setSessionId('test-session-raf');
 
             // Dispatch multiple thinking chunks rapidly
             store.dispatchStreamEvent('ai_thinking', {

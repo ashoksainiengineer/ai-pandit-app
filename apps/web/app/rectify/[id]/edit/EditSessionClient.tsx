@@ -278,12 +278,14 @@ export function EditSessionClient({ sessionId, initialData }: EditSessionClientP
                 </nav>
 
                 <div className="max-w-4xl mx-auto px-6 py-12">
-                    <div className="mb-8 text-center">
-                        <h1 className="text-3xl font-medium text-black mb-2">✏️ Edit & Re-analyze</h1>
+                    {/* Edit header */}
+                    <div className="mb-6 text-center">
+                        <h1 className="text-3xl font-medium text-black mb-2">✏️ Edit &amp; Re-analyze</h1>
                         <p className="text-[#636363]">Update your details and run a new analysis</p>
                     </div>
 
-                    <div className="mb-12">
+                    {/* Progress stepper */}
+                    <div className="mb-10">
                         <div className="flex items-center justify-between mb-4 relative">
                             <div className="absolute top-1/2 left-0 w-full h-1 bg-[rgba(0,0,0,0.08)] -z-10 rounded-full" />
                             <div
@@ -301,14 +303,14 @@ export function EditSessionClient({ sessionId, initialData }: EditSessionClientP
                                         className={`w-10 h-10 rounded-full flex items-center justify-center font-medium text-sm transition-all border-2 ${s < step
                                             ? 'bg-[#184131] border-[#184131] text-white'
                                             : s === step
-                                                ? 'bg-white border-[#000000] text-black shadow-[0_0_15px_rgba(184,134,11,0.3)]'
+                                                ? 'bg-white border-[#000000] text-black shadow-[0_0_15px_rgba(0,0,0,0.1)]'
                                                 : 'bg-[var(--prism-canvas)] border-[#EBE2D6] text-[#959595]'
                                             }`}
                                     >
-                                        {s < step ? '✓' : ['👤', '📅', '✅'][s - 1]}
+                                        {s < step ? '✓' : s}
                                     </div>
                                     <span className={`text-xs mt-2 font-medium ${s === step ? 'text-black' : 'text-[#636363]'}`}>
-                                        {s === 1 ? 'Birth' : s === 2 ? 'Life Events' : 'Review'}
+                                        {s === 1 ? 'Birth Details' : s === 2 ? 'Life Events' : 'Review'}
                                     </span>
                                 </button>
                             ))}

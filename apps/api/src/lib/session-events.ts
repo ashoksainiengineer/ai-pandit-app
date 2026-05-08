@@ -643,19 +643,19 @@ export function emitComplete(
     setTimeout(() => sessionEvents.cleanup(sessionId), 5000);
 }
 
-
 export function emitError(
     sessionId: string,
     message: string,
     stage?: string
-): void {
+) {
     sessionEvents.emit(sessionId, {
         type: 'error',
         message,
         stage,
     });
+    // Cleanup after a delay to allow final event delivery
+    setTimeout(() => sessionEvents.cleanup(sessionId), 5000);
 }
-
 export function emitAIContext(
     sessionId: string,
     data: Omit<AIContextEvent, 'type'>

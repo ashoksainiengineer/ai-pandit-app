@@ -391,6 +391,7 @@ router.get(['/', '/:sessionId'], authMiddleware, async (req: AuthenticatedReques
                 // Fresh connection: No Last-Event-ID → full replay
 
                 logger.info(`[SSE] Fetching initial progress for ${sessionId}`);
+                if (!isWritable(sseRes)) return;
                 const currentProgress = await getSessionProgress(sessionId);
 
                 // Warmup hint for fresh connections
@@ -518,8 +519,18 @@ router.get(['/', '/:sessionId'], authMiddleware, async (req: AuthenticatedReques
         sendEvent(sseRes, { type: 'ping', timestamp: new Date().toISOString() });
     }, 15000);
 
+    // Safety timeout: auto-cleanup after 5 minutes if req events never fire
+    const safetyTimeout = setTimeout(() => {
+        if (!res.writableEnded) {
+            logger.warn('[SSE] Safety timeout — forcing cleanup', { sessionId });
+            res.end();
+        }
+    }, 300000);
+
     let cleanedUp = false;
     const cleanupConnection = (reason: 'close' | 'error', error?: unknown) => {
+        clearInterval(pingInterval);
+        clearTimeout(safetyTimeout);
         if (cleanedUp) return;
         cleanedUp = true;
         activeSseConnections = Math.max(0, activeSseConnections - 1);
@@ -538,7 +549,6 @@ router.get(['/', '/:sessionId'], authMiddleware, async (req: AuthenticatedReques
             });
         }
         emitter.off('event', eventHandler);
-        clearInterval(pingInterval);
     };
 
     // Cleanup on disconnect

@@ -61,13 +61,14 @@ export function useStreamProgress(
         url: '',
         lastError: null,
     });
-
     // Refs for cleanup
     const mountedRef = useRef(true);
     const sseSourceRef = useRef<EventSource | null>(null);
     const pollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const sseTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const abortControllerRef = useRef<AbortController | null>(null);
+    const getTokenRef = useRef(getToken);
 
     const isTestMode = useTestMode();
 
@@ -87,6 +88,7 @@ const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     // Update config ref when backendUrl changes
     machineConfigRef.current.backendUrl = backendUrl;
     machineConfigRef.current.maxSessionNotFoundRetries = MAX_SESSION_NOT_FOUND_RETRIES;
+    getTokenRef.current = getToken;
 
     const machineRef = useRef(createStreamStateMachine(machineConfigRef.current));
     const machine = machineRef.current;
@@ -353,6 +355,13 @@ break;
     const poll = async (sid: string, interval: number = machineConfigRef.current.pollInterval, options: PollOptions = {}) => {
         if (!mountedRef.current || machine.getCurrentSessionId() !== sid) return;
 
+        // Abort any in-flight poll
+        if (abortControllerRef.current) {
+            abortControllerRef.current.abort();
+        }
+        const abortController = new AbortController();
+        abortControllerRef.current = abortController;
+
         try {
             const shouldUseProxyProgress = forcePollingTransport;
             const token = shouldUseProxyProgress
@@ -361,6 +370,8 @@ break;
                     (isTestMode
                         ? 'mock-token'
                         : (getToken ? await getTokenWithRetry(getToken, options as Record<string, unknown>) : null));
+
+            if (!mountedRef.current || machine.getCurrentSessionId() !== sid) return;
 
             if (token) machine.setCachedToken(token);
 
@@ -375,7 +386,7 @@ break;
                     ? `${sseBaseUrl}/api/queue/progress/${encodeURIComponent(sid)}`
                     : `${sseBaseUrl}/api/queue/progress?sessionId=${encodeURIComponent(sid)}`;
 
-            const res = await fetch(pollUrl, { headers, cache: 'no-store' });
+            const res = await fetch(pollUrl, { headers, cache: 'no-store', signal: abortController.signal });
 
             if (!mountedRef.current || machine.getCurrentSessionId() !== sid) return;
 
@@ -396,6 +407,8 @@ break;
             applyEffects(result.effects);
 
         } catch (error) {
+            // Ignore AbortError — expected when component unmounts or session changes
+            if (error instanceof DOMException && error.name === 'AbortError') return;
             const result = machine.onPollError(error as Error, sid, interval);
             setConnectionState(result.state);
             applyEffects(result.effects);
@@ -478,6 +491,11 @@ return;
 
         return () => {
             mountedRef.current = false;
+            // Abort any in-flight poll
+            if (abortControllerRef.current) {
+                abortControllerRef.current.abort();
+                abortControllerRef.current = null;
+            }
             const cleanupResult = machine.onCleanup();
             applyEffects(cleanupResult.effects);
         };
@@ -495,7 +513,8 @@ return;
         const refresh = async () => {
             try {
                 logger.debug('[Token] Proactively refreshing Clerk token...');
-                const refreshedToken = await getTokenWithRetry(getToken, { skipCache: true });
+                const currentGetToken = getTokenRef.current ?? getToken;
+                const refreshedToken = await getTokenWithRetry(currentGetToken, { skipCache: true });
                 if (refreshedToken) {
                     machine.setCachedToken(refreshedToken);
                 }
