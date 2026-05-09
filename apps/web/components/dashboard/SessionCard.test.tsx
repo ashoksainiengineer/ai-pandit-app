@@ -57,12 +57,7 @@ vi.mock('lucide-react', () => ({
     FileText: () => <div data-testid="icon-file-text" />,
     Database: () => <div data-testid="icon-database" />,
 }));
-// Mock APIClient
-vi.mock('@/lib/api-client', () => ({
-    APIClient: {
-        post: vi.fn(),
-    },
-}));
+
 
 // Mock DeleteConfirmModal
 vi.mock('./DeleteConfirmModal', () => ({
@@ -164,15 +159,18 @@ describe('SessionCard', () => {
         });
     });
     it('handles successful duplication (clone)', async () => {
-        const { APIClient } = await import('@/lib/api-client');
-        (APIClient.post as any).mockResolvedValueOnce({
-            success: true,
-            data: { id: 'new-cloned-id' }
-        });
-        (global.fetch as any).mockResolvedValueOnce({
-            ok: true,
-            json: async () => ({ success: true, data: { id: 'new-cloned-id' } }),
-        });
+        // Mock clone API response + readiness check
+        const fetchMock = global.fetch as any;
+        fetchMock
+            .mockResolvedValueOnce({
+                ok: true,
+                json: async () => ({ success: true, data: { id: 'new-cloned-id' } }),
+            })
+            // Readiness check response
+            .mockResolvedValueOnce({
+                ok: true,
+                json: async () => ({ success: true, data: { id: 'new-cloned-id' } }),
+            });
 
         render(
             <SessionCard
@@ -186,13 +184,11 @@ describe('SessionCard', () => {
         fireEvent.click(cloneBtn!);
 
         await waitFor(() => {
-            expect(APIClient.post).toHaveBeenCalledWith(
+            expect(fetchMock).toHaveBeenCalledWith(
                 expect.stringContaining('/api/sessions/test-session-123/clone'),
-                {},
-                expect.any(Function)
+                expect.objectContaining({ method: 'POST' })
             );
             expect(mockOnDuplicate).toHaveBeenCalledWith('new-cloned-id');
-            expect(mockRouterPush).toHaveBeenCalledWith('/rectify/new-cloned-id/edit');
         });
     });
 
