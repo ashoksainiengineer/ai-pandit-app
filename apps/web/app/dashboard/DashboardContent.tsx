@@ -15,6 +15,7 @@ export function DashboardContent({ clerkId, userName }: Props) {
   const { getToken } = useAuth();
   const [sessions, setSessions] = useState<DashboardSession[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -27,7 +28,10 @@ export function DashboardContent({ clerkId, userName }: Props) {
             ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
           },
         });
-        if (!res.ok) throw new Error('Failed to load sessions');
+        if (!res.ok) {
+          const body = await res.json().catch(() => ({}));
+          throw new Error(body?.error || `Request failed (${res.status})`);
+        }
         const data = await res.json();
         if (!cancelled) setSessions(data.data ?? []);
       } catch (err) {
@@ -37,14 +41,20 @@ export function DashboardContent({ clerkId, userName }: Props) {
 
     load();
     return () => { cancelled = true; };
-  }, [clerkId, getToken]);
+  }, [clerkId, getToken, retryCount]);
+
+  const handleRetry = () => {
+    setError(null);
+    setSessions(null);
+    setRetryCount(c => c + 1);
+  };
 
   if (error) {
     return (
       <div className="text-center py-20">
         <p className="text-black/60 mb-4">Failed to load dashboard.</p>
         <button
-          onClick={() => { setError(null); setSessions(null); }}
+          onClick={handleRetry}
           className="px-4 py-2 bg-black text-white rounded-lg text-sm"
         >
           Retry

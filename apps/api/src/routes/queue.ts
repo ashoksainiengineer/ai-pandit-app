@@ -1,8 +1,8 @@
 import { Router, Response } from 'express';
 import { AuthenticatedRequest, authMiddleware } from '../middleware/auth.js';
 import { db, executeWithRetry } from '@ai-pandit/db';
-import { sessions } from '@ai-pandit/db/schema';
-import { eq } from 'drizzle-orm';
+import { sessions, jobs } from '@ai-pandit/db/schema';
+import { eq, desc } from 'drizzle-orm';
 import { logger } from '../utils/logger.js';
 import { addToQueue, getQueueStatus, startQueueProcessor, cancelSession, flushSessionTrash } from '../lib/queue-manager.js';
 import { isSessionOwnedByContext, resolveSessionOwnershipContext } from '../lib/session-ownership.js';
@@ -289,6 +289,37 @@ async function requeueAnalysisSession(req: AuthenticatedRequest, res: Response, 
 
         // 2. Clear event buffers and abort zombie engine
         await flushSessionTrash(sessionId);
+
+        // 2.5 — CRITICAL: Reset the latest job status to 'queued' so the worker can claim it
+        // Without this, requeued sessions are NEVER picked up because the worker
+        // queries WHERE jobs.status = 'queued' and old jobs remain in 'failed'/'completed'.
+        const latestJob = await db.query.jobs.findFirst({
+            where: eq(jobs.sessionId, sessionId),
+            orderBy: desc(jobs.createdAt),
+        });
+        if (latestJob) {
+            await executeWithRetry(() =>
+                db.update(jobs)
+                    .set({
+                        status: 'queued',
+                        errorCode: null,
+                        errorMessage: null,
+                        finishedAt: null,
+                        progressPercent: 0,
+                        currentStage: null,
+                        updatedAt: now,
+                    })
+                    .where(eq(jobs.id, latestJob.id))
+            );
+            logger.info('[REQUEUE] Job reset to queued', {
+                jobId: latestJob.id,
+                previousStatus: latestJob.status,
+            });
+        } else {
+            logger.warn('[REQUEUE] No existing job found for session — worker may not pick it up', {
+                sessionId,
+            });
+        }
 
         // 3. Verify the status was updated before adding to queue
         const verifySession = await executeWithRetry(() =>

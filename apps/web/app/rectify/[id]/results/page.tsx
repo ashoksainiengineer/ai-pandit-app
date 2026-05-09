@@ -41,10 +41,10 @@ const getSessionResults = cache(async (sessionId: string, userId: string): Promi
         // 3. Robust Data Reconstruction
         const sessionUserId = session.userId;
         const birthData = {
-            fullName: parseSensitiveField(session.fullName, sessionUserId, 'Unencryptable Session'),
-            dateOfBirth: parseSensitiveField(session.dateOfBirth, sessionUserId, 'Not set'),
-            tentativeTime: parseSensitiveField(session.tentativeTime, sessionUserId, 'Not set'),
-            birthPlace: parseSensitiveField(session.birthPlace, sessionUserId, 'Unknown'),
+            fullName: parseSensitiveField(session.fullName, sessionUserId, undefined, 'Unencryptable Session'),
+            dateOfBirth: parseSensitiveField(session.dateOfBirth, sessionUserId, undefined, 'Not set'),
+            tentativeTime: parseSensitiveField(session.tentativeTime, sessionUserId, undefined, 'Not set'),
+            birthPlace: parseSensitiveField(session.birthPlace, sessionUserId, undefined, 'Unknown'),
             latitude: session.latitude,
             longitude: session.longitude,
             timezone: session.timezone,
@@ -52,8 +52,8 @@ const getSessionResults = cache(async (sessionId: string, userId: string): Promi
         };
 
         // Use parseSensitiveField for complex JSON structures
-        const analysisResult = parseSensitiveField<Record<string, unknown>>(session.analysisResult as string | null, sessionUserId, {});
-        const reasoningLogs = parseSensitiveField<Record<string, unknown>[]>(session.reasoningLogs as string | null, sessionUserId, []);
+        const analysisResult = parseSensitiveField<Record<string, unknown>>(session.analysisResult as string | null, sessionUserId, undefined, {});
+        const reasoningLogs = parseSensitiveField<Record<string, unknown>[]>(session.reasoningLogs as string | null, sessionUserId, undefined, []);
         return {
             ...session,
             birthData,

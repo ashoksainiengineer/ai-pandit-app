@@ -145,7 +145,7 @@ export function useResultsDashboard({ sessionId, data, birthData }: ResultsDashb
                 startY: yPos,
                 head: [['Metric', 'Value', 'Verdict']],
                 body: [
-                    ['Confidence Score', `${data.accuracy}%`, data.confidence.toUpperCase()],
+                    ['Confidence Score', `${data.accuracy ?? '—'}%`, (data.confidence || 'UNKNOWN').toUpperCase()],
                     ['Precision Level', 'Sub-Second (D60)', 'GOD-TIER'],
                     ['Margin of Error', `±${data.marginOfError || 3} Seconds`, 'PASS'],
                 ],

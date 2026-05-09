@@ -2,7 +2,6 @@
 
 import React, { Suspense } from 'react';
 import dynamic from 'next/dynamic';
-import TrustFooter from '@/components/rectify/TrustFooter';
 import Layout from '@/components/Layout';
 import AnalysisErrorBoundary from '@/components/rectify/AnalysisErrorBoundary';
 import RectifyPageSkeleton from '@/components/rectify/RectifyPageSkeleton';
@@ -52,6 +51,7 @@ function RectifyPageContent() {
                             <Step4Review
                                 data={form.birthData}
                                 events={form.lifeEvents}
+                                spouseData={form.spouseData}
                                 onSubmit={form.handleSubmit}
                                 isSubmitting={form.isSubmitting}
                                 onEdit={form.setStep}
@@ -70,7 +70,6 @@ function RectifyPageContent() {
                         onSubmit={form.handleSubmit}
                     />
                 </div>
-                <TrustFooter />
             </AnalysisErrorBoundary>
         </Layout>
     );

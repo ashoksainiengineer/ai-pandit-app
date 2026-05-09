@@ -46,7 +46,7 @@ export default function AnalysisPage() {
             accuracy: session.result.accuracy,
             confidence: session.result.confidence,
           }));
-        } catch (err) { console.warn('[Rectify] localStorage unavailable:', err); }
+        } catch (err) { logger.warn('[Rectify] localStorage unavailable', { error: err instanceof Error ? err.message : String(err) }); }
       }
       logger.info('Analysis complete. Staying on page for review.', { sessionId });
     }

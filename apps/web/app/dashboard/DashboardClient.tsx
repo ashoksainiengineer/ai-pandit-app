@@ -26,7 +26,7 @@ interface DashboardStats {
 function calculateStats(sessions: DashboardSession[]): DashboardStats {
   const completed = sessions.filter(s => s.status === 'complete');
   const avgAccuracy = completed.length > 0
-    ? Math.round(completed.reduce((acc, s) => acc + (Number(s.confidence) || 0), 0) / completed.length)
+    ? Math.round(completed.reduce((acc, s) => acc + (Number(s.accuracy) || 0), 0) / completed.length)
     : 0;
 
   return {

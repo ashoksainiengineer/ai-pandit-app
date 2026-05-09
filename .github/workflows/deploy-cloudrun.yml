@@ -115,15 +115,6 @@ jobs:
       - name: Verify deployment contract
         run: npm run test:deploy-config
 
-      - name: Build shared, db, worker-runtime, api, worker
-        if: steps.scope.outputs.api == 'true' || steps.scope.outputs.worker == 'true'
-        run: |
-          npm --workspace @ai-pandit/shared run build
-          npm --workspace @ai-pandit/db run build
-          npm --workspace @ai-pandit/worker-runtime run build
-          npm --workspace @ai-pandit/api run build
-          npm --workspace @ai-pandit/worker run build
-
       - name: Authenticate to Google Cloud (OIDC)
         uses: google-github-actions/auth@v2
         with:
@@ -155,9 +146,35 @@ jobs:
           curl -sS "$EPHEMERIS_SERVICE_URL/health" || true
           exit 1
 
-      - name: Deploy API service
-        if: steps.scope.outputs.api == 'true'
-        run: npm run deploy:cloudrun:api
+      - name: Deploy API and worker (parallel)
+        if: steps.scope.outputs.api == 'true' || steps.scope.outputs.worker == 'true'
+        run: |
+          DEPLOY_PIDS=""
+          FAILED=0
+          if [ "${{ steps.scope.outputs.api }}" = "true" ]; then
+            echo "::group::Deploying API service"
+            npm run deploy:cloudrun:api &
+            API_PID=$!
+            DEPLOY_PIDS="$DEPLOY_PIDS $API_PID"
+            echo "::endgroup::"
+          fi
+          if [ "${{ steps.scope.outputs.worker }}" = "true" ]; then
+            echo "::group::Deploying Worker service"
+            npm run deploy:cloudrun:worker &
+            WORKER_PID=$!
+            DEPLOY_PIDS="$DEPLOY_PIDS $WORKER_PID"
+            echo "::endgroup::"
+          fi
+          for pid in $DEPLOY_PIDS; do
+            if ! wait $pid; then
+              FAILED=1
+            fi
+          done
+          if [ $FAILED -eq 1 ]; then
+            echo "::error::One or more parallel deploys failed"
+            exit 1
+          fi
+          echo "::notice::All parallel deploys completed successfully"
 
       - name: Verify API health
         if: steps.scope.outputs.api == 'true'
@@ -170,10 +187,6 @@ jobs:
             sleep 10
           done
           exit 1
-
-      - name: Deploy worker service
-        if: steps.scope.outputs.worker == 'true'
-        run: npm run deploy:cloudrun:worker
 
       - name: Verify worker health
         if: steps.scope.outputs.worker == 'true'

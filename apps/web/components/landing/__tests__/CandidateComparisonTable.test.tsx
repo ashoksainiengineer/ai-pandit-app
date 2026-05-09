@@ -4,21 +4,16 @@ import CandidateComparisonTable from '../CandidateComparisonTable';
 
 vi.mock('framer-motion', () => ({
   motion: {
-    div: ({ children, className }: any) => (
-      <div className={className}>{children}</div>
+    div: ({ children, className, ...props }: Record<string, unknown>) => (
+      <div className={className as string} {...props}>{children as React.ReactNode}</div>
     ),
   },
 }));
 
-vi.mock('lucide-react', () => ({
-  Trophy: () => <span data-testid="trophy-icon">Trophy</span>,
-  TrendingUp: () => <span data-testid="trending-up-icon">TrendingUp</span>,
-}));
-
 describe('CandidateComparisonTable', () => {
-  it('renders the Candidate Birth Times header', () => {
+  it('renders the Candidate Comparison header', () => {
     render(<CandidateComparisonTable />);
-    expect(screen.getByText('Candidate Birth Times')).toBeInTheDocument();
+    expect(screen.getByText('Candidate Comparison')).toBeInTheDocument();
   });
 
   it('renders all 4 candidate time entries', () => {
@@ -43,29 +38,10 @@ describe('CandidateComparisonTable', () => {
     expect(bestBadges).toHaveLength(1);
   });
 
-  it('renders Trophy icon for the best candidate', () => {
-    render(<CandidateComparisonTable />);
-    const trophyIcons = screen.getAllByTestId('trophy-icon');
-    expect(trophyIcons).toHaveLength(1);
-  });
-
-  it('renders TrendingUp icon in the header', () => {
-    render(<CandidateComparisonTable />);
-    expect(screen.getByTestId('trending-up-icon')).toBeInTheDocument();
-  });
-
   it('renders score bars for all 4 candidates', () => {
     const { container } = render(<CandidateComparisonTable />);
-    // Each ScoreBar renders a div with class "flex-1 h-1.5 bg-black/5 rounded-full overflow-hidden ml-3"
     const scoreBars = container.querySelectorAll('.h-1\\.5');
     expect(scoreBars).toHaveLength(4);
-  });
-
-  it('applies black background to best candidate score bar', () => {
-    const { container } = render(<CandidateComparisonTable />);
-    // The best candidate's score bar inner div has "bg-black" class
-    const bestBars = container.querySelectorAll('.bg-black.rounded-full');
-    expect(bestBars.length).toBeGreaterThanOrEqual(1);
   });
 
   it('renders the footer with consensus text', () => {

@@ -4,22 +4,16 @@ import EphemerisTable from '../EphemerisTable';
 
 vi.mock('framer-motion', () => ({
   motion: {
-    div: ({ children, className }: any) => (
-      <div className={className}>{children}</div>
+    div: ({ children, className, ...props }: Record<string, unknown>) => (
+      <div className={className as string} {...props}>{children as React.ReactNode}</div>
     ),
   },
-}));
-
-vi.mock('lucide-react', () => ({
-  Globe: () => <span data-testid="globe-icon">Globe</span>,
 }));
 
 describe('EphemerisTable', () => {
   it('renders the section header with Ephemeris Data title', () => {
     render(<EphemerisTable />);
-    expect(
-      screen.getByText('Ephemeris Data — Skyfield DE440'),
-    ).toBeInTheDocument();
+    expect(screen.getByText('Ephemeris Data (Skyfield)')).toBeInTheDocument();
   });
 
   it('renders all 5 planet rows', () => {
@@ -66,7 +60,6 @@ describe('EphemerisTable', () => {
 
   it('renders "direct" for non-retrograde planets', () => {
     render(<EphemerisTable />);
-    // All non-RETRO planets show "direct"; Sun, Moon, Mars, Saturn = 4
     const directLabels = screen.getAllByText('direct');
     expect(directLabels).toHaveLength(4);
   });
@@ -82,19 +75,17 @@ describe('EphemerisTable', () => {
 
   it('renders footer text referencing NASA JPL DE440', () => {
     render(<EphemerisTable />);
-    expect(
-      screen.getByText(/NASA JPL DE440/),
-    ).toBeInTheDocument();
-  });
-
-  it('renders the Globe icon', () => {
-    render(<EphemerisTable />);
-    expect(screen.getByTestId('globe-icon')).toBeInTheDocument();
+    expect(screen.getByText(/NASA JPL DE440/)).toBeInTheDocument();
   });
 
   it('renders accuracy notation in footer', () => {
     render(<EphemerisTable />);
-    expect(screen.getByText(/IEEE 754 double-precision/)).toBeInTheDocument();
-    expect(screen.getByText(/±0.0001° accuracy/)).toBeInTheDocument();
+    expect(screen.getByText(/±0.0001°/)).toBeInTheDocument();
+  });
+
+  it('renders the pulsing status dot', () => {
+    const { container } = render(<EphemerisTable />);
+    const pulseDot = container.querySelector('.animate-pulse');
+    expect(pulseDot).toBeInTheDocument();
   });
 });

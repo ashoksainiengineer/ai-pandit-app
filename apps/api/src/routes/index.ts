@@ -18,6 +18,7 @@ import sessionsRouter from './sessions.js';
 import candidateDetailRouter from './candidate-detail.js';
 import { config } from '../config/index.js';
 import consentRouter from './consent.js';
+import adminRouter from './admin.js';
 import {
   apiRateLimiter,
   calculateRateLimiter,
@@ -110,7 +111,9 @@ router.use('/stream', progressRateLimiter, streamRouter);
 // NOTE: auth is enforced within candidateDetailRouter to avoid duplicate auth verification.
 router.use('/candidate', progressRateLimiter, candidateDetailRouter);
 
-// Debug route (dev-only, lazily loaded to survive missing compiled output in Docker)
+// Admin dashboard — role-based access control via assertAdminAccess()
+router.use('/admin', authMiddleware, apiRateLimiter, adminRouter);
+
 let debugAnalysisRouter: Router | undefined;
 async function getDebugRouter(): Promise<Router> {
   if (!debugAnalysisRouter) {

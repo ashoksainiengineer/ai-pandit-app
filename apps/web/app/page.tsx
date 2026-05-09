@@ -2,7 +2,7 @@
  * AI Pandit — Landing Page
  * AI Pandit Landing Page — Premium Redesign
  * sleek, minimal aesthetic with black pill CTAs
- * 5 sections: Hero, How It Works, Features, Privacy, CTA
+ * 6 sections: Hero, How It Works, Features, Tech Stack, Privacy, CTA
  */
 
 'use client';
@@ -553,6 +553,95 @@ function Features() {
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════════
+   COMPONENT — Tech Stack Section
+   Categorized grid with brand-color dots, Dia aesthetic
+   ═══════════════════════════════════════════════════════════════════════════════ */
+
+const TECH_STACK = {
+  Frontend: [
+    { name: 'Next.js', color: '#000000' },
+    { name: 'React', color: '#61DAFB' },
+    { name: 'TypeScript', color: '#3178C6' },
+    { name: 'Tailwind CSS', color: '#06B6D4' },
+    { name: 'Framer Motion', color: '#0055FF' },
+  ],
+  Backend: [
+    { name: 'Node.js', color: '#5FA04E' },
+    { name: 'Express', color: '#000000' },
+    { name: 'Python', color: '#3776AB' },
+    { name: 'FastAPI', color: '#009688' },
+  ],
+  'Data & AI': [
+    { name: 'PostgreSQL', color: '#4169E1' },
+    { name: 'Redis', color: '#FF4438' },
+    { name: 'Drizzle ORM', color: '#C5F74F' },
+    { name: 'DeepSeek', color: '#4D6BFE' },
+  ],
+  Infrastructure: [
+    { name: 'Google Cloud Run', color: '#4285F4' },
+    { name: 'Vercel', color: '#000000' },
+    { name: 'Clerk', color: '#6C47FF' },
+    { name: 'Upstash', color: '#00E9A3' },
+  ],
+};
+
+function TechStack() {
+  return (
+    <section className="py-32 relative bg-[var(--prism-canvas)]">
+      <div className="app-container">
+        <motion.div {...fadeIn} className="text-center mb-16">
+          <span className="inline-flex items-center gap-2 px-4 py-2 bg-black/5 rounded-full text-xs font-medium text-black/60 uppercase tracking-wider mb-6">
+            Tech Stack
+          </span>
+          <h2 className="text-4xl md:text-5xl lg:text-6xl font-light text-black leading-[1.1] tracking-[-0.04em]">
+            Built with modern tools
+          </h2>
+        </motion.div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+          {Object.entries(TECH_STACK).map(([category, tools], ci) => (
+            <motion.div
+              key={category}
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.5, delay: ci * 0.1 }}
+            >
+              <h4 className="text-[11px] font-medium text-black/30 uppercase tracking-widest mb-4 pl-1">
+                {category}
+              </h4>
+              <div className="space-y-2">
+                {tools.map((tool) => (
+                  <div
+                    key={tool.name}
+                    className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-white/60 transition-colors group"
+                  >
+                    <span
+                      className="w-2 h-2 rounded-full flex-shrink-0 ring-1 ring-black/5"
+                      style={{ backgroundColor: tool.color }}
+                    />
+                    <span className="text-sm text-[#636363] group-hover:text-black transition-colors">
+                      {tool.name}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </motion.div>
+          ))}
+        </div>
+
+        <motion.p
+          {...fadeIn}
+          className="text-center mt-12 text-xs text-black/20"
+        >
+          and many more open-source libraries
+        </motion.p>
+      </div>
+    </section>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
    COMPONENT — Privacy Section
    Dashed border box, lock icon, toggle pills, privacy description
    ═══════════════════════════════════════════════════════════════════════════════ */
@@ -670,6 +759,7 @@ export default function LandingPage() {
       <Hero />
       <HowItWorks />
       <Features />
+      <TechStack />
       <Privacy />
       <CTA />
       <Footer />

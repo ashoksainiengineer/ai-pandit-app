@@ -15,6 +15,8 @@ import Step3LifeEvents from '@/components/rectify/Step3LifeEvents';
 import Step4Review from '@/components/rectify/Step4Review';
 import Layout from '@/components/Layout';
 
+import AnalysisErrorBoundary from '@/components/rectify/AnalysisErrorBoundary';
+import { useWarmup } from '@/hooks/use-warmup';
 interface EditSessionClientProps {
     sessionId: string;
     initialData: {
@@ -39,6 +41,7 @@ export function EditSessionClient({ sessionId, initialData }: EditSessionClientP
     };
 
     const [step, setStep] = useState(getInitialStep);
+    const [maxUnlockedStep, setMaxUnlockedStep] = useState(getInitialStep);
     const [birthData, setBirthData] = useState<BirthData | null>(initialData.birthData);
     const [lifeEvents, setLifeEvents] = useState<LifeEvent[]>(initialData.lifeEvents || []);
     const [offsetConfig, setOffsetConfig] = useState<any>(initialData.offsetConfig || { preset: '1hour', customMinutes: 60, description: '±1 hour' });
@@ -53,6 +56,7 @@ export function EditSessionClient({ sessionId, initialData }: EditSessionClientP
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [savingStatus, setSavingStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
     const [error, setError] = useState<string | null>(null);
+    useWarmup(); // Pre-warm backend for faster analysis start
 
     const { getToken } = useAuth();
 
@@ -119,7 +123,7 @@ export function EditSessionClient({ sessionId, initialData }: EditSessionClientP
             }
         };
 
-        const timer = setTimeout(saveDraft, 5000);
+        const timer = setTimeout(saveDraft, 3000);
         return () => { clearTimeout(timer); if (statusTimerRef.current) { clearTimeout(statusTimerRef.current); } };
     }, [birthData, lifeEvents, spouseData, offsetConfig, sessionId, lastSavedData, getToken, isSubmitting]);
 
@@ -127,8 +131,8 @@ export function EditSessionClient({ sessionId, initialData }: EditSessionClientP
         setError(null);
         if (validateStep(step)) {
             const newStep = step + 1;
+            setMaxUnlockedStep(prev => Math.max(prev, newStep));
             updateStep(newStep);
-            window.scrollTo(0, 0);
         }
     };
 
@@ -168,10 +172,20 @@ export function EditSessionClient({ sessionId, initialData }: EditSessionClientP
                     setError('Timezone is required (select a location to auto-fill)');
                     return false;
                 }
+                if (!birthData.gender) {
+                    setError('Gender is required');
+                    return false;
+                }
                 return true;
             case 2:
                 if (lifeEvents.length < 3) {
                     setError('Please add at least 3 life events. Currently: ' + lifeEvents.length);
+                    return false;
+                }
+                // Ensure all events have valid dates
+                const invalidEvent = lifeEvents.find(e => !e.eventDate);
+                if (invalidEvent) {
+                    setError('All life events must have a valid date');
                     return false;
                 }
                 return true;
@@ -332,6 +346,8 @@ export function EditSessionClient({ sessionId, initialData }: EditSessionClientP
                                 updateData={(updates: Partial<import('@/lib/types').BirthData>) => setBirthData(prev => prev ? { ...prev, ...updates } : updates as import('@/lib/types').BirthData)}
                                 offsetConfig={offsetConfig}
                                 updateOffset={setOffsetConfig}
+                                spouseData={spouseData}
+                                updateSpouse={(updates: Partial<SpouseData>) => setSpouseData(prev => ({ ...prev, ...updates }))}
                             />
                         )}
                         {step === 2 && (
@@ -345,6 +361,7 @@ export function EditSessionClient({ sessionId, initialData }: EditSessionClientP
                             <Step4Review
                                 data={birthData}
                                 events={lifeEvents}
+                                spouseData={spouseData}
                                 onSubmit={submitEditedSession}
                                 isSubmitting={isSubmitting}
                                 onEdit={updateStep}

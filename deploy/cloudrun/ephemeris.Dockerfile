@@ -8,17 +8,20 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 
-# Copy source and pyproject.toml only (kernel downloaded at build time)
+# Layer 1: Dependencies (cached unless pyproject.toml changes)
 COPY services/ephemeris/pyproject.toml /app/pyproject.toml
-COPY services/ephemeris/app /app/app
-RUN mkdir -p /app/data
-
-# Install Python deps + skyfield
+RUN mkdir -p /app/app /app/data
+# Placeholder package so pip install . succeeds before real app code arrives
+RUN echo '__version__ = "0.0.0"' > /app/app/__init__.py
 RUN pip install --no-cache-dir --upgrade pip \
   && pip install --no-cache-dir .
 
-# Download JPL DE440 kernel (~115MB)
-RUN python -c "from skyfield.api import Loader; l = Loader('/app/data'); l('de440s.bsp'); print('Kernel downloaded successfully.')"
+# Layer 2: Download DE440 kernel (~115MB) — cached when deps don't change
+RUN python -c "from skyfield.api import Loader; l = Loader('/app/data'); l('de440s.bsp'); print('DE440 kernel downloaded successfully.')"
+
+# Layer 3: Real app code (cheap to bust, no heavy ops)
+COPY services/ephemeris/app /app/app
+RUN pip install --no-cache-dir --no-deps .
 
 EXPOSE 8080
 

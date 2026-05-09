@@ -2,7 +2,6 @@
 
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Brain, CheckCircle2 } from 'lucide-react';
 
 const ANALYSIS_STEPS = [
   { label: 'Skyfield ephemeris — calculating planetary positions', done: true },
@@ -13,13 +12,10 @@ const ANALYSIS_STEPS = [
 
 export default function AIThinkingBox() {
   return (
-    <div className="bg-white rounded-2xl border border-black/5 p-6 shadow-sm">
+    <div className="bg-white rounded-2xl border border-[rgba(0,0,0,0.08)] p-6">
       <div className="flex items-center gap-3 mb-5">
-        <div className="w-3 h-3 bg-black rounded-full animate-pulse" />
-        <div className="flex items-center gap-2">
-          <Brain className="w-4 h-4 text-black/40" />
-          <span className="text-sm font-medium text-black/60">AI Analysis Engine</span>
-        </div>
+        <div className="w-3 h-3 bg-[#000000] rounded-full animate-pulse" />
+        <span className="text-sm font-medium text-[#959595]">AI Thinking Process</span>
       </div>
 
       <div className="space-y-3">
@@ -28,32 +24,30 @@ export default function AIThinkingBox() {
             key={step.label}
             initial={{ opacity: 0, x: -10 }}
             animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: i * 0.15, duration: 0.4 }}
-            className="flex items-center gap-3"
+            transition={{ delay: i * 0.12, duration: 0.35 }}
+            className="flex items-center gap-2"
           >
-            {step.done ? (
-              <CheckCircle2 className="w-4 h-4 text-green-500 flex-shrink-0" />
-            ) : (
-              <motion.div
-                animate={{ opacity: [0.4, 1, 0.4] }}
-                transition={{ duration: 2, repeat: Infinity, delay: i * 0.3 }}
-                className="w-4 h-4 rounded-full bg-amber-400 flex-shrink-0"
-              />
-            )}
-            <span className={`text-sm ${step.done ? 'text-black/60' : 'text-black/40'}`}>
+            <span
+              className={
+                step.done
+                  ? 'w-1.5 h-1.5 rounded-full bg-emerald-500 flex-shrink-0'
+                  : 'w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse flex-shrink-0'
+              }
+            />
+            <span className={`text-sm ${step.done ? 'text-[#636363]' : 'text-[#959595]'}`}>
               {step.label}
             </span>
           </motion.div>
         ))}
       </div>
 
-      {/* Progress bar */}
-      <div className="mt-5 h-1 bg-black/5 rounded-full overflow-hidden">
+      {/* Progress indicator */}
+      <div className="mt-5 h-1 bg-[rgba(0,0,0,0.06)] rounded-full overflow-hidden">
         <motion.div
-          className="h-full bg-black rounded-full"
+          className="h-full bg-[#000000] rounded-full"
           initial={{ width: '0%' }}
           animate={{ width: '50%' }}
-          transition={{ duration: 1.5, delay: 0.3, ease: [0.16, 1, 0.3, 1] }}
+          transition={{ duration: 1.2, delay: 0.2, ease: [0.16, 1, 0.3, 1] }}
         />
       </div>
     </div>

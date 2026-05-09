@@ -39,10 +39,10 @@ const getSessionData = cache(async (sessionId: string, userId: string): Promise<
         // 3. Robust Data Reconstruction
         const sessionUserId = session.userId;
         const birthData = {
-            fullName: parseSensitiveField(session.fullName, sessionUserId, 'Unencryptable Session'),
-            dateOfBirth: parseSensitiveField(session.dateOfBirth, sessionUserId, 'Not set'),
-            tentativeTime: parseSensitiveField(session.tentativeTime, sessionUserId, 'Not set'),
-            birthPlace: parseSensitiveField(session.birthPlace, sessionUserId, 'Unknown'),
+            fullName: parseSensitiveField(session.fullName, sessionUserId, undefined, 'Unencryptable Session'),
+            dateOfBirth: parseSensitiveField(session.dateOfBirth, sessionUserId, undefined, 'Not set'),
+            tentativeTime: parseSensitiveField(session.tentativeTime, sessionUserId, undefined, 'Not set'),
+            birthPlace: parseSensitiveField(session.birthPlace, sessionUserId, undefined, 'Unknown'),
             latitude: session.latitude,
             longitude: session.longitude,
             timezone: session.timezone,
@@ -52,7 +52,7 @@ const getSessionData = cache(async (sessionId: string, userId: string): Promise<
         return {
             ...session,
             birthData,
-            lifeEvents: parseSensitiveField(session.lifeEvents, sessionUserId, []),
+            lifeEvents: parseSensitiveField(session.lifeEvents, sessionUserId, undefined, []),
             spouseData: parseSensitiveField(session.spouseData, sessionUserId, undefined),
             offsetConfig: parseSensitiveField(session.offsetConfig, sessionUserId, undefined),
         };

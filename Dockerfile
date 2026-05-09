@@ -37,12 +37,14 @@ RUN chown -R node:node /app
 COPY --from=builder --chown=node:node /app/package.json /app/package-lock.json /app/turbo.json ./
 COPY --from=builder --chown=node:node /app/node_modules ./node_modules
 COPY --from=builder --chown=node:node /app/apps/api ./apps/api
-COPY --from=builder --chown=node:node /app/packages ./packages
+COPY --from=builder --chown=node:node /app/packages/shared ./packages/shared
+COPY --from=builder --chown=node:node /app/packages/db ./packages/db
+COPY --from=builder --chown=node:node /app/packages/worker-runtime ./packages/worker-runtime
 
 USER node
 ENV NODE_ENV=production
 ENV PORT=8080
-ENV NODE_OPTIONS=--max-old-space-size=8192
+ENV NODE_OPTIONS=--max-old-space-size=1536
 ENV JOB_EXECUTION_MODE=external_worker
 
 EXPOSE 8080

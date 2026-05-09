@@ -301,14 +301,15 @@ export const LifeEventSchema = z.object({
 // ═════════════════════════════════════════════════════════════════════════════
 
 export type OffsetPreset =
+  | 'seconds-6'
+  | 'seconds-30'
   | '30min'
   | '1hour'
   | '2hours'
   | '4hours'
   | '6hours'
   | '12hours'
-  | 'seconds-30'
-  | 'seconds-6';
+  | 'custom';
 
 export interface TimeOffsetConfig {
   preset: OffsetPreset;

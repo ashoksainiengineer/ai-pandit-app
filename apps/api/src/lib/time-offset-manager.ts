@@ -123,6 +123,11 @@ const OFFSET_PRESETS: Record<OffsetPreset, { label: string; minutes: number; int
     interval: 0.1,
     intervalSeconds: 6,
   },
+  'custom': {
+    label: 'Custom offset',
+    minutes: 60,
+    interval: 1.5,
+  },
 };
 
 // 🔱 VEDIC-BASED ADAPTIVE INTERVAL
