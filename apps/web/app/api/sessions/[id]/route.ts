@@ -6,6 +6,8 @@ import { encrypt, parseSensitiveField, initializeEncryption, isEncrypted } from 
 import {
   resolveSessionOwnershipContext,
 } from '@/lib/server/session-ownership';
+import { db, sessions } from '@ai-pandit/db';
+import { eq, and } from 'drizzle-orm';
 import { getProtectedFieldsPresent } from '@/lib/server/session-write-guards';
 import { getBuildPhaseRouteResponse } from '@/lib/server/build-phase-route-guard';
 
@@ -47,9 +49,6 @@ export async function GET(
       return NextResponse.json({ success: false, error: 'Session ID required' }, { status: 400 });
     }
 
-    const { db } = await import('@ai-pandit/db');
-    const { sessions } = await import('@ai-pandit/db/schema');
-    const { eq } = await import('drizzle-orm');
 
     const ctx = await resolveSessionOwnershipContext(clerkId);
     const session = await db.query.sessions.findFirst({
@@ -113,9 +112,6 @@ export async function PUT(
       }, { status: 400 });
     }
 
-    const { db } = await import('@ai-pandit/db');
-    const { sessions } = await import('@ai-pandit/db/schema');
-    const { eq } = await import('drizzle-orm');
 
     const ctx = await resolveSessionOwnershipContext(clerkId);
     const existing = await db.query.sessions.findFirst({
@@ -192,9 +188,6 @@ export async function DELETE(
       return NextResponse.json({ success: false, error: 'Session ID required' }, { status: 400 });
     }
 
-    const { db } = await import('@ai-pandit/db');
-    const { sessions } = await import('@ai-pandit/db/schema');
-    const { eq } = await import('drizzle-orm');
 
     const ctx = await resolveSessionOwnershipContext(clerkId);
     const session = await db.query.sessions.findFirst({

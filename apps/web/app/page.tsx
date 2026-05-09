@@ -2,7 +2,7 @@
  * AI Pandit — Landing Page
  * AI Pandit Landing Page — Premium Redesign
  * sleek, minimal aesthetic with black pill CTAs
- * 4 sections: Hero, How It Works, Tech Stack, Privacy
+ * 3 sections: Hero (with logos), How It Works, Privacy
  */
 
 'use client';

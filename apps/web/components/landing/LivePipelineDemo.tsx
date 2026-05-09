@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Brain, Trophy, Activity, ChevronDown, ChevronUp, Sparkles } from 'lucide-react';
+import { Brain, Trophy, Activity, Sparkles } from 'lucide-react';
 
 /* ═══════════════════════════════════════════════════════════
    MOCK DATA
@@ -42,26 +42,27 @@ const EPHEMERIS_PLANETS = [
 
 function AIThinkingPanel({ isActive, onComplete }: { isActive: boolean; onComplete: () => void }) {
   const [visibleLines, setVisibleLines] = useState<number[]>([]);
-  const [currentCycle, setCurrentCycle] = useState(0);
+  const [cycle, setCycle] = useState(0);
 
   useEffect(() => {
     if (!isActive) return;
     setVisibleLines([]);
-    setCurrentCycle(c => c + 1);
+    setCycle(c => c + 1);
 
     const timers: ReturnType<typeof setTimeout>[] = [];
     AI_REASONING_LINES.forEach((_, i) => {
       const t = setTimeout(() => {
         setVisibleLines(prev => [...prev, i]);
+        // Auto-complete after all lines shown
         if (i === AI_REASONING_LINES.length - 1) {
-          setTimeout(onComplete, 2000);
+          setTimeout(onComplete, 1500);
         }
-      }, (i + 1) * 4000);
+      }, (i + 1) * 3000); // Faster: 3s per line = 21s total
       timers.push(t);
     });
 
     return () => timers.forEach(clearTimeout);
-  }, [isActive, currentCycle]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [isActive, cycle]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <div className="bg-white rounded-xl border border-black/5 shadow-sm overflow-hidden">
@@ -84,7 +85,7 @@ function AIThinkingPanel({ isActive, onComplete }: { isActive: boolean; onComple
         <AnimatePresence>
           {visibleLines.map((lineIndex) => (
             <motion.div
-              key={`${currentCycle}-${lineIndex}`}
+              key={`${cycle}-${lineIndex}`}
               initial={{ opacity: 0, x: -10 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.4, ease: 'easeOut' }}
@@ -194,67 +195,48 @@ function CandidateLeaderboard() {
    ═══════════════════════════════════════════════════════════ */
 
 function EphemerisTable() {
-  const [expanded, setExpanded] = useState(false);
-
   return (
     <div className="bg-white rounded-xl border border-black/5 shadow-sm overflow-hidden">
-      <button
-        onClick={() => setExpanded(!expanded)}
-        className="w-full px-5 py-3 flex items-center justify-between hover:bg-[var(--prism-canvas)] transition-colors"
-      >
+      {/* Header */}
+      <div className="px-5 py-3 border-b border-black/5 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Activity className="w-4 h-4 text-black/40" />
           <span className="text-xs font-medium text-black/60 uppercase tracking-wider">Ephemeris Data — 14:32:18</span>
         </div>
-        <div className="flex items-center gap-2">
-          <span className="text-[10px] text-black/30 font-mono">NASA JPL DE440</span>
-          {expanded ? <ChevronUp className="w-4 h-4 text-black/30" /> : <ChevronDown className="w-4 h-4 text-black/30" />}
-        </div>
-      </button>
+        <span className="text-[10px] text-black/30 font-mono">NASA JPL DE440</span>
+      </div>
 
-      <AnimatePresence>
-        {expanded && (
+      {/* Column headers */}
+      <div className="grid grid-cols-5 gap-2 px-5 py-2 border-b border-black/5 bg-[var(--prism-canvas)]">
+        <span className="text-[10px] font-medium text-black/30 uppercase tracking-wider">Planet</span>
+        <span className="text-[10px] font-medium text-black/30 uppercase tracking-wider">Sign</span>
+        <span className="text-[10px] font-medium text-black/30 uppercase tracking-wider col-span-2">Longitude</span>
+        <span className="text-[10px] font-medium text-black/30 uppercase tracking-wider">House</span>
+      </div>
+
+      {/* Planet rows */}
+      <div className="divide-y divide-black/[0.03]">
+        {EPHEMERIS_PLANETS.map((p, i) => (
           <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.3, ease: 'easeOut' }}
-            className="overflow-hidden"
+            key={p.name}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: i * 0.04 }}
+            className="grid grid-cols-5 gap-2 px-5 py-2.5 hover:bg-[var(--prism-canvas)] transition-colors"
           >
-            {/* Header */}
-            <div className="grid grid-cols-5 gap-2 px-5 py-2 border-b border-black/5 bg-[var(--prism-canvas)]">
-              <span className="text-[10px] font-medium text-black/30 uppercase tracking-wider">Planet</span>
-              <span className="text-[10px] font-medium text-black/30 uppercase tracking-wider">Sign</span>
-              <span className="text-[10px] font-medium text-black/30 uppercase tracking-wider col-span-2">Longitude</span>
-              <span className="text-[10px] font-medium text-black/30 uppercase tracking-wider">House</span>
-            </div>
-
-            {/* Rows */}
-            <div className="divide-y divide-black/[0.03]">
-              {EPHEMERIS_PLANETS.map((p, i) => (
-                <motion.div
-                  key={p.name}
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ delay: i * 0.04 }}
-                  className="grid grid-cols-5 gap-2 px-5 py-2.5 hover:bg-[var(--prism-canvas)] transition-colors"
-                >
-                  <span className={`text-xs font-medium ${p.color}`}>{p.symbol} {p.name}</span>
-                  <span className="text-xs text-[#636363]">{p.sign}</span>
-                  <span className="text-xs text-[#636363] font-mono col-span-2">{p.degree}</span>
-                  <span className="text-xs text-[#636363]">{p.house}</span>
-                </motion.div>
-              ))}
-            </div>
-
-            {/* Footer */}
-            <div className="px-5 py-2.5 border-t border-black/5 flex items-center justify-between text-[10px] text-black/25 bg-[var(--prism-canvas)]">
-              <span>Ascendant: Scorpio 15°42′ — Jyeshtha Nakshatra</span>
-              <span className="font-mono">Dasha: Jupiter Mahadasha</span>
-            </div>
+            <span className={`text-xs font-medium ${p.color}`}>{p.symbol} {p.name}</span>
+            <span className="text-xs text-[#636363]">{p.sign}</span>
+            <span className="text-xs text-[#636363] font-mono col-span-2">{p.degree}</span>
+            <span className="text-xs text-[#636363]">{p.house}</span>
           </motion.div>
-        )}
-      </AnimatePresence>
+        ))}
+      </div>
+
+      {/* Footer */}
+      <div className="px-5 py-2.5 border-t border-black/5 flex items-center justify-between text-[10px] text-black/25 bg-[var(--prism-canvas)]">
+        <span>Ascendant: Scorpio 15°42′ — Jyeshtha Nakshatra</span>
+        <span className="font-mono">Dasha: Jupiter Mahadasha</span>
+      </div>
     </div>
   );
 }
