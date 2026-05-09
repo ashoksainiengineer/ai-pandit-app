@@ -8,7 +8,6 @@ import { Sparkles, Search, BarChart3, CheckCircle2, Activity } from 'lucide-reac
 import { DashboardSession } from '@/lib/dashboard/types';
 import { SessionCard } from '@/components/dashboard/SessionCard';
 import { Breadcrumbs, predefinedBreadcrumbs } from '@/components/ui/Breadcrumbs';
-import { LoadingOverlay } from '@/components/ui/LoadingOverlay';
 
 interface DashboardClientProps {
   initialSessions: DashboardSession[];
@@ -65,7 +64,6 @@ export function DashboardClient({ initialSessions, userName }: DashboardClientPr
   const [searchInput, setSearchInput] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
-  const [isCreatingDraft, setIsCreatingDraft] = useState(false);
   const router = useRouter();
 
   const stats = useMemo(() => calculateStats(sessions), [sessions]);
@@ -97,17 +95,11 @@ export function DashboardClient({ initialSessions, userName }: DashboardClientPr
     currentPage * ITEMS_PER_PAGE
   );
 
-  const filterSessionsByQuery = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    setSearchQuery(e.target.value);
-    setCurrentPage(1);
-  }, []);
-
   const navigateToPage = useCallback((page: number) => {
     setCurrentPage(page);
   }, []);
 
   const createNewSession = useCallback(() => {
-    setIsCreatingDraft(true);
     router.push('/rectify?new=true');
   }, [router]);
 
@@ -132,14 +124,13 @@ export function DashboardClient({ initialSessions, userName }: DashboardClientPr
         <div className="flex gap-2">
           <button
             onClick={createNewSession}
-            disabled={isCreatingDraft}
             className="inline-flex items-center justify-center gap-2 px-3 sm:px-4 py-2.5 sm:py-3 border-2 border-[#000000] text-black rounded-xl font-medium hover:bg-[#000000]/10 transition-all text-xs sm:text-sm disabled:opacity-50"
           >
             + New Person
           </button>
           <Link
-            href="/rectify"
-            className="inline-flex items-center justify-center gap-2 px-4 sm:px-6 py-2.5 sm:py-3 bg-gradient-to-r from-[#000000] to-[#000000] text-white rounded-xl font-medium hover:shadow-lg hover:shadow-[#000000]/20 transition-all text-sm sm:text-base"
+            href="/rectify?new=true"
+            className="inline-flex items-center justify-center gap-2 px-4 sm:px-6 py-2.5 sm:py-3 bg-black text-white rounded-xl font-medium hover:shadow-lg hover:shadow-[#000000]/20 transition-all text-sm sm:text-base"
           >
             <Sparkles className="w-4 h-4 sm:w-5 sm:h-5" />
             Continue Analysis
@@ -201,7 +192,7 @@ export function DashboardClient({ initialSessions, userName }: DashboardClientPr
             {!searchQuery && (
               <Link
                 href="/rectify?new=true"
-                className="inline-flex items-center gap-2 bg-gradient-to-r from-[#000000] to-[#000000] text-white px-6 py-3 rounded-xl font-medium hover:opacity-90 transition-opacity"
+                className="inline-flex items-center gap-2 bg-black text-white px-6 py-3 rounded-xl font-medium hover:opacity-90 transition-opacity"
               >
                 <Sparkles className="w-5 h-5" />
                 Start First Analysis
@@ -261,11 +252,6 @@ export function DashboardClient({ initialSessions, userName }: DashboardClientPr
         </div>
       )}
 
-      {/* Draft Creation Overlay */}
-      <LoadingOverlay
-        isVisible={isCreatingDraft}
-        message="Creating your draft..."
-      />
     </div>
   );
 }

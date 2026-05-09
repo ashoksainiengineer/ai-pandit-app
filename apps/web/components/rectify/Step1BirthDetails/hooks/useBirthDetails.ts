@@ -188,7 +188,8 @@ export function useBirthDetails({
 
     const handleCustomOffsetChange = useCallback((valStr: string) => {
         let val = parseInt(valStr, 10);
-        if (isNaN(val)) val = 0;
+        if (isNaN(val)) val = 60;
+        if (val < 1) val = 1;
         if (val > 720) val = 720;
         setCustomOffset(val);
         updateOffset?.({

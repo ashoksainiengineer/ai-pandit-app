@@ -38,12 +38,23 @@ export async function proxyBackendJson(req: NextRequest, options: ProxyOptions):
     });
   } catch (fetchError) {
     return NextResponse.json(
-      { success: false, error: `Backend unreachable: ${(fetchError as Error)?.message || fetchError}` },
+      { success: false, error: 'Backend unreachable. Please try again.' },
       { status: 502 }
     );
   }
   const contentType = response.headers.get('content-type') || 'application/json';
-  const text = await response.text();
+  let text = await response.text();
+
+  // Normalize Express structured errors {error:{code,message}} to flat {error:"message"}
+  if (contentType.includes('json') && !response.ok) {
+    try {
+      const json = JSON.parse(text);
+      if (json?.error && typeof json.error === 'object' && json.error.message) {
+        json.error = json.error.message; // Flatten structured error
+        text = JSON.stringify(json);
+      }
+    } catch { /* not valid JSON, pass through */ }
+  }
 
   return new NextResponse(text, {
     status: response.status,

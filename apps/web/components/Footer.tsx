@@ -35,8 +35,8 @@ export default memo(function Footer() {
           {/* Brand Column */}
           <div className="col-span-2">
             <Link href="/" className="flex items-center gap-3 mb-6">
-              <div className="w-10 h-10 bg-black rounded-xl flex items-center justify-center">
-                <span className="text-white text-lg font-medium">ॐ</span>
+              <div className="w-11 h-11 bg-black rounded-xl flex items-center justify-center">
+                <span className="text-white text-2xl font-medium leading-none">ॐ</span>
               </div>
               <span className="text-2xl font-medium text-black tracking-tight">AI Pandit</span>
             </Link>

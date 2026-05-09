@@ -53,8 +53,8 @@ export default function Navbar({ transparent: _transparent = false }: NavbarProp
         <div className="flex items-center justify-between h-full">
           {/* Brand / Logo */}
           <Link href="/" className="flex items-center gap-2 flex-1">
-            <div className="w-7 h-7 bg-black rounded-lg flex items-center justify-center flex-shrink-0">
-              <span className="text-white text-[10px] font-medium">ॐ</span>
+            <div className="w-8 h-8 bg-black rounded-lg flex items-center justify-center flex-shrink-0">
+              <span className="text-white text-lg font-medium leading-none">ॐ</span>
             </div>
             <span className="text-lg font-medium text-black tracking-[-0.02em]">
               AI Pandit

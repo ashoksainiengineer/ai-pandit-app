@@ -34,28 +34,13 @@ export default function RectifySubmitBar({
                 >
                     ← Back
                 </button>
-                {step < totalSteps ? (
+                {step < totalSteps && (
                     <button
                         onClick={onNext}
                         disabled={isSubmitting}
                         className="px-8 py-3 bg-black text-white rounded-full font-medium hover:bg-black/85 transition-all duration-200 disabled:opacity-50"
                     >
                         Next Step →
-                    </button>
-                ) : (
-                    <button
-                        onClick={onSubmit}
-                        disabled={isSubmitting}
-                        className="px-8 py-3 bg-black text-white rounded-full font-medium hover:bg-black/85 transition-all duration-200 disabled:opacity-50 flex items-center gap-2"
-                    >
-                        {isSubmitting ? (
-                            <>
-                                <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                                Submitting...
-                            </>
-                        ) : (
-                            'Start Analysis'
-                        )}
                     </button>
                 )}
             </div>

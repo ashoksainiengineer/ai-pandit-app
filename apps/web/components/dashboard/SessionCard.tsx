@@ -29,7 +29,6 @@ import dynamic from 'next/dynamic';
 const DeleteConfirmModal = dynamic(() => import('./DeleteConfirmModal').then(m => ({ default: m.DeleteConfirmModal })), { ssr: false });
 const LoadingOverlay = dynamic(() => import('@/components/ui/LoadingOverlay').then(m => ({ default: m.LoadingOverlay })), { ssr: false });
 import { ClientOnly } from '@/components/ui/ClientOnly';
-import { APIClient } from '@/lib/api-client';
 import { logger } from '@/lib/secure-logger';
 
 interface SessionCardProps {
@@ -519,7 +518,7 @@ export const SessionCard = memo(function SessionCard({
 
         {/* Confidence Bar */}
         <div className="col-span-12 sm:col-span-2">
-          {session.accuracy ? (
+          {session.accuracy != null ? (
             <div className="flex items-center gap-2">
               <div className="flex-1 h-1.5 bg-[rgba(0,0,0,0.08)] rounded-full overflow-hidden">
                 <div

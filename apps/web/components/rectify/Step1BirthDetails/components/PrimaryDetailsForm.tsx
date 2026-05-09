@@ -194,7 +194,7 @@ export function PrimaryDetailsForm({
 
             {/* Gender - Compact */}
             <div className="pt-4 border-t border-[rgba(0,0,0,0.08)]">
-                <FormField label="Gender">
+                <FormField label="Gender" required>
                     <div className="grid grid-cols-3 gap-3">
                         {GENDER_OPTIONS.map((g) => (
                             <button

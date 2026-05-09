@@ -32,14 +32,14 @@ export async function POST(request: NextRequest) {
     try {
         const { userId: clerkId } = await auth();
         if (!clerkId) {
-            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+            return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
         }
 
         const body = await request.json();
         const protectedFields = getProtectedFieldsPresent(body as Record<string, unknown>);
         if (protectedFields.length > 0) {
             return NextResponse.json(
-                { error: `Protected fields are backend-owned: ${protectedFields.join(', ')}` },
+                { success: false, error: `Protected fields are backend-owned: ${protectedFields.join(', ')}` },
                 { status: 400 }
             );
         }
@@ -47,7 +47,7 @@ export async function POST(request: NextRequest) {
 
         if (!birthData || !birthData.fullName) {
             return NextResponse.json(
-                { error: 'At least fullName is required to save draft' },
+                { success: false, error: 'At least fullName is required to save draft' },
                 { status: 400 }
             );
         }
@@ -84,12 +84,12 @@ export async function POST(request: NextRequest) {
             const existing = await db.select({ clerkId: sessions.clerkId, status: sessions.status }).from(sessions).where(eq(sessions.id, sessionId)).limit(1);
             if (existing.length === 0) {
                 // BUG-FIX: Return 404 in all environments — prevent TypeError crash
-                return NextResponse.json({ error: 'Session not found' }, { status: 404 });
+                return NextResponse.json({ success: false, error: 'Session not found' }, { status: 404 });
             }
-            if (existing[0].clerkId !== clerkId) return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+            if (existing[0].clerkId !== clerkId) return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 403 });
             if (!canFrontendMutateSession(existing[0].status)) {
                 return NextResponse.json(
-                    { error: `Session is locked for draft edits in status: ${existing[0].status}` },
+                    { success: false, error: `Session is locked for draft edits in status: ${existing[0].status}` },
                     { status: 409 }
                 );
             }
@@ -130,7 +130,7 @@ export async function POST(request: NextRequest) {
         } catch (error: any) {
         logger.error('Draft save error:', error);
         await logAuditEvent({ action: 'DRAFT_SAVE_FAILED', ipAddress, userAgent, details: { error: error.message } });
-        return NextResponse.json({ error: 'Failed to save draft' }, { status: 500 });
+        return NextResponse.json({ success: false, error: 'Failed to save draft' }, { status: 500 });
     }
 }
 
@@ -142,7 +142,7 @@ export async function GET(request: NextRequest) {
     try {
         const { userId: clerkId } = await auth();
         if (!clerkId) {
-            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+            return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
         }
 
         // Parse pagination parameters
@@ -153,8 +153,10 @@ export async function GET(request: NextRequest) {
         if (!user) {
             return NextResponse.json({
                 success: true,
-                drafts: [],
-                pagination: createPaginationMeta(page, limit, 0),
+                data: {
+                    sessions: [],
+                    pagination: createPaginationMeta(page, limit, 0),
+                },
             });
         }
 
@@ -182,12 +184,14 @@ export async function GET(request: NextRequest) {
 
         return NextResponse.json({
             success: true,
-            drafts: paginatedDrafts,
+            data: {
+            sessions: paginatedDrafts,
             pagination: createPaginationMeta(page, limit, total),
+        },
         });
 
     } catch (error) {
         logger.error('Get drafts error:', error);
-        return NextResponse.json({ error: 'Failed to get drafts' }, { status: 500 });
+        return NextResponse.json({ success: false, error: 'Failed to get drafts' }, { status: 500 });
     }
 }

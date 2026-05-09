@@ -82,7 +82,7 @@ const ErrorDisplay = memo(({ error, onRetry }: { error: string; onRetry: () => v
     <AlertCircle className="w-16 h-16 text-red-500" />
     <h1 className="text-2xl font-medium mt-6 text-red-700">Connection Error</h1>
     <p className="text-xs text-red-600 mt-2 max-w-2xl bg-red-50 p-4 rounded border border-red-200">{error}</p>
-    <button onClick={onRetry} className="mt-8 px-6 py-3 rounded-2xl font-medium text-white bg-gradient-to-r from-[#000000] to-[#000000] shadow-md flex items-center gap-2 hover:shadow-sm transition-all">
+    <button onClick={onRetry} className="mt-8 px-6 py-3 rounded-2xl font-medium text-white bg-black shadow-md flex items-center gap-2 hover:shadow-sm transition-all">
       <RefreshCw className="w-4 h-4" /> Retry
     </button>
   </div>
@@ -503,7 +503,7 @@ export default function AnalysisPage() {
                 <div className="flex items-center gap-3 w-full md:w-auto">
                   <Link
                     href={`/rectify/${sessionId}/results`}
-                    className="flex-1 md:flex-none px-6 py-3 bg-gradient-to-r from-[#000000] to-[#000000] text-white rounded-2xl font-medium text-sm flex items-center justify-center gap-2 hover:shadow-sm transition-all shadow-md"
+                    className="flex-1 md:flex-none px-6 py-3 bg-black text-white rounded-2xl font-medium text-sm flex items-center justify-center gap-2 hover:shadow-sm transition-all shadow-md"
                   >
                     View Official Report <ChevronRight className="w-4 h-4" />
                   </Link>

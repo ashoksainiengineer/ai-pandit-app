@@ -15,6 +15,7 @@ import Step3LifeEvents from '@/components/rectify/Step3LifeEvents';
 import Step4Review from '@/components/rectify/Step4Review';
 import Layout from '@/components/Layout';
 
+import { SecurityBadge } from '@/components/rectify/SecurityBadge';
 import AnalysisErrorBoundary from '@/components/rectify/AnalysisErrorBoundary';
 import { useWarmup } from '@/hooks/use-warmup';
 interface EditSessionClientProps {
@@ -105,7 +106,8 @@ export function EditSessionClient({ sessionId, initialData }: EditSessionClientP
                 });
 
                 if (saveRes.status === 409) {
-                    setSavingStatus('idle');
+                    setSavingStatus('error');
+                    setError('Session is locked and cannot be auto-saved. Please submit to re-analyze.');
                     return;
                 }
 
@@ -131,6 +133,7 @@ export function EditSessionClient({ sessionId, initialData }: EditSessionClientP
         setError(null);
         if (validateStep(step)) {
             const newStep = step + 1;
+            window.scrollTo(0, 0);
             setMaxUnlockedStep(prev => Math.max(prev, newStep));
             updateStep(newStep);
         }
@@ -300,6 +303,8 @@ export function EditSessionClient({ sessionId, initialData }: EditSessionClientP
                         <p className="text-[#636363]">Update your details and run a new analysis</p>
                     </div>
 
+                    <SecurityBadge />
+
                     {/* Progress stepper */}
                     <div className="mb-10">
                         <div className="flex items-center justify-between mb-4 relative">
@@ -312,7 +317,7 @@ export function EditSessionClient({ sessionId, initialData }: EditSessionClientP
                             {[1, 2, 3].map((s) => (
                                 <button
                                     key={s}
-                                    onClick={() => updateStep(s)}
+                                    onClick={() => { if (s <= maxUnlockedStep) updateStep(s); }}
                                     className="flex flex-col items-center bg-[var(--prism-canvas)] px-2 outline-none focus:outline-none"
                                 >
                                     <div
@@ -385,7 +390,7 @@ export function EditSessionClient({ sessionId, initialData }: EditSessionClientP
 
                             <button
                                 onClick={advanceToNextStep}
-                                className="px-8 py-3 bg-gradient-to-r from-[#000000] to-[#000000] text-white rounded-xl font-medium hover:shadow-[0_0_15px_rgba(184,134,11,0.4)] transition-all"
+                                className="px-8 py-3 bg-black text-white rounded-xl font-medium hover:shadow-[0_0_15px_rgba(184,134,11,0.4)] transition-all"
                             >
                                 Next Step →
                             </button>

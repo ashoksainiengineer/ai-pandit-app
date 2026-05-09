@@ -91,9 +91,10 @@ export async function POST(req: NextRequest) {
     }));
 
     if (format === 'json') {
-      return NextResponse.json(normalized, {
+      return NextResponse.json({ success: true, data: normalized }, {
         headers: {
           'Content-Disposition': `attachment; filename="sessions-export-${new Date().toISOString().split('T')[0]}.json"`,
+          'Cache-Control': 'private, no-store',
         },
       });
     }
@@ -127,31 +128,10 @@ export async function POST(req: NextRequest) {
         headers: {
           'Content-Type': 'text/csv; charset=utf-8',
           'Content-Disposition': `attachment; filename="sessions-export-${new Date().toISOString().split('T')[0]}.csv"`,
+          'Cache-Control': 'private, no-store',
         },
       });
     }
-
-    // PDF export fallback: provide printable plain text document as .txt attachment
-    // to avoid serving invalid binary PDF bytes from server runtime.
-    const reportLines = normalized.map((row) =>
-      [
-        `Session: ${row.id}`,
-        `Status: ${row.status}`,
-        `Name: ${row.fullName}`,
-        `DOB: ${row.dateOfBirth}`,
-        `Birth Place: ${row.birthPlace}`,
-        `Rectified Time: ${row.rectifiedTime ?? ''}`,
-        `Accuracy: ${row.accuracy ?? ''}`,
-        `Confidence: ${row.confidence ?? ''}`,
-      ].join('\n')
-    );
-
-    return new NextResponse(reportLines.join('\n\n---\n\n'), {
-      headers: {
-        'Content-Type': 'text/plain; charset=utf-8',
-        'Content-Disposition': `attachment; filename="sessions-export-${new Date().toISOString().split('T')[0]}.txt"`,
-      },
-    });
   } catch (error: any) {
     return NextResponse.json({ success: false, error: error.message || 'Export failed' }, { status: 500 });
   }

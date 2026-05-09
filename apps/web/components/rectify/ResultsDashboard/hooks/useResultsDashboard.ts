@@ -11,6 +11,7 @@ export function useResultsDashboard({ sessionId, data, birthData }: ResultsDashb
     const [isGenerating, setIsGenerating] = useState(false);
     const [isCloning, setIsCloning] = useState(false);
     const [activeTab, setActiveTab] = useState<'summary' | 'audit' | 'comparison' | 'logs'>('summary');
+    const [error, setError] = useState<string | null>(null);
     const [analysisDetails, setAnalysisDetails] = useState<AnalysisDetails | null>(null);
 
     const { getToken } = useAuth();
@@ -41,7 +42,7 @@ export function useResultsDashboard({ sessionId, data, birthData }: ResultsDashb
             }
         } catch (err) {
             logger.error('Clone failed:', err);
-            alert('Failed to duplicate session. Please try again.');
+            setError('Failed to duplicate session. Please try again.');
             setIsCloning(false);
         }
     }, [sessionId, router, getToken]);
@@ -50,7 +51,7 @@ export function useResultsDashboard({ sessionId, data, birthData }: ResultsDashb
         const url = `${window.location.origin}/rectify/${sessionId}/results`;
         const success = await copyToClipboard(url);
         if (!success) {
-            alert('Failed to copy link to clipboard');
+            setError('Failed to copy link to clipboard');
         }
     }, [sessionId, copyToClipboard]);
 
@@ -77,7 +78,7 @@ export function useResultsDashboard({ sessionId, data, birthData }: ResultsDashb
             URL.revokeObjectURL(url);
         } catch (err) {
             logger.error('Export failed:', err);
-            alert('Failed to export data');
+            setError('Failed to export data');
         }
     }, [sessionId, data, birthData, analysisDetails]);
 
@@ -171,7 +172,7 @@ export function useResultsDashboard({ sessionId, data, birthData }: ResultsDashb
             doc.save(`Rectification_Report_${sessionId.slice(0, 6)}.pdf`);
         } catch (error) {
             logger.error('PDF Generation failed:', error);
-            alert('Failed to generate PDF report. Please try again.');
+            setError('Failed to generate PDF report. Please try again.');
         } finally {
             setIsGenerating(false);
         }
@@ -207,6 +208,7 @@ export function useResultsDashboard({ sessionId, data, birthData }: ResultsDashb
         copyShareLink,
         exportJSON,
         generatePDF,
-        topCandidates
+        topCandidates,
+        error,
     };
 }

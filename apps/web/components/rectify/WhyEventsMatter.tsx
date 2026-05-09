@@ -197,7 +197,7 @@ export default function WhyEventsMatter({ currentEventCount, categoriesCovered }
           </div>
           <div className="flex-1 h-2 bg-[rgba(0,0,0,0.08)] rounded-full overflow-hidden">
             <motion.div 
-              className="h-full bg-gradient-to-r from-[#000000] to-[#000000] rounded-full"
+              className="h-full bg-black rounded-full"
               initial={{ width: 0 }}
               animate={{ width: `${Math.min(100, (currentEventCount / 40) * 100)}%` }}
               transition={{ duration: 1, delay: 0.3 }}

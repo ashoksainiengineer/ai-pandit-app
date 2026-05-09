@@ -132,7 +132,7 @@ export const RectifyProgressIndicator = memo(function RectifyProgressIndicator({
                         <div className="flex items-center gap-3 w-full md:w-auto">
                             <Link
                                 href={`/rectify/${sessionId}/results`}
-                                className="flex-1 md:flex-none px-6 py-3 bg-gradient-to-r from-[#000000] to-[#000000] text-white rounded-xl font-medium text-sm flex items-center justify-center gap-2 hover:shadow-lg transition-all shadow-md"
+                                className="flex-1 md:flex-none px-6 py-3 bg-black text-white rounded-xl font-medium text-sm flex items-center justify-center gap-2 hover:shadow-lg transition-all shadow-md"
                             >
                                 View Official Report <ChevronRight className="w-4 h-4" />
                             </Link>

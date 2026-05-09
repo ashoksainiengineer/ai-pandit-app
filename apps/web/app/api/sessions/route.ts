@@ -59,11 +59,20 @@ export async function GET(_req: NextRequest) {
       .where(eq(sessions.userId, user.id))
       .orderBy(desc(sessions.createdAt));
 
+    // Load favorites (non-critical — don't fail if table doesn't exist)
+    let favoriteSet: Set<string> = new Set();
+    try {
+      const { getFavoriteSetForSessions } = await import('@/lib/server/favorite-store');
+      favoriteSet = await getFavoriteSetForSessions(
+        clerkId,
+        userSessions.map((s) => s.id),
+      );
+    } catch { /* favorites unavailable */ }
+
     // Only decrypt fields dashboard list actually needs
-    // isEncrypted check skips wasteful scryptSync (150ms each) for plain text
     const parsedSessions = userSessions.map((s) => ({
       ...s,
-      isFavorite: false,
+      isFavorite: favoriteSet.has(s.id),
       fullName: isEncrypted(s.fullName) ? (parseSensitiveField(s.fullName, user.id) as string) : (s.fullName || 'Unknown'),
       dateOfBirth: isEncrypted(s.dateOfBirth) ? (parseSensitiveField(s.dateOfBirth, user.id) as string) : (s.dateOfBirth || ''),
       tentativeTime: isEncrypted(s.tentativeTime) ? (parseSensitiveField(s.tentativeTime, user.id) as string) : (s.tentativeTime || ''),

@@ -170,7 +170,7 @@ export const AnalysisStatusBanner = memo(function AnalysisStatusBanner({
           </div>
           <div className="h-1.5 bg-[rgba(0,0,0,0.08)] rounded-full overflow-hidden">
             <motion.div
-              className="h-full bg-gradient-to-r from-[#000000] to-[#000000] rounded-full"
+              className="h-full bg-black rounded-full"
               initial={{ width: 0 }}
               animate={{ width: `${progressPercent}%` }}
               transition={{ duration: 0.5 }}

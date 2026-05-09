@@ -15,6 +15,13 @@ function ResultsDashboardContent(props: ResultsDashboardProps) {
 
     return (
         <div className="min-h-screen font-sans" style={{ backgroundColor: THEME.bg, color: THEME.textPrimary }}>
+            {engine.error && (
+                <div className="max-w-7xl mx-auto px-6 mt-4">
+                    <div className="p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+                        ⚠️ {engine.error}
+                    </div>
+                </div>
+            )}
             <ActionNav
                 sessionId={props.sessionId}
                 isCloning={engine.isCloning}

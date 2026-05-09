@@ -370,7 +370,7 @@ export default function BirthPlacePicker({ birthPlace, latitude, longitude, time
               <option value="12">UTC+12:00 (New Zealand)</option>
             </select>
           </div>
-          <button type="button" onClick={applyManualLocationInput} className="w-full h-10 bg-gradient-to-r from-[#000000] to-[#000000] text-white font-medium rounded-lg hover:shadow-md transition-all text-sm">Apply Coordinates</button>
+          <button type="button" onClick={applyManualLocationInput} className="w-full h-10 bg-black text-white font-medium rounded-lg hover:shadow-md transition-all text-sm">Apply Coordinates</button>
           {latitude !== undefined && longitude !== undefined && latitude !== 0 && longitude !== 0 && (
             <div className="p-3 bg-[#184131]/5 border border-[#184131]/20 rounded-lg text-xs">
               <span className="text-[#184131] font-medium">✓ Current:</span>
@@ -385,7 +385,7 @@ export default function BirthPlacePicker({ birthPlace, latitude, longitude, time
         <div className="space-y-3">
           <div className="flex gap-2">
             <input type="text" value={mapQuery} onChange={(e) => setMapQuery(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleMapSearch()} className="flex-1 h-10 px-4 bg-white border border-[#E8E0D5] rounded-lg text-black text-sm focus:border-[#000000] outline-none" placeholder="Search location..." />
-            <button type="button" onClick={handleMapSearch} className="px-4 h-10 bg-gradient-to-r from-[#000000] to-[#000000] text-white font-medium rounded-lg hover:shadow-md transition-all text-sm">Search</button>
+            <button type="button" onClick={handleMapSearch} className="px-4 h-10 bg-black text-white font-medium rounded-lg hover:shadow-md transition-all text-sm">Search</button>
           </div>
           <InteractiveMap center={mapCenter} zoom={mapZoom} marker={mapMarker} onLocationSelect={async (lat, lng) => {
             setMapMarker({ lat, lng });

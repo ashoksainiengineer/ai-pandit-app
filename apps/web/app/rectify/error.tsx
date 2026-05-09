@@ -32,7 +32,7 @@ export default function RectifyError({ error, reset }: ErrorBoundaryProps) {
           <div className="flex flex-col gap-3">
             <button
               onClick={reset}
-              className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-[#000000] to-[#000000] text-white font-medium rounded-xl hover:opacity-90 transition-opacity"
+              className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-black text-white font-medium rounded-xl hover:opacity-90 transition-opacity"
             >
               <RefreshCw className="w-4 h-4" />
               Try Again

@@ -16,12 +16,11 @@ import {
   Lock as LockIcon,
   BarChart3,
   Timer,
+  Activity,
 } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
-import AIThinkingBox from '@/components/landing/AIThinkingBox';
-import EphemerisTable from '@/components/landing/EphemerisTable';
-import CandidateComparisonTable from '@/components/landing/CandidateComparisonTable';
+import LivePipelineDemo from '@/components/landing/LivePipelineDemo';
 
 /* ═══════════════════════════════════════════════════════════════════════════════
    ANIMATION VARIANTS — Easing curves
@@ -63,30 +62,48 @@ const HERO_STATS = [
 const FEATURES_LIST = [
   {
     number: '01',
-    title: 'Enter your birth details',
-    description: 'Provide your date, approximate time, and birthplace. Even rough estimates work — our AI narrows it down to seconds-level precision using NASA JPL ephemeris data.',
+    title: 'Birth Data Ingestion',
+    description: 'Your date, approximate time, and birthplace feed into the engine. Even rough estimates (±2 hours) work — the AI narrows down from there using NASA JPL DE440 ephemeris data accurate to ±0.0001°.',
     active: true,
   },
   {
     number: '02',
-    title: 'Share life events',
-    description: 'Provide 3+ significant life events with dates — marriage, career milestones, relocation, health events. The system cross-references them against Vimshottari Dasha periods.',
+    title: 'Rashi Grid Synthesis',
+    description: 'Thousands of candidate birth times are generated within your uncertainty window. Each candidate gets a full planetary chart — Sun, Moon, Ascendant, and all nine grahas positioned to arc-second precision.',
     active: false,
   },
   {
     number: '03',
-    title: 'Get precise results',
-    description: 'Our AI analyzes your data through a 6-stage pipeline using NASA JPL ephemeris data and Vedic astrology algorithms to determine your rectified birth time.',
+    title: 'Dasha-Verified Elimination',
+    description: 'Vimshottari Dasha periods (120-year life cycle) are calculated for every candidate. Times that don\'t align with your provided life events — marriage, career, relocation — are eliminated. Only event-matching candidates survive.',
+    active: false,
+  },
+  {
+    number: '04',
+    title: 'KP Sub-Lord Precision',
+    description: 'Krishnamurti Paddhati sub-lord analysis divides each sign into 249 subdivisions. Only candidates where planetary sub-periods match event timing advance. This eliminates 60-80% of remaining candidates.',
+    active: false,
+  },
+  {
+    number: '05',
+    title: 'Shadbala & Divisional Validation',
+    description: 'Six-fold planetary strength (Shadbala) is computed. D9 Navamsha, D10 Dashamsha, and D60 Shashtiamsha divisional charts validate survivors. Weak planetary placements and incorrect house lords are rejected by the AI.',
+    active: false,
+  },
+  {
+    number: '06',
+    title: 'Prana-Dasha Convergence',
+    description: 'Final 48-second precision window. The AI synthesizes all five methods — Dasha, Transit, KP, Shadbala, and Nadi — into a consensus verdict. The optimal birth time emerges with a confidence score and supporting evidence.',
     active: false,
   },
 ];
 
 const PRIVACY_FEATURES = [
-  { label: 'Encrypt birth data', active: true },
-  { label: 'Auto-delete sessions', active: false },
-  { label: 'Anonymous analysis', active: true },
-  { label: 'No data sharing', active: true },
-  { label: 'Export your data', active: false },
+  { label: 'AES-256-GCM Encryption', active: true },
+  { label: 'Client-Side Encryption', active: true },
+  { label: 'Per-User Unique Keys', active: true },
+  { label: 'Zero-Access Architecture', active: true },
+  { label: 'Auto-Expiring Sessions', active: true },
 ];
 
 
@@ -100,7 +117,7 @@ function Hero() {
   const opacity = useTransform(scrollY, [0, 400], [1, 0]);
 
   const [wordIndex, setWordIndex] = useState(0);
-  const animatedWords = ['precision', 'accuracy', 'clarity'];
+  const animatedWords = ['precision', 'depth', 'certainty'];
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -334,9 +351,7 @@ function HowItWorks() {
                 exit={{ opacity: 0, y: -8 }}
                 transition={{ duration: 0.25, ease: [0.215, 0.61, 0.355, 1] }}
               >
-                {activeFeature === 0 && <EphemerisTable />}
-                {activeFeature === 1 && <AIThinkingBox />}
-                {activeFeature === 2 && <CandidateComparisonTable />}
+                <LivePipelineDemo />
               </motion.div>
             </AnimatePresence>
           </motion.div>
@@ -352,84 +367,67 @@ function HowItWorks() {
    Categorized grid with brand-color dots, Dia aesthetic
    ═══════════════════════════════════════════════════════════════════════════════ */
 
-const TECH_STACK = {
-  Frontend: [
-    { name: 'Next.js', color: '#000000' },
-    { name: 'React', color: '#61DAFB' },
-    { name: 'TypeScript', color: '#3178C6' },
-    { name: 'Tailwind CSS', color: '#06B6D4' },
-    { name: 'Framer Motion', color: '#0055FF' },
-  ],
-  Backend: [
-    { name: 'Node.js', color: '#5FA04E' },
-    { name: 'Express', color: '#000000' },
-    { name: 'Python', color: '#3776AB' },
-    { name: 'FastAPI', color: '#009688' },
-  ],
-  'Data & AI': [
-    { name: 'PostgreSQL', color: '#4169E1' },
-    { name: 'Redis', color: '#FF4438' },
-    { name: 'Drizzle ORM', color: '#C5F74F' },
-    { name: 'DeepSeek', color: '#4D6BFE' },
-  ],
-  Infrastructure: [
-    { name: 'Google Cloud Run', color: '#4285F4' },
-    { name: 'Vercel', color: '#000000' },
-    { name: 'Clerk', color: '#6C47FF' },
-    { name: 'Upstash', color: '#00E9A3' },
-  ],
-};
+const TECH_LOGOS = [
+  { name: 'Next.js', icon: 'nextdotjs' },
+  { name: 'React', icon: 'react' },
+  { name: 'TypeScript', icon: 'typescript' },
+  { name: 'Tailwind', icon: 'tailwindcss' },
+  { name: 'Node.js', icon: 'nodedotjs' },
+  { name: 'Express', icon: 'express' },
+  { name: 'Python', icon: 'python' },
+  { name: 'FastAPI', icon: 'fastapi' },
+  { name: 'PostgreSQL', icon: 'postgresql' },
+  { name: 'Redis', icon: 'redis' },
+  { name: 'Framer', icon: 'framer' },
+  { name: 'Vercel', icon: 'vercel' },
+  { name: 'GCP', icon: 'googlecloud' },
+];
 
 function TechStack() {
   return (
-    <section className="py-32 relative bg-[var(--prism-canvas)]">
-      <div className="app-container">
-        <motion.div {...fadeIn} className="text-center mb-16">
-          <span className="inline-flex items-center gap-2 px-4 py-2 bg-black/5 rounded-full text-xs font-medium text-black/60 uppercase tracking-wider mb-6">
-            Tech Stack
-          </span>
-          <h2 className="text-4xl md:text-5xl lg:text-6xl font-light text-black leading-[1.1] tracking-[-0.04em]">
-            Built with modern tools
-          </h2>
+    <section className="py-24 relative bg-white">
+      <div className="max-w-4xl mx-auto px-6">
+        <motion.div {...fadeIn} className="text-center mb-14">
+          <p className="text-xs font-medium text-black/20 uppercase tracking-widest">
+            Powered by
+          </p>
         </motion.div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-          {Object.entries(TECH_STACK).map(([category, tools], ci) => (
+        {/* Industry-standard logo grid: grayscale, uniform, hover→color */}
+        <div className="flex flex-wrap items-center justify-center gap-x-10 gap-y-7">
+          {TECH_LOGOS.map((tech, i) => (
             <motion.div
-              key={category}
-              initial={{ opacity: 0, y: 20 }}
+              key={tech.name}
+              initial={{ opacity: 0, y: 10 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
-              transition={{ duration: 0.5, delay: ci * 0.1 }}
+              transition={{ duration: 0.4, delay: i * 0.05 }}
+              className="group flex items-center gap-2.5"
             >
-              <h4 className="text-[11px] font-medium text-black/30 uppercase tracking-widest mb-4 pl-1">
-                {category}
-              </h4>
-              <div className="space-y-2">
-                {tools.map((tool) => (
-                  <div
-                    key={tool.name}
-                    className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-white/60 transition-colors group"
-                  >
-                    <span
-                      className="w-2 h-2 rounded-full flex-shrink-0 ring-1 ring-black/5"
-                      style={{ backgroundColor: tool.color }}
-                    />
-                    <span className="text-sm text-[#636363] group-hover:text-black transition-colors">
-                      {tool.name}
-                    </span>
-                  </div>
-                ))}
-              </div>
+              <img
+                src={`https://cdn.jsdelivr.net/npm/simple-icons@latest/icons/${tech.icon}.svg`}
+                alt={tech.name}
+                className="h-6 w-auto flex-shrink-0 transition-all duration-300"
+                style={{ filter: 'grayscale(100%) opacity(0.2)' }}
+                onMouseEnter={(e) => {
+                  (e.target as HTMLImageElement).style.filter = 'grayscale(0%) opacity(1)';
+                }}
+                onMouseLeave={(e) => {
+                  (e.target as HTMLImageElement).style.filter = 'grayscale(100%) opacity(0.2)';
+                }}
+              />
+              <span className="text-[11px] text-black/15 group-hover:text-black/40 transition-colors hidden sm:inline">
+                {tech.name}
+              </span>
             </motion.div>
           ))}
         </div>
 
         <motion.p
           {...fadeIn}
-          className="text-center mt-12 text-xs text-black/20"
+          className="text-center mt-12 text-[11px] text-black/10"
         >
-          and many more open-source libraries
+          and more open-source libraries
         </motion.p>
       </div>
     </section>
@@ -489,9 +487,10 @@ function Privacy() {
             </div>
 
             {/* Description — text-black/40, max-w-md */}
-            <p className="text-black/40 max-w-md mx-auto mb-8 leading-relaxed">
-              Your birth data is encrypted with AES-256-GCM before it leaves your browser.
-              Each user gets a unique encryption key — we cannot read your data.
+            <p className="text-black/40 max-w-lg mx-auto mb-8 leading-relaxed text-sm">
+              Your birth data is <span className="text-black/60 font-medium">encrypted with AES-256-GCM</span> before it leaves your browser.
+              Each user gets a <span className="text-black/60 font-medium">unique encryption key</span> derived via scrypt KDF — even we cannot decrypt your data.
+              AI prompts are <span className="text-black/60 font-medium">fully anonymized</span>: only planetary positions and Dasha periods are sent to the model. No names, dates, or locations ever leave our secure pipeline.
             </p>
 
             {/* Learn more link — subtle text link */}

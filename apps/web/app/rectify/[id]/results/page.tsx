@@ -112,7 +112,7 @@ export default async function ResultsPage({ params }: { params: Promise<{ id: st
                         </Link>
                         <Link
                             href="/dashboard"
-                            className="px-6 py-3 bg-gradient-to-r from-[#000000] to-[#000000] text-white rounded-2xl font-medium hover:shadow-sm transition-all"
+                            className="px-6 py-3 bg-black text-white rounded-2xl font-medium hover:shadow-sm transition-all"
                         >
                             Go to Dashboard
                         </Link>

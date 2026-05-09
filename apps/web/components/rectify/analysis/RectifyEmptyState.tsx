@@ -29,7 +29,7 @@ export const RectifyErrorState = memo(function RectifyErrorState({ error, onRetr
             <p className="text-xs text-red-600 mt-2 max-w-2xl bg-red-50 p-4 rounded border border-red-200">{error}</p>
             <button
                 onClick={onRetry}
-                className="mt-8 px-6 py-3 rounded-xl font-medium text-white bg-gradient-to-r from-[#000000] to-[#000000] shadow-md flex items-center gap-2 hover:shadow-lg transition-all"
+                className="mt-8 px-6 py-3 rounded-xl font-medium text-white bg-black shadow-md flex items-center gap-2 hover:shadow-lg transition-all"
             >
                 <RefreshCw className="w-4 h-4" /> Retry
             </button>

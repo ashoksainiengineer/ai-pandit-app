@@ -7,6 +7,8 @@ import AnalysisErrorBoundary from '@/components/rectify/AnalysisErrorBoundary';
 import RectifyPageSkeleton from '@/components/rectify/RectifyPageSkeleton';
 import AutoSaveIndicator from '@/components/rectify/AutoSaveIndicator';
 import RectifySubmitBar from '@/components/rectify/RectifySubmitBar';
+import { SecurityBadge } from '@/components/rectify/SecurityBadge';
+import { StepIndicator } from '@/components/rectify/StepIndicator';
 import BirthDataForm from '@/components/rectify/BirthDataForm';
 import LifeEventsEditor from '@/components/rectify/LifeEventsEditor';
 import { useRectifyForm } from '@/hooks/use-rectify-form';
@@ -29,6 +31,8 @@ function RectifyPageContent() {
                 <AutoSaveIndicator status={form.cloudSaveStatus} />
 
                 <div className="pt-28 pb-24">
+                    <SecurityBadge />
+                    <StepIndicator step={form.step} totalSteps={3} labels={['Birth Details', 'Life Events', 'Review']} />
                     <div className="min-h-[400px]">
                         {form.step === 1 && (
                             <BirthDataForm

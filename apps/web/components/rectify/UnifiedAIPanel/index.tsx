@@ -129,7 +129,7 @@ export const UnifiedAIPanel = memo(function UnifiedAIPanel({
                                     <motion.div
                                         initial={{ width: 0 }}
                                         animate={{ width: `${Math.min(100, (candidatesList.length / 100) * 100)}%` }}
-                                        className="h-full bg-gradient-to-r from-[#000000] to-[#000000]"
+                                        className="h-full bg-black"
                                     />
                                 </div>
                             </div>

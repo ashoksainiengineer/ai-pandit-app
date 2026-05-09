@@ -290,7 +290,7 @@ export default function CustomEventModal({
                   (!isCreatingCategory && !selectedCategory) ||
                   (isCreatingCategory && !newCategoryName.trim())
                 }
-                className="flex-1 h-10 bg-gradient-to-r from-[#000000] to-[#000000] text-white font-medium rounded-lg hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-sm"
+                className="flex-1 h-10 bg-black text-white font-medium rounded-lg hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-sm"
               >
                 {isSubmitting ? (
                   <>
