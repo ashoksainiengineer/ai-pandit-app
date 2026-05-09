@@ -119,7 +119,7 @@ export function SpouseDetailsForm({
                             birthPlace={spouseData?.birthPlace || ''}
                             latitude={spouseData?.latitude || 0}
                             longitude={spouseData?.longitude || 0}
-                            timezone={parseFloat(spouseData?.timezone?.toString() || '5.5')}
+                            timezone={spouseData?.timezone != null ? Number(spouseData.timezone) : 5.5}
                             onUpdate={(updates) => updateSpouse?.(updates)}
                         />
                     </FormField>

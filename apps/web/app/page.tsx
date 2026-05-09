@@ -2,7 +2,7 @@
  * AI Pandit — Landing Page
  * AI Pandit Landing Page — Premium Redesign
  * sleek, minimal aesthetic with black pill CTAs
- * 6 sections: Hero, How It Works, Features, Tech Stack, Privacy, CTA
+ * 4 sections: Hero, How It Works, Tech Stack, Privacy
  */
 
 'use client';
@@ -12,19 +12,10 @@ import Link from 'next/link';
 import { motion, useScroll, useTransform, AnimatePresence } from 'framer-motion';
 import {
   ArrowRight,
-  Shield,
   ChevronDown,
-  Check,
-  Star,
-  Moon,
-  Calendar,
   Lock as LockIcon,
   BarChart3,
   Timer,
-  Radio,
-  Settings,
-  Activity,
-  FileText,
 } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
@@ -90,51 +81,6 @@ const FEATURES_LIST = [
   },
 ];
 
-const PRODUCT_CARDS = [
-  {
-    tag: 'Analysis',
-    title: 'Reports',
-    description: 'Generate comprehensive astrological reports with planetary positions, Dasha periods, and detailed interpretations.',
-    icon: FileText,
-    color: '#79C9FF',
-  },
-  {
-    tag: 'Real-time',
-    title: 'Live Work',
-    description: 'Watch your birth time rectification unfold live with real-time SSE streaming and stage-by-stage progress.',
-    icon: Radio,
-    color: '#FA3D1D',
-  },
-  {
-    tag: 'Validation',
-    title: 'Multi-Method Validation',
-    description: 'Cross-validate with Dasha, Transit, KP Sublords, and Shadbala — five independent Vedic methods, one consensus result.',
-    icon: Check,
-    color: '#FFB005',
-  },
-  {
-    tag: 'Security',
-    title: 'End-to-End Encryption',
-    description: 'Your birth data is encrypted with AES-256-GCM before it leaves your browser. Per-user unique encryption keys.',
-    icon: Shield,
-    color: '#FD02F5',
-  },
-  {
-    tag: 'Precision',
-    title: 'Splits',
-    description: 'Compare multiple candidate birth times side-by-side with detailed scoring and confidence intervals.',
-    icon: BarChart3,
-    color: '#0358F7',
-  },
-  {
-    tag: 'Organization',
-    title: 'Session Dashboard',
-    description: 'Manage all your birth time analyses in one clean dashboard. Compare results, revisit past sessions, and export detailed reports.',
-    icon: Settings,
-    color: '#C679C4',
-  },
-];
-
 const PRIVACY_FEATURES = [
   { label: 'Encrypt birth data', active: true },
   { label: 'Auto-delete sessions', active: false },
@@ -144,33 +90,6 @@ const PRIVACY_FEATURES = [
 ];
 
 
-/* ═══════════════════════════════════════════════════════════════════════════════
-   COMPONENT — Floating Card (Hero decorative UI)
-   ═══════════════════════════════════════════════════════════════════════════════ */
-
-function FloatingCard({
-  children,
-  className = '',
-  delay = 0,
-  style = {},
-}: {
-  children: React.ReactNode;
-  className?: string;
-  delay?: number;
-  style?: React.CSSProperties;
-}) {
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 20, scale: 0.95 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
-      transition={{ duration: 0.7, delay, ease: [0.16, 1, 0.3, 1] }}
-      className={`absolute bg-white/90 backdrop-blur-xl rounded-2xl shadow-lg border border-black/5 p-4 ${className}`}
-      style={style}
-    >
-      {children}
-    </motion.div>
-  );
-}
 
 /* ═══════════════════════════════════════════════════════════════════════════════
    COMPONENT — Hero Section
@@ -178,7 +97,6 @@ function FloatingCard({
 
 function Hero() {
   const { scrollY } = useScroll();
-  const y1 = useTransform(scrollY, [0, 500], [0, -50]);
   const opacity = useTransform(scrollY, [0, 400], [1, 0]);
 
   const [wordIndex, setWordIndex] = useState(0);
@@ -208,76 +126,6 @@ function Hero() {
       <div className="absolute bottom-[-5%] right-[10%] w-[400px] h-[400px] rounded-full bg-[#a8c4e8]/20 blur-[100px] pointer-events-none" />
       <div className="absolute top-[40%] right-[5%] w-[300px] h-[300px] rounded-full bg-[#b8d3ee]/25 blur-[80px] pointer-events-none" />
 
-      {/* Floating UI Cards — 4 absolute-positioned, frosted glass, staggered */}
-      <motion.div style={{ y: y1 }} className="absolute inset-0 pointer-events-none">
-        {/* Card 1: Top-left */}
-        <FloatingCard
-          className="hidden lg:block"
-          delay={0.3}
-          style={{ left: '8%', top: '18%' }}
-        >
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-black/5 flex items-center justify-center">
-              <Moon className="w-5 h-5 text-black/60" />
-            </div>
-            <div>
-              <div className="text-sm font-medium text-black">Dasha Analysis</div>
-              <div className="text-xs text-black/40">Vimshottari periods</div>
-            </div>
-          </div>
-        </FloatingCard>
-
-        {/* Card 2: Top-right */}
-        <FloatingCard
-          className="hidden lg:block"
-          delay={0.5}
-          style={{ right: '10%', top: '15%' }}
-        >
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-black/5 flex items-center justify-center">
-              <Activity className="w-5 h-5 text-black/60" />
-            </div>
-            <div>
-              <div className="text-sm font-medium text-black">Transit Check</div>
-              <div className="text-xs text-black/40">Real-time positions</div>
-            </div>
-          </div>
-        </FloatingCard>
-
-        {/* Card 3: Bottom-left */}
-        <FloatingCard
-          className="hidden lg:block"
-          delay={0.7}
-          style={{ left: '5%', bottom: '25%' }}
-        >
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-black/5 flex items-center justify-center">
-              <Star className="w-5 h-5 text-black/60" />
-            </div>
-            <div>
-              <div className="text-sm font-medium text-black">97% Confidence</div>
-              <div className="text-xs text-black/40">High accuracy match</div>
-            </div>
-          </div>
-        </FloatingCard>
-
-        {/* Card 4: Bottom-right */}
-        <FloatingCard
-          className="hidden lg:block"
-          delay={0.9}
-          style={{ right: '8%', bottom: '30%' }}
-        >
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-black/5 flex items-center justify-center">
-              <Calendar className="w-5 h-5 text-black/60" />
-            </div>
-            <div>
-              <div className="text-sm font-medium text-black">Birth Chart</div>
-              <div className="text-xs text-black/40">Natal analysis ready</div>
-            </div>
-          </div>
-        </FloatingCard>
-      </motion.div>
 
       {/* Hero Content */}
       <motion.div
@@ -498,59 +346,6 @@ function HowItWorks() {
   );
 }
 
-/* ═══════════════════════════════════════════════════════════════════════════════
-   COMPONENT — Features Section (id="features")
-   2x3 card grid — clean white cards, subtle borders, no colored gradients
-   ═══════════════════════════════════════════════════════════════════════════════ */
-
-function Features() {
-  return (
-    <section id="features" className="relative bg-white py-32">
-      <div className="app-container">
-        {/* Section Header */}
-        <motion.div {...fadeIn} className="text-center mb-20">
-          <span className="inline-flex items-center gap-2 px-4 py-2 bg-black/5 rounded-full text-xs font-medium text-black/60 uppercase tracking-wider mb-6">
-            Features
-          </span>
-          <h2 className="text-4xl md:text-5xl lg:text-6xl font-light text-black leading-[1.1] tracking-[-0.04em]">
-            Powered by ancient<br />wisdom & modern AI
-          </h2>
-        </motion.div>
-
-        {/* 2x3 Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {PRODUCT_CARDS.map((card, index) => {
-            const Icon = card.icon;
-            return (
-              <motion.div
-                key={card.title}
-                {...staggerItem}
-                transition={{ ...staggerItem.transition, delay: index * 0.08 }}
-                className="group relative bg-white rounded-[20px] p-8 border border-black/5 hover:shadow-md hover:-translate-y-0.5 transition-all duration-300"
-              >
-                {/* Tag + Icon row */}
-                <div className="flex items-start justify-between mb-6">
-                  {/* Tag pill — subtle gray */}
-                  <span className="px-3 py-1 rounded-full text-xs font-medium uppercase tracking-wider bg-black/5 text-black/50">
-                    {card.tag}
-                  </span>
-                  {/* Icon — 48x48 rounded-2xl, subtle gray bg */}
-                  <div className="w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0 bg-black/5">
-                    <Icon className="w-5 h-5 text-black/40" />
-                  </div>
-                </div>
-
-                {/* Title + Description */}
-                <h3 className="text-2xl font-medium text-black mb-3">{card.title}</h3>
-                <p className="text-black/50 leading-relaxed">{card.description}</p>
-              </motion.div>
-            );
-          })}
-        </div>
-      </div>
-    </section>
-  );
-}
 
 /* ═══════════════════════════════════════════════════════════════════════════════
    COMPONENT — Tech Stack Section
@@ -715,40 +510,6 @@ function Privacy() {
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════════
-   COMPONENT — CTA Section
-   Centered heading + black pill button + free subtext
-   ═══════════════════════════════════════════════════════════════════════════════ */
-
-function CTA() {
-  return (
-    <section className="app-section py-32 relative bg-white">
-      <div className="max-w-[800px] mx-auto px-6 text-center">
-        <motion.div {...fadeIn}>
-          {/* Heading — 50px+ font-light */}
-          <h2 className="text-4xl md:text-5xl lg:text-6xl font-light text-black leading-[1.1] tracking-[-0.04em] mb-8">
-            Ready for a better<br />birth time?
-          </h2>
-
-          {/* Primary CTA — black pill button */}
-          <Link
-            href="/rectify"
-            className="app-btn group inline-flex items-center gap-3 px-10 py-5 text-lg mb-6"
-          >
-            Start Your Analysis
-            <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-          </Link>
-
-          {/* Subtext — text-black/30 text-sm */}
-          <p className="text-black/30 text-sm">
-            Free analysis. No credit card required.
-          </p>
-        </motion.div>
-      </div>
-    </section>
-  );
-}
-
-/* ═══════════════════════════════════════════════════════════════════════════════
    MAIN PAGE — Assembles all 5 sections in order
    ═══════════════════════════════════════════════════════════════════════════════ */
 
@@ -758,10 +519,8 @@ export default function LandingPage() {
       <Navbar transparent />
       <Hero />
       <HowItWorks />
-      <Features />
       <TechStack />
       <Privacy />
-      <CTA />
       <Footer />
     </main>
   );

@@ -72,7 +72,10 @@ export function DashboardClient({ initialSessions, userName }: DashboardClientPr
 
   // Debounce search to avoid O(n) filtering on every keystroke
   useEffect(() => {
-    const timer = setTimeout(() => setSearchQuery(searchInput), 300);
+    const timer = setTimeout(() => {
+      setSearchQuery(searchInput);
+      setCurrentPage(1); // Reset to page 1 when search changes
+    }, 300);
     return () => clearTimeout(timer);
   }, [searchInput]);
 

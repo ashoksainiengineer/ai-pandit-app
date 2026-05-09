@@ -5,6 +5,7 @@ import { sessions } from '@ai-pandit/db/schema';
 import { and, eq, inArray } from 'drizzle-orm';
 import { setFavorite, toggleFavorite } from '@/lib/server/favorite-store';
 import { getBuildPhaseRouteResponse } from '@/lib/server/build-phase-route-guard';
+import { logger } from '@/lib/secure-logger';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';

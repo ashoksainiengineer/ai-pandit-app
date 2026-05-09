@@ -3,6 +3,7 @@ import { auth } from '@clerk/nextjs/server';
 import { db } from '@ai-pandit/db';
 import { sessions } from '@ai-pandit/db/schema';
 import { and, eq } from 'drizzle-orm';
+import { logger } from '@/lib/secure-logger';
 import { setFavorite, toggleFavorite } from '@/lib/server/favorite-store';
 import { getBuildPhaseRouteResponse } from '@/lib/server/build-phase-route-guard';
 

@@ -7,35 +7,21 @@
 
 import React, { memo } from 'react';
 import Link from 'next/link';
-import { Github, Twitter, Mail } from 'lucide-react';
+import { Mail } from 'lucide-react';
 
 const footerLinks = {
   Product: [
     { href: '/rectify', label: 'Start Analysis' },
     { href: '/dashboard', label: 'Dashboard' },
     { href: '/#how-it-works', label: 'How It Works' },
-    { href: '/#features', label: 'Features' },
-  ],
-  Resources: [
-    { href: '#', label: 'Documentation' },
-    { href: '#', label: 'API Reference' },
   ],
   Company: [
-    { href: '#', label: 'About' },
-    { href: '#', label: 'Blog' },
-    { href: '#', label: 'Careers' },
-    { href: '#', label: 'Contact' },
-  ],
-  Legal: [
     { href: '/privacy', label: 'Privacy Policy' },
     { href: '/terms', label: 'Terms of Service' },
-    { href: '#', label: 'Cookie Policy' },
   ],
 };
 
 const socialLinks = [
-  { label: 'GitHub', href: '#', icon: Github },
-  { label: 'Twitter', href: '#', icon: Twitter },
   { label: 'Email', href: 'mailto:app.aipandit@gmail.com', icon: Mail },
 ];
 
@@ -45,7 +31,7 @@ export default memo(function Footer() {
   return (
     <footer className="bg-white border-t border-black/[0.05]">
       <div className="max-w-[1200px] mx-auto px-6 py-20">
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-10 md:gap-16">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-10 md:gap-16">
           {/* Brand Column */}
           <div className="col-span-2">
             <Link href="/" className="flex items-center gap-3 mb-6">

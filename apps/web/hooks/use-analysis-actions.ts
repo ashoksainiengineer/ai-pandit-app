@@ -21,9 +21,9 @@ export function useAnalysisActions(sessionId: string) {
             const res = await cancelAnalysis(sessionId);
             if (res.success) {
                 setCancelled(true);
-                // Close stream connection to prevent stale data
                 useStreamStore.getState().clearStore();
-                setError(`Failed to cancel: ${res.error}`);
+            } else {
+                setError(`Failed to cancel: ${res.error || 'Unknown error'}`);
             }
         } catch (err: unknown) {
             logger.error('Cancel call failed', err);
