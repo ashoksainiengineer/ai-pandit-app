@@ -132,9 +132,9 @@ export const SessionCard = memo(function SessionCard({
   const { getToken } = useAuth();
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
-  const [deleteError, setDeleteError] = useState<string | null>(null);
-  const [isCloning, setIsCloning] = useState(false);
-
+    const [deleteError, setDeleteError] = useState<string | null>(null);
+    const [isCloning, setIsCloning] = useState(false);
+    const [cloneError, setCloneError] = useState<string | null>(null);
   const status = statusConfig[session.status as keyof typeof statusConfig] || statusConfig.draft;
   const confidence = session.confidence ? confidenceConfig[session.confidence as keyof typeof confidenceConfig] : null;
 
@@ -243,19 +243,20 @@ export const SessionCard = memo(function SessionCard({
         }
 
         if (!isReady) {
-          alert('Session duplicated, but it is still syncing. Please retry in a few seconds.');
+          // Use inline message instead of alert()
+          setCloneError('Session duplicated, but it is still syncing. Please retry in a few seconds.');
+          setIsCloning(false);
           return;
         }
 
         router.push(`/rectify/${data.data.id}/edit`);
       } else {
         logger.error('Failed to clone session', new Error(data.error || 'Failed to clone session'));
-        alert('Failed to clone session: ' + (data.error || 'Unknown error'));
+        setCloneError('Failed to clone session: ' + (data.error || 'Unknown error'));
       }
     } catch (error: unknown) {
       logger.error('Clone error', error);
-      alert('Clone failed: ' + (error as Error).message);
-    } finally {
+      setCloneError('Clone failed: ' + (error as Error).message);
       setIsCloning(false);
     }
   }, [getToken, onDuplicate, router, session.id]);
@@ -584,6 +585,19 @@ export const SessionCard = memo(function SessionCard({
           <Trash2 className="w-4 h-4 sm:w-5 sm:h-5" />
         </button>
       </div>
+
+      {/* Clone Error */}
+      {cloneError && (
+        <div className="mt-2 p-2.5 bg-amber-50 border border-amber-200 rounded-lg">
+          <p className="text-xs text-amber-700">{cloneError}</p>
+          <button
+            onClick={() => setCloneError(null)}
+            className="text-xs text-amber-500 hover:text-amber-700 mt-1 underline"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
 
       {/* Duplication Loading Overlay */}
       <LoadingOverlay

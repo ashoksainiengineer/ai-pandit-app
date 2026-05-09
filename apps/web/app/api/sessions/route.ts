@@ -2,10 +2,14 @@ import { NextRequest, NextResponse } from 'next/server';
 import { logger } from '@/lib/secure-logger';
 import { env } from '@/lib/config/env';
 import { randomUUID } from 'crypto';
+import { db } from '@ai-pandit/db';
+import { sessions, users } from '@ai-pandit/db/schema';
+import { eq, desc } from 'drizzle-orm';
 import { auth, currentUser } from '@clerk/nextjs/server';
 import { parseSensitiveField, encrypt, initializeEncryption } from '@/lib/crypto';
 import { ensureUserRecord } from '@/lib/server/user-sync';
 import { getProtectedFieldsPresent } from '@/lib/server/session-write-guards';
+import { getFavoriteSetForSessions } from '@/lib/server/favorite-store';
 import { getBuildPhaseRouteResponse } from '@/lib/server/build-phase-route-guard';
 import { proxyBackendJson } from '@/lib/server/backend-proxy';
 
@@ -14,56 +18,99 @@ export const dynamic = 'force-dynamic';
 
 initializeEncryption(env.security.encryptionSecret);
 
-// ── Common helpers ──────────────────────────────────────────────────────────
-
 const INTERNAL_ERROR = 'An internal error occurred. Please try again.';
 
 /**
- * GET /api/sessions — Proxied to Express API (single source of truth).
+ * GET /api/sessions — Direct DB query (fast, reliable, correct encryption).
  *
- * WHY PROXY: Previously this route queried the DB directly with its own
- * encryption context. Now it delegates to the Express API which is the
- * canonical session data layer. This eliminates:
- *   1. Dual encryption paths (Web vs API)
- *   2. Dual DB query logic
- *   3. Dual auth validation
+ * Dashboard is our most critical page. Users spend the most time here.
+ * We query DB directly with proper encryption context because:
+ *   1. Proxy to Express API adds latency + failure point
+ *   2. Express API uses clerkId as primary decrypt key — but data was
+ *      encrypted with UUID by the Web BFF, causing fallback decryption
+ *   3. Direct DB ensures encrypted text NEVER appears on dashboard
  */
-export async function GET(req: NextRequest) {
+export async function GET(_req: NextRequest) {
   const buildPhaseResponse = getBuildPhaseRouteResponse();
   if (buildPhaseResponse) return buildPhaseResponse;
 
   const requestId = randomUUID().slice(0, 8);
 
   try {
-    // Delegate entirely to Express API
-    const response = await proxyBackendJson(req, { path: '/api/sessions' });
-
-    // If proxy returned a non-OK response, log but return as-is
-    if (response.status >= 500) {
-      logger.error('[Sessions] Backend proxy returned error', {
-        status: response.status,
-        requestId,
-      });
+    const { userId: clerkId } = await auth();
+    if (!clerkId) {
+      return NextResponse.json(
+        { success: false, error: 'Session expired. Please sign in again.' },
+        { status: 401 },
+      );
     }
 
-    return response;
+    // Resolve internal user
+    const user = await db.query.users.findFirst({
+      where: eq(users.clerkId, clerkId),
+    });
+
+    if (!user) {
+      return NextResponse.json({ success: true, data: [] });
+    }
+
+    // Fetch sessions owned by this user
+    const userSessions = await db
+      .select()
+      .from(sessions)
+      .where(eq(sessions.userId, user.id))
+      .orderBy(desc(sessions.createdAt));
+
+    // Load favorites (non-critical — don't fail the request)
+    let favoriteSet: Set<string> = new Set();
+    try {
+      favoriteSet = await getFavoriteSetForSessions(
+        clerkId,
+        userSessions.map((s) => s.id),
+      );
+    } catch {
+      // Favorites unavailable — continue without them
+    }
+
+    // Decrypt PII fields using the CORRECT key: user.id (UUID)
+    // clerkId is passed as fallback for API-encrypted data compatibility
+    const parsedSessions = userSessions.map((s) => ({
+      ...s,
+      isFavorite: favoriteSet.has(s.id),
+      fullName: parseSensitiveField(s.fullName, user.id, clerkId),
+      dateOfBirth: parseSensitiveField(s.dateOfBirth, user.id, clerkId),
+      tentativeTime: parseSensitiveField(s.tentativeTime, user.id, clerkId),
+      birthPlace: parseSensitiveField(s.birthPlace, user.id, clerkId),
+      lifeEvents: parseSensitiveField(s.lifeEvents, user.id, clerkId, []),
+      spouseData: parseSensitiveField(s.spouseData, user.id, clerkId),
+      offsetConfig: parseSensitiveField(s.offsetConfig, user.id, clerkId),
+    }));
+
+    return NextResponse.json({ success: true, data: parsedSessions });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : String(error);
-    logger.error('[Sessions] Proxy error', { error: message, requestId });
+    logger.error('[Sessions] GET failed', { error: message, requestId });
+
+    const isTransient =
+      message.includes('timeout') ||
+      message.includes('connection') ||
+      message.includes('network');
+
     return NextResponse.json(
-      { success: false, error: INTERNAL_ERROR },
-      { status: 502 },
+      {
+        success: false,
+        error: isTransient
+          ? 'Service temporarily unavailable. Please try again.'
+          : INTERNAL_ERROR,
+      },
+      { status: isTransient ? 503 : 500 },
     );
   }
 }
 
 /**
- * POST /api/sessions — Create a new session locally then notify backend.
- *
- * Session creation stays local because it requires Clerk's currentUser()
- * for email/name extraction, and we need the user record created before
- * the backend can reference it. After creation, the backend can serve
- * the session via the proxy above.
+ * POST /api/sessions — Create session locally (needs Clerk currentUser).
+ * Writes proxy to Express API for consistency.
  */
 export async function POST(req: NextRequest) {
   const buildPhaseResponse = getBuildPhaseRouteResponse();
@@ -136,10 +183,8 @@ export async function POST(req: NextRequest) {
       updatedAt: new Date().toISOString(),
     };
 
-    // Create session in DB so it's immediately available via the proxy
-    const { db } = await import('@ai-pandit/db');
-    const { sessions } = await import('@ai-pandit/db/schema');
-    await db.insert(sessions).values(newSession);
+    const { sessions: sessionsTable } = await import('@ai-pandit/db/schema');
+    await db.insert(sessionsTable).values(newSession);
 
     return NextResponse.json({
       success: true,
