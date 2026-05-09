@@ -253,21 +253,24 @@ function Hero() {
           transition={{ duration: 0.6, delay: 1.1 }}
           className="mt-12"
         >
-          <p className="text-center text-[10px] font-medium text-black/15 uppercase tracking-widest mb-4">
-            Powered by
-          </p>
+          <p className="text-center text-[10px] font-medium text-black/25 uppercase tracking-widest mb-4">Powered by
+</p>
           <div className="flex flex-wrap items-center justify-center gap-5">
             {TECH_LOGOS.map((tech) => (
               <div key={tech.name} className="flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-white/50 transition-colors group">
-                <img
-                  src={`https://cdn.jsdelivr.net/npm/simple-icons@latest/icons/${tech.icon}.svg`}
-                  alt={tech.name}
-                  className="h-5 w-auto flex-shrink-0 transition-all duration-300"
-                  style={{ filter: 'grayscale(100%) opacity(0.3)' }}
-                  onMouseEnter={(e) => { (e.target as HTMLImageElement).style.filter = 'grayscale(0%) opacity(1)'; }}
-                  onMouseLeave={(e) => { (e.target as HTMLImageElement).style.filter = 'grayscale(100%) opacity(0.3)'; }}
-                />
-                <span className="text-[11px] text-black/25 group-hover:text-black/60 transition-colors">
+                {tech.icon ? (
+                  <img
+                    src={`https://cdn.jsdelivr.net/npm/simple-icons@latest/icons/${tech.icon}.svg`}
+                    alt={tech.name}
+                    className="h-5 w-auto flex-shrink-0 transition-all duration-300"
+                    style={{ filter: 'grayscale(100%) opacity(0.5)' }}
+                    onMouseEnter={(e) => { (e.target as HTMLImageElement).style.filter = 'grayscale(0%) opacity(1)'; }}
+                    onMouseLeave={(e) => { (e.target as HTMLImageElement).style.filter = 'grayscale(100%) opacity(0.5)'; }}
+                  />
+                ) : (
+                  <span className="w-2 h-2 rounded-full flex-shrink-0 ring-1 ring-black/10 bg-black/20" />
+                )}
+                <span className="text-[11px] text-black/35 group-hover:text-black/60 transition-colors">
                   {tech.name}
                 </span>
               </div>
@@ -397,19 +400,15 @@ function HowItWorks() {
    ═══════════════════════════════════════════════════════════════════════════════ */
 
 const TECH_LOGOS = [
-  { name: 'Next.js', icon: 'nextdotjs' },
-  { name: 'React', icon: 'react' },
-  { name: 'TypeScript', icon: 'typescript' },
-  { name: 'Tailwind', icon: 'tailwindcss' },
-  { name: 'Node.js', icon: 'nodedotjs' },
-  { name: 'Express', icon: 'express' },
-  { name: 'Python', icon: 'python' },
-  { name: 'FastAPI', icon: 'fastapi' },
-  { name: 'PostgreSQL', icon: 'postgresql' },
-  { name: 'Redis', icon: 'redis' },
-  { name: 'Framer', icon: 'framer' },
+  { name: 'Google Cloud Run', icon: 'googlecloud' },
   { name: 'Vercel', icon: 'vercel' },
-  { name: 'GCP', icon: 'googlecloud' },
+  { name: 'Neon DB', icon: null },
+  { name: 'Clerk Auth', icon: null },
+  { name: 'Upstash', icon: null },
+  { name: 'Redis', icon: 'redis' },
+  { name: 'Python', icon: 'python' },
+  { name: 'TypeScript', icon: 'typescript' },
+  { name: 'Tailwind CSS', icon: 'tailwindcss' },
 ];
 
 
