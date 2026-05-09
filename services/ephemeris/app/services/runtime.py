@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import threading  # BUG-FIX: needed for threading.Lock()
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Any
@@ -29,7 +30,8 @@ class EphemerisRuntime:
         self._state = RuntimeState(kernel_file=settings.kernel_file)
         self._kernel = None
         self._timescale = None
-
+        self._loading = False  # BUG-FIX: guard against concurrent double-loading
+        self._loading_lock = threading.Lock()
     @property
     def state(self) -> RuntimeState:
         return self._state
@@ -79,9 +81,14 @@ class EphemerisRuntime:
         if self._kernel is not None and self._timescale is not None:
             return
 
-        import asyncio
-        loop = asyncio.get_running_loop()
+        # BUG-FIX: Guard against concurrent double-loading of kernel
+        if self._loading:
+            return  # another request is already loading
+
+        self._loading = True
         try:
+            import asyncio
+            loop = asyncio.get_running_loop()
             await loop.run_in_executor(None, self._load_kernel)
         except Exception as exc:
             self._state.ready = False
@@ -90,6 +97,8 @@ class EphemerisRuntime:
             raise ServiceInitializationError(
                 f"Failed to load ephemeris kernel {self._settings.kernel_file}: {exc}"
             ) from exc
+        finally:
+            self._loading = False
 
     def get_kernel(self) -> Any:
         self.ensure_loaded()

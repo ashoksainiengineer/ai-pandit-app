@@ -19,7 +19,7 @@ import {
 // QUEUE TYPES
 // ═════════════════════════════════════════════════════════════════════════════
 
-export type QueueStatus = 'queued' | 'processing' | 'complete' | 'failed';
+export type QueueStatus = 'queued' | 'processing' | 'complete' | 'failed' | 'cancelled';
 
 export interface QueuePosition {
   sessionId: string;
@@ -268,7 +268,7 @@ export interface CandidateScore {
   // Advanced God-Tier Properties
   timeString?: string;
   overallScore?: number;
-  confidenceLevel?: 'STANDARD_PRECISION' | 'VERY_HIGH' | 'HIGH' | 'MEDIUM' | 'LOW' | string;
+  confidenceLevel?: 'GOD_TIER' | 'STANDARD_PRECISION' | 'VERY_HIGH' | 'HIGH' | 'MEDIUM' | 'LOW';
   marginOfErrorSeconds?: number;
   methodScores?: Record<string, number>;
   eventMatches?: Array<Record<string, unknown>>;

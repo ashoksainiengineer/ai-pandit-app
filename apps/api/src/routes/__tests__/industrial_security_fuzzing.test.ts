@@ -40,6 +40,22 @@ vi.mock('../../lib/encryption/index.js', () => ({
     parseSensitiveField: vi.fn((field: any) => field || ''),
 }));
 
+vi.mock('../../lib/session-ownership.js', () => ({
+  isSessionOwnedByContext: vi.fn(() => true),
+  resolveSessionOwnershipContext: vi.fn(async (clerkId: string) => ({
+    clerkId,
+    internalUserId: null,
+  })),
+}));
+
+vi.mock('../../middleware/validation.js', () => ({
+  validateBody: () => (req: any, _res: any, next: any) => next(),
+  SessionUpdateSchema: {},
+}));
+
+vi.mock('../../lib/logger.js', () => ({
+  logger: { info: vi.fn(), error: vi.fn(), warn: vi.fn(), debug: vi.fn() },
+}));
 import sessionsRouter from '../sessions.js';
 
 function createApp() {

@@ -355,7 +355,6 @@ METHOD SCORES:
   Divisional Charts: ${String(precision.consensus.scores.varga).padStart(3)}% ${getScoreBar(precision.consensus.scores.varga)}
   Transit Analysis:  ${String(precision.consensus.scores.transit).padStart(3)}% ${getScoreBar(precision.consensus.scores.transit)}
   AI Reasoning:      ${String(precision.consensus.scores.ai).padStart(3)}% ${getScoreBar(precision.consensus.scores.ai)}
-  AI Reasoning:      ${String(precision.consensus.scores.ai).padStart(3)}% ${getScoreBar(precision.consensus.scores.ai)}
 
 ${precision.consensus.redFlags.conflictingMethods ? '⚠️ WARNING: Methods show significant disagreement' : '✅ All methods in agreement'}
 `;

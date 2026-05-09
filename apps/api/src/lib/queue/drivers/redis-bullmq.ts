@@ -1,7 +1,7 @@
 import { Redis as IORedis } from 'ioredis';
 import {
   claimNextQueuedJob,
-  countQueuedJobs,
+  countActiveJobs,
   getLatestJobForSession,
   listActiveJobs,
 } from '@ai-pandit/db/jobs';
@@ -63,8 +63,8 @@ export class RedisBullMqQueueDriver implements QueueDriver {
     return listActiveJobs();
   }
 
-  public countQueuedJobs() {
-    return countQueuedJobs();
+  public countActiveJobs() {
+    return countActiveJobs();
   }
 
   public async enqueueSession(sessionId: string): Promise<void> {
@@ -184,5 +184,15 @@ export class RedisBullMqQueueDriver implements QueueDriver {
       .returning();
 
     return claimedJob ?? null;
+  }
+
+  /**
+   * BUG-FIX: Gracefully disconnect the Redis client and clean up listeners.
+   * Should be called during graceful shutdown to prevent connection leaks.
+   */
+  async disconnect(): Promise<void> {
+    this.client.removeAllListeners('error');
+    await this.client.quit();
+    logger.info('Redis queue driver disconnected');
   }
 }

@@ -95,7 +95,10 @@ export function sendError(
 ): void {
   const statusCode = getErrorStatusCode(error);
   const errorResponse = getErrorResponse(error);
-  const details = (errorResponse.error as { details?: Record<string, unknown> }).details;
+  // BUG-FIX: Guard against error response not being an object
+  const details = (typeof errorResponse.error === 'object' && errorResponse.error !== null
+    ? (errorResponse.error as { details?: Record<string, unknown> }).details
+    : undefined);
   const retryAfterSeconds = typeof details?.retryAfterSeconds === 'number'
     ? details.retryAfterSeconds
     : typeof details?.retryAfter === 'number'

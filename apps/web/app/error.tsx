@@ -43,8 +43,9 @@ export default function ErrorBoundary({ error, reset }: ErrorBoundaryProps) {
           timestamp: new Date().toISOString(),
         }),
         keepalive: true,
-      }).catch(() => {
-        // Silently fail - error logging should never break the app
+      }).catch((err) => {
+        // BUG-FIX: Log failure so broken error pipeline is detectable
+        console.warn('[ErrorBoundary] Failed to report error:', err);
       });
     }
   }, [error, errorId]);

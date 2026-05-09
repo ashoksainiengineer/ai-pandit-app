@@ -20,7 +20,12 @@ export async function syncUser(clerkId: string): Promise<string> {
         level === 'error' ? '❌ [Self-Healing]' :
         level === 'warn' ? '⚠️ [Self-Healing]' :
         '🔄 [Self-Healing]';
-      logger[level]?.(`${prefix} ${message}`, meta);
+      // BUG-FIX: Pass undefined as error for error-level to avoid meta being cast as Error
+      if (level === 'error') {
+        logger.error(`${prefix} ${message}`, undefined, meta);
+      } else {
+        logger[level]?.(`${prefix} ${message}`, meta);
+      }
     },
     testBypass: clerkId === 'TEST_SCRIPT',
   });

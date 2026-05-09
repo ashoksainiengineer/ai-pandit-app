@@ -87,12 +87,10 @@ export default function Pricing() {
           </div>
 
           <div className="text-center">
-            <Link href="/rectify">
-              <button
-                className="w-full md:w-auto px-8 py-4 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-medium text-lg rounded-xl transition-all duration-300 hover:scale-[1.05] active:scale-[0.95]"
-              >
+            <Link href="/rectify"
+              className="w-full md:w-auto px-8 py-4 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-medium text-lg rounded-xl transition-all duration-300 hover:scale-[1.05] active:scale-[0.95] inline-block"
+            >
                 Get Your Analysis
-              </button>
             </Link>
             <p className="text-sm text-gray-400 mt-4">
               No hidden charges • Secure payment • Instant access

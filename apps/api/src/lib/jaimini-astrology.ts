@@ -38,9 +38,9 @@ export function calculateCharaKarakas(ephemeris: EphemerisData): CharaKaraka[] {
     // Get degrees for each planet (only degree within sign matters)
     const planetDegrees = JAIMINI_PLANETS.map(planet => ({
         planet,
-        degree: ephemeris.planets[planet].longitude % 30, // Degree within sign
-        sign: ephemeris.planets[planet].sign,
-        fullLongitude: ephemeris.planets[planet].longitude,
+        degree: ephemeris.planets[planet] ? (ephemeris.planets[planet].longitude % 30) : 0, // BUG-FIX: guard missing planet
+        sign: ephemeris.planets[planet]?.sign ?? 'Unknown',
+        fullLongitude: ephemeris.planets[planet]?.longitude ?? 0,
     }));
 
     // Sort by degree (highest first for AK)
@@ -570,9 +570,9 @@ export function calculateBhriguBindu(ephemeris: EphemerisData): {
     sign: string;
     degree: number;
 } {
-    const moon = ephemeris.planets.moon.longitude;
-    const rahu = ephemeris.planets.rahu.longitude;
-    const ketu = ephemeris.planets.ketu.longitude;
+    const moon = ephemeris.planets.moon?.longitude ?? 0; // BUG-FIX: guard missing planet
+    const rahu = ephemeris.planets.rahu?.longitude ?? 0;
+    const ketu = ephemeris.planets.ketu?.longitude ?? 0;
 
     // Standard Bhrigu Bindu Formula: (Moon + Rahu) / 2
     // Handling 360 wrap

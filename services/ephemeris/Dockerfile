@@ -7,6 +7,8 @@ WORKDIR /app
 
 COPY pyproject.toml /app/pyproject.toml
 COPY app /app/app
+# BUG-FIX NOTE: data/ directory containing DE440 kernel must be mounted at runtime
+# or copied separately: COPY data /app/data
 
 RUN pip install --no-cache-dir --upgrade pip \
   && pip install --no-cache-dir .

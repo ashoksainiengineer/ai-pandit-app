@@ -10,8 +10,7 @@ import {
   SuggestionConfig,
   DEFAULT_SUGGESTION_CONFIG,
 } from './types';
-import { EVENT_CATEGORIES } from './categories';
-
+// EVENT_CATEGORIES from './categories' available when dynamic category filtering is needed
 /**
  * Calculate age from date of birth
  */

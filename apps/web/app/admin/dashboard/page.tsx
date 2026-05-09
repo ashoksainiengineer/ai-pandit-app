@@ -6,6 +6,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { useAuth } from '@clerk/nextjs';
 import { env } from '@/lib/config/env';
 import dynamic from 'next/dynamic';
 import DashboardLayout from '@/app/components/dashboard/DashboardLayout';
@@ -37,11 +38,11 @@ import type {
 // API client
 const API_BASE_URL = env.app.baseUrl;
 
-async function fetchDashboardMetrics(): Promise<DashboardMetrics> {
+async function fetchDashboardMetrics(token: string): Promise<DashboardMetrics> {
   try {
     const response = await fetch(`${API_BASE_URL}/api/admin/metrics`, {
       headers: {
-        'Authorization': `Bearer ${localStorage.getItem('token')}`,
+        'Authorization': `Bearer ${token}`,
       },
     });
     if (!response.ok) {
@@ -55,11 +56,11 @@ async function fetchDashboardMetrics(): Promise<DashboardMetrics> {
   }
 }
 
-async function fetchRecentReadings(): Promise<Reading[]> {
+async function fetchRecentReadings(token: string): Promise<Reading[]> {
   try {
     const response = await fetch(`${API_BASE_URL}/api/admin/readings?limit=5`, {
       headers: {
-        'Authorization': `Bearer ${localStorage.getItem('token')}`,
+        'Authorization': `Bearer ${token}`,
       },
     });
     if (!response.ok) {
@@ -73,11 +74,11 @@ async function fetchRecentReadings(): Promise<Reading[]> {
   }
 }
 
-async function fetchTimeSeriesData(): Promise<TimeSeriesData[]> {
+async function fetchTimeSeriesData(token: string): Promise<TimeSeriesData[]> {
   try {
     const response = await fetch(`${API_BASE_URL}/api/admin/analytics/timeseries?days=30`, {
       headers: {
-        'Authorization': `Bearer ${localStorage.getItem('token')}`,
+        'Authorization': `Bearer ${token}`,
       },
     });
     if (!response.ok) {
@@ -92,6 +93,7 @@ async function fetchTimeSeriesData(): Promise<TimeSeriesData[]> {
 }
 
 export default function DashboardPage() {
+  const { getToken } = useAuth();
   const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
   const [readings, setReadings] = useState<Reading[]>([]);
   const [timeSeriesData, setTimeSeriesData] = useState<TimeSeriesData[]>([]);
@@ -102,10 +104,12 @@ export default function DashboardPage() {
     async function loadDashboardData() {
       try {
         setLoading(true);
+        const token = await getToken();
+        if (!token) throw new Error('Authentication required');
         const [metricsData, readingsData, timeSeries] = await Promise.all([
-          fetchDashboardMetrics(),
-          fetchRecentReadings(),
-          fetchTimeSeriesData(),
+          fetchDashboardMetrics(token),
+          fetchRecentReadings(token),
+          fetchTimeSeriesData(token),
         ]);
         setMetrics(metricsData);
         setReadings(readingsData);
@@ -118,7 +122,7 @@ export default function DashboardPage() {
     }
 
     loadDashboardData();
-  }, []);
+  }, [getToken]);
 
   if (error) {
     return (

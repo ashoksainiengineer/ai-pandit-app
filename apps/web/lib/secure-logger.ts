@@ -125,8 +125,9 @@ function sendToRemoteLog(level: LogLevel, message: string, meta?: Record<string,
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload),
             keepalive: true,
-        }).catch(() => {
-            // Silently fail - logging should never break the app
+        }).catch((err) => {
+            // BUG-FIX: Log to console so broken log pipeline is detectable
+            console.warn('[SecureLogger] Failed to send log to server:', err);
         });
     }
 }

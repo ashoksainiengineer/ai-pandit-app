@@ -164,7 +164,9 @@ export function safeParseJsonRecord(value: string): Record<string, unknown> | un
     if (typeof parsed === 'object' && parsed !== null) {
       return parsed as Record<string, unknown>;
     }
-  } catch {
+  } catch (err) {
+    // BUG-FIX: Log parse errors for debugging
+    console.warn('[JOB-LIFECYCLE] Failed to parse JSON in safeParseJsonRecord:', String(err));
     return undefined;
   }
 }

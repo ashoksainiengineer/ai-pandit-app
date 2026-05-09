@@ -6,8 +6,9 @@ export function getOffsetMinutes(input: {
 }): number {
   const config = input.offsetConfig;
   if (!config) return 60;
+  // BUG-FIX: ?? instead of || to allow customMinutes=0; added missing seconds presets
   return (
-    config.customMinutes ||
+    config.customMinutes ??
     (config.preset === "30min"
       ? 30
       : config.preset === "1hour"
@@ -20,6 +21,10 @@ export function getOffsetMinutes(input: {
               ? 360
               : config.preset === "12hours"
                 ? 720
-                : 60)
+                : config.preset === "seconds-30"
+                  ? 5
+                  : config.preset === "seconds-6"
+                    ? 1
+                    : 60)
   );
 }

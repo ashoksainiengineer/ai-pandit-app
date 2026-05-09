@@ -254,7 +254,7 @@ export default function AnalysisPage() {
             accuracy: result.accuracy,
             confidence: result.confidence,
           }));
-        } catch { /* localStorage unavailable */ }
+        } catch (err) { console.warn('[DebugAnalysis] localStorage unavailable:', err); }
       }
 
       // Standard: We no longer auto-redirect.
@@ -307,7 +307,8 @@ export default function AnalysisPage() {
 
     // Standard: Prioritize the LATEST stage that has scores
     // This ensures that Stage 4/6 precision results "win" over Stage 2 coarse results
-    const maxStage = Math.max(...candidateScores.map(s => s.stage));
+    // BUG-FIX: Use reduce instead of spread to avoid large intermediate array
+    const maxStage = candidateScores.reduce((max, s) => Math.max(max, s.stage), 0);
 
     // Filter for unique candidates in the latest stage
     // (If latest stage only has a few, we might want to fallback, but typically 
@@ -534,7 +535,7 @@ export default function AnalysisPage() {
           {!cancelled && sortedCandidateScores.length > 0 && (
             <SectionErrorBoundary sectionName="Top Candidates" icon={<Brain className="w-5 h-5" />}>
               <StageLeaderboard
-                stage={Math.max(...sortedCandidateScores.map(s => s.stage))}
+                stage={sortedCandidateScores.reduce((max, s) => Math.max(max, s.stage), 0)}
                 scores={sortedCandidateScores}
                 isCompleted={isComplete}
                 sessionId={sessionId}

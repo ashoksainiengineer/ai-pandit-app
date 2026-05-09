@@ -11,14 +11,14 @@ export function debounce<T extends (...args: unknown[]) => unknown>(
   delay: number
 ): DebouncedFunction<T> {
   let timeoutId: NodeJS.Timeout | null = null;
-  let lastArgs: Parameters<T> | null = null;
+  let _lastArgs: Parameters<T> | null = null;
 
   const debounced = (...args: Parameters<T>) => {
-    lastArgs = args;
+    _lastArgs = args;
     if (timeoutId) clearTimeout(timeoutId);
     timeoutId = setTimeout(() => {
       func(...args);
-      lastArgs = null;
+      _lastArgs = null;
     }, delay);
   };
 
@@ -27,7 +27,7 @@ export function debounce<T extends (...args: unknown[]) => unknown>(
       clearTimeout(timeoutId);
       timeoutId = null;
     }
-    lastArgs = null;
+    _lastArgs = null;
   };
 
   debounced.flush = (...args: Parameters<T>) => {

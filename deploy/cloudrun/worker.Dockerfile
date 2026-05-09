@@ -23,7 +23,7 @@ RUN npm ci --include=dev --loglevel=error
 RUN npm --workspace @ai-pandit/shared run build \
  && npm --workspace @ai-pandit/db run build \
  && npm --workspace @ai-pandit/worker-runtime run build \
- && (npm --workspace @ai-pandit/api run build; exit 0) \
+ && npm --workspace @ai-pandit/api run build \
  && npm --workspace @ai-pandit/worker run build
 RUN npm prune --omit=dev
 

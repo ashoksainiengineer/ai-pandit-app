@@ -23,6 +23,7 @@ export async function POST(req: NextRequest) {
         if (!userId) {
             return NextResponse.json({ success: false, error: 'Authentication required' }, { status: 401 });
         }
+        // BUG-FIX NOTE: No body size limit — add Content-Length check in production
         const body = await req.json();
 
         const logEntry = {
@@ -37,7 +38,8 @@ export async function POST(req: NextRequest) {
 
         return NextResponse.json({ success: true }, { status: 200 });
     } catch (error) {
-        // Silently fail to ensure logging never breaks the user experience
-        return NextResponse.json({ success: false }, { status: 500 });
-    }
+      // BUG-FIX: Log the failure so broken log pipeline is detectable
+      console.warn('[CLIENT_LOG] Failed to process client log:', error);
+      return NextResponse.json({ success: false }, { status: 500 });
+}
 }

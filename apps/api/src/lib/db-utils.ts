@@ -25,5 +25,7 @@ export function getMutationRowCount(result: unknown): number {
     return (result as { rowsAffected: number }).rowsAffected;
   }
 
+  // BUG-FIX: Log warning when result shape is unrecognized to detect Drizzle API changes
+  console.warn('[DB-UTILS] Unrecognized mutation result shape — returning 0');
   return 0;
 }

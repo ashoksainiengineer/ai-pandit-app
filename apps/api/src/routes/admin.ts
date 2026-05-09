@@ -368,7 +368,8 @@ router.get('/readings', async (req: AuthenticatedRequest, res: Response) => {
         createdAt: sessions.createdAt,
         updatedAt: sessions.updatedAt,
         completedAt: sessions.completedAt,
-        confidence: sessions.accuracy,
+        // BUG-FIX NOTE: confidence should come from analysisResult JSON, not accuracy column
+        accuracy: sessions.accuracy,
         rectifiedTime: sessions.rectifiedTime,
         userName: users.fullName,
         userEmail: users.email,

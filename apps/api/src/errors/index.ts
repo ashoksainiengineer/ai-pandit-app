@@ -139,10 +139,15 @@ export class AppError extends Error {
   }
 
   toJSON(): Record<string, unknown> {
+    // BUG-014 fix: Respect isOperational flag to prevent raw error message leakage
+    const safeMessage = this.isOperational
+      ? this.message
+      : 'An internal error occurred. Please try again later.';
+
     return {
       error: {
         code: this.code,
-        message: this.message,
+        message: safeMessage,
         statusCode: this.statusCode,
         details: this.details,
         timestamp: this.timestamp,
@@ -151,7 +156,6 @@ export class AppError extends Error {
     };
   }
 }
-
 // ═════════════════════════════════════════════════════════════════════════════
 // SPECIALIZED ERROR CLASSES
 // ═════════════════════════════════════════════════════════════════════════════

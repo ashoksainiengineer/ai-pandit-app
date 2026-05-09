@@ -34,7 +34,6 @@ type LifecycleShift = NonNullable<CandidateDataPackage['lifecycleShifts']>[numbe
  * @param candidates - Refined candidates from Stage 3
  * @param progress - Progress tracker
  * @param globalLifecycle - Pre-calculated lifecycle shifts
- * @param globalLifecycle - Pre-calculated lifecycle shifts
  * @returns Deep analysis survivors and stage result
  */
 export async function stage4DeepAnalysis(
@@ -241,7 +240,8 @@ export async function stage4DeepAnalysis(
         const results = await _executeAIInParallel(tasks, config.ai.parallelConcurrency, config.ai.parallelStaggerMs);
 
         // Flatten survivors and accumulate reasoning
-        const roundSurvivors = results.flatMap(r => r.batchSurvivors);
+        // BUG-FIX: Guard against undefined from failed parallel tasks
+        const roundSurvivors = results.filter(Boolean).flatMap(r => r.batchSurvivors);
         allReasoning += results.map(r => r.aiContent).filter(Boolean).join('\n\n---\n\n');
 
         currentCandidates = roundSurvivors;

@@ -45,7 +45,7 @@ function resolveConnectionString(): string {
     throw new ConfigurationError('NEON_DATABASE_URL or DATABASE_URL is required in production runtime');
   }
 
-  if (process.env.NODE_ENV !== 'test') {
+  if (process.env.NODE_ENV !== 'test' && process.env.VITEST !== 'true') {
     console.error(
       '[DB] No Postgres connection string found. Using local fallback URL for non-production runtime.'
     );
@@ -63,11 +63,12 @@ function ensureInit(): void {
   const connectionString = resolveConnectionString();
   _pool = new Pool({
     connectionString,
-    max: Number(process.env.DB_POOL_MAX || 10),
+    // BUG-FIX: Ensure pool max is at least 1 (DB_POOL_MAX=0 would hang all queries)
+    max: Math.max(1, Number(process.env.DB_POOL_MAX || 10)),
     idleTimeoutMillis: 30000,
     connectionTimeoutMillis: 10000,
     ssl: shouldUseSsl(connectionString)
-      ? { rejectUnauthorized: false }
+      ? { rejectUnauthorized: process.env.NODE_ENV === 'development' ? false : true }
       : undefined,
   });
   _db = drizzle(_pool, { schema });
@@ -235,7 +236,7 @@ export async function executeWithRetry<T>(
 
 export async function verifyDatabaseConnection(): Promise<void> {
   const isBuildPhase = process.env.NEXT_PHASE === 'phase-production-build';
-  const isTest = process.env.NODE_ENV === 'test' || process.env.VITEST === 'true';
+  const isTest = process.env.NODE_ENV === 'test' || process.env.VITEST === 'true'; // BUG-FIX: unified test detection with resolveConnectionString
   if (isBuildPhase || isTest) return;
 
   try {

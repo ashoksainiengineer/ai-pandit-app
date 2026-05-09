@@ -43,7 +43,7 @@ let logAnalysisContainerAction: (stage: number | string, message: string, data: 
 let clearDebugLog: () => void = () => {};
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore debug-logger may be excluded from build
-try { ({ logAnalysisContainerAction, clearDebugLog } = await import('../utils/debug-logger.js')); } catch {}
+try { ({ logAnalysisContainerAction, clearDebugLog } = await import('../utils/debug-logger.js')); } catch (err) { logger.warn('[BTR] Failed to import debug-logger — continuing without debug hooks', { error: String(err) }); }
 
 // Import from modular BTR components
 import {

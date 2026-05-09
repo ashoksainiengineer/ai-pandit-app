@@ -138,11 +138,13 @@ export default function DashboardLayout({ children, user }: DashboardLayoutProps
           <div className="flex items-center gap-4">
             <button
               onClick={() => setSidebarOpen(true)}
+              aria-expanded={sidebarOpen}
+              aria-controls="sidebar"
+              aria-label="Open sidebar"
               className="lg:hidden p-2 rounded-lg hover:bg-[#ffffff] text-[#636363]"
             >
               <Menu className="w-5 h-5" />
             </button>
-
             {/* Breadcrumbs */}
             <nav className="hidden md:flex items-center gap-2 text-sm">
               <Link href="/admin/dashboard" className="text-[#636363] hover:text-black">

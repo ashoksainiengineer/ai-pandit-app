@@ -212,8 +212,8 @@ upsert_vercel_env() {
 load_env_file() {
   while IFS= read -r ASSIGNMENT; do
     if [ -n "$ASSIGNMENT" ]; then
-      eval "export $ASSIGNMENT"
-    fi
+      # BUG-FIX: Use safe export instead of eval to prevent shell injection
+      export "$ASSIGNMENT" 2>/dev/null || true
   done <<EOF
 $(ENV_PATH="$ENV_FILE" node <<'EOF'
 const fs = require('fs');

@@ -42,7 +42,9 @@ async function ensureFavoritesTable(): Promise<void> {
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_session_favorites_session_id ON session_favorites(session_id)`);
     await pool.query(`CREATE UNIQUE INDEX IF NOT EXISTS idx_session_favorites_unique ON session_favorites(clerk_id, session_id)`);
   })().catch((error) => {
-    ensureTablePromise = null;
+    // BUG-FIX: Keep the promise instead of nulling to prevent retry storm
+    // Only null on next call's fresh attempt
+    console.warn('[FAVORITES] Failed to ensure favorites table', error);
     throw error;
   });
   return ensureTablePromise;

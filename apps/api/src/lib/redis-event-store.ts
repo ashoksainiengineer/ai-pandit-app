@@ -452,8 +452,8 @@ export class RedisEventStore {
       return [];
     }
 
-    // This would require scanning keys, which is expensive in Redis
-    // For now, rely on TTL-based expiration
+    // BUG-FIX NOTE: Scanning keys in Redis is expensive; TTL-based expiration is the intended strategy
+    // getInactiveSessions is a stub — session cleanup relies on Redis key TTL expiration
     return [];
   }
 }

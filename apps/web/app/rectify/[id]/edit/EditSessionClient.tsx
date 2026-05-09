@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@clerk/nextjs';
@@ -76,6 +76,7 @@ export function EditSessionClient({ sessionId, initialData }: EditSessionClientP
 
     // Auto-save effect with debounce
     const [lastSavedData, setLastSavedData] = useState<string>(JSON.stringify(initialData));
+    const statusTimerRef = useRef<ReturnType<typeof setTimeout>>();
 
     useEffect(() => {
         if (!birthData || !birthData.fullName || birthData.fullName.trim().length < 2) return;
@@ -110,7 +111,8 @@ export function EditSessionClient({ sessionId, initialData }: EditSessionClientP
 
                 setLastSavedData(currentData);
                 setSavingStatus('saved');
-                setTimeout(() => setSavingStatus('idle'), 2000);
+                if (statusTimerRef.current) clearTimeout(statusTimerRef.current);
+                statusTimerRef.current = setTimeout(() => setSavingStatus('idle'), 2000);
             } catch (err) {
                 logger.error('Auto-save failed', err instanceof Error ? err : new Error(String(err)));
                 setSavingStatus('error');
@@ -118,7 +120,7 @@ export function EditSessionClient({ sessionId, initialData }: EditSessionClientP
         };
 
         const timer = setTimeout(saveDraft, 5000);
-        return () => clearTimeout(timer);
+        return () => { clearTimeout(timer); if (statusTimerRef.current) { clearTimeout(statusTimerRef.current); } };
     }, [birthData, lifeEvents, spouseData, offsetConfig, sessionId, lastSavedData, getToken, isSubmitting]);
 
     const advanceToNextStep = () => {

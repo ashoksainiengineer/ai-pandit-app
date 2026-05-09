@@ -336,6 +336,7 @@ function validateYogini(input: ValidationInput): ValidationDetail {
     }
   }
 
+  // BUG-FIX NOTE: +30 base score inflates results; consider reducing to +10 for better discrimination
   const score = totalWeight > 0 ? Math.min(100, (matchCount / totalWeight) * 100 + 30) : 0;
 
   return {
@@ -817,7 +818,6 @@ function generateRecommendations(scores: ConsensusScores, redFlags: RedFlags): s
   if (scores.kp < 70) recs.push('Add more precise event timings for KP analysis');
   if (scores.varga < 70) recs.push('Include spouse data for D9 verification');
   if (scores.transit < 60) recs.push('Verify event dates for transit correlation');
-  if (redFlags.sandhiBirth) recs.push('Birth near cusp - additional verification needed');
   if (redFlags.sandhiBirth) recs.push('Birth near cusp - additional verification needed');
   if (redFlags.d60Instability) recs.push('D60 changes in window - micro-grid analysis recommended');
 

@@ -1,12 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('../../ephemeris.js', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('../../ephemeris.js')>();
-  return {
-    ...actual,
-    calculateEphemeris: vi.fn(),
-  };
-});
+vi.mock('../../ephemeris.js', () => ({
+  calculateEphemeris: vi.fn(),
+}));
 
 vi.mock('../../logger.js', () => ({
   logger: {

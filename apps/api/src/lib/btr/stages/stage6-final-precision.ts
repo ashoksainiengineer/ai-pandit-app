@@ -209,7 +209,6 @@ function buildPresentTransitLockMap(
  * @param candidates - Micro-precision candidates from Stage 5
  * @param progress - Progress tracker
  * @param globalLifecycle - Pre-calculated lifecycle shifts
- * @param globalLifecycle - Pre-calculated lifecycle shifts
  * @returns Final verdict with rectified time
  */
 export async function stage6FinalPrecision(

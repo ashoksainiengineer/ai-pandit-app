@@ -52,12 +52,16 @@ export interface ApiReadinessStatus {
 }
 
 async function withDbHealthTimeout() {
-  return Promise.race([
-    checkDatabaseHealth(),
-    new Promise<never>((_, reject) =>
-      setTimeout(() => reject(new Error('DB health check timeout')), 5000)
-    ),
-  ]);
+  let timer: NodeJS.Timeout | undefined;
+  const timeout = new Promise<never>((_, reject) =>
+    timer = setTimeout(() => reject(new Error('DB health check timeout')), 5000)
+  );
+  try {
+    return await Promise.race([checkDatabaseHealth(), timeout]);
+  } finally {
+    // BUG-FIX: Clear timeout to prevent resource leak
+    if (timer) clearTimeout(timer);
+  }
 }
 
 export async function getApiReadinessStatus(): Promise<ApiReadinessStatus> {

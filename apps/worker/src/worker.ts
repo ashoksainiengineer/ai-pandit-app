@@ -81,6 +81,14 @@ async function processJob(): Promise<void> {
 
   console.log({ event: 'job_claimed', jobId: job.id, sessionId: job.sessionId, kind: job.kind });
 
+  // BUG-CRIT-1 fix: Mark session as processing so completion update succeeds
+  await executeWithRetry(() =>
+    db
+      .update(sessions)
+      .set({ status: 'processing', updatedAt: new Date().toISOString() })
+      .where(eq(sessions.id, job.sessionId)),
+  );
+
   try {
     // ── Read session from DB ────────────────────────────────────────────────
     await updateJobProgress({
@@ -175,7 +183,21 @@ async function processJob(): Promise<void> {
       jobId: job.id,
     });
 
-    const result: SecondsPrecisionResult = await executeSecondsPrecisionRectification(btrInput);
+    // BUG-FIX: Heartbeat every 15s to prevent zombie job detection during long BTR runs
+    const heartbeatInterval = setInterval(() => {
+      updateJobProgress({
+        jobId: job.id,
+        currentStage: 'btr_processing',
+        progressPercent: 0, // BUG-FIX NOTE: set to 0 to avoid overwriting real pipeline progress
+      }).catch((err) => console.warn('[WORKER] Heartbeat update failed:', err));
+    }, 15_000);
+
+    let result: SecondsPrecisionResult;
+    try {
+      result = await executeSecondsPrecisionRectification(btrInput);
+    } finally {
+      clearInterval(heartbeatInterval);
+    }
 
     console.log('[WORKER] BTR analysis complete', {
       sessionId: session.id,

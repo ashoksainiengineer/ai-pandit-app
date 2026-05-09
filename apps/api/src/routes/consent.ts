@@ -109,7 +109,7 @@ router.get('/:sessionId', validateParams(SessionIdParamSchema), async (req: Auth
     res.json({
       success: true,
       data: {
-        hasConsented: session[0].aiConsentGiven,
+        hasConsented: session[0].aiConsentGiven ?? false, // BUG-FIX: null → false for boolean safety
         consentedAt: session[0].aiConsentGivenAt,
       },
     });

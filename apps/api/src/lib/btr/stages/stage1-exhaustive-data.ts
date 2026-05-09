@@ -35,7 +35,8 @@ export async function stage1ExhaustiveDataGeneration(
   const candidatesWithSafetyNet = injectSafetyNetCandidates(input.tentativeTime, rawCandidates, input.dateOfBirth);
 
   // Boundary scan: use actual offset window, not arbitrary 6 hours
-  const offsetMinutes = input.offsetConfig.customMinutes ||
+  // BUG-FIX: ?? instead of || to allow customMinutes=0
+  const offsetMinutes = input.offsetConfig.customMinutes ??
     (input.offsetConfig.preset === '30min' ? 30 :
      input.offsetConfig.preset === '1hour' ? 60 :
      input.offsetConfig.preset === '2hours' ? 120 :
@@ -108,7 +109,7 @@ export async function stage1ExhaustiveDataGeneration(
           sunPos: `${pkg.planets.sun.sign} ${pkg.planets.sun.degree}`,
           moonPos: `${pkg.planets.moon.sign} ${pkg.planets.moon.degree}`,
           ascendant: `${pkg.ascendant.sign} ${pkg.ascendant.degree}`,
-          dashaObj: pkg.vimshottariDasha[0]?.maha || 'N/A',
+          dashaObj: pkg.vimshottariDasha?.[0]?.maha || 'N/A', // BUG-FIX: optional chaining on array access
         });
       }
     }

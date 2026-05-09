@@ -22,7 +22,7 @@ test.describe('Phase E: Observability & Telemetry Verification', () => {
         });
     });
 
-    test('Should emit TELEMETRY ERROR when session fails terminaly', async ({ page }) => {
+    test('Should emit TELEMETRY ERROR when session fails terminally', async ({ page }) => { // BUG-FIX: typo 'terminaly' → 'terminally'
         // Track log-client requests
         const capturedErrors: any[] = [];
         const capturedAll: any[] = [];

@@ -45,6 +45,8 @@ export function ResultsDashboardClient({ id, initialSession }: ResultsDashboardC
             setReasoningLogs(initialSession.reasoningLogs);
 
             if (initialSession.rectifiedTime || analysisResult?.rectifiedTime) {
+                // BUG-FIX TODO: Strip PII (fullName, birthPlace) before localStorage storage
+                // See AGENTS.md: "Never log secrets, tokens, birth details, or raw PII"
                 localStorage.setItem(`rectification_result_${id}`, JSON.stringify(sessionData));
                 if (initialSession.birthData) {
                     localStorage.setItem(`birthData_${id}`, JSON.stringify(initialSession.birthData));

@@ -75,13 +75,11 @@ export function FinalCTA() {
                 </div>
 
                 {/* CTA Button */}
-                <Link href="/rectify">
-                  <button
-                    className="w-full py-4 bg-gradient-to-r from-[#00DC82] to-[#36E4DA] text-black font-medium text-lg rounded-xl hover:shadow-[0_0_30px_rgba(0,220,130,0.3)] transition-all duration-300 flex items-center justify-center gap-2 hover:scale-[1.02] active:scale-[0.98]"
-                  >
+                <Link href="/rectify"
+                  className="w-full py-4 bg-gradient-to-r from-[#00DC82] to-[#36E4DA] text-black font-medium text-lg rounded-xl hover:shadow-[0_0_30px_rgba(0,220,130,0.3)] transition-all duration-300 flex items-center justify-center gap-2 hover:scale-[1.02] active:scale-[0.98]"
+                >
                     Start Your Analysis Now
                     <ArrowRight className="w-5 h-5" />
-                  </button>
                 </Link>
 
                 <p className="text-center text-xs text-zinc-500 mt-4">

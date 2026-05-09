@@ -225,7 +225,11 @@ export async function cleanupZombiesOnStartup(
       .from(sessions)
       .where(eq(sessions.status, 'processing'));
 
-    const activeProcessingIds = new Set<string>();
+    // BUG-FIX: Populate activeProcessingIds from running jobs (via jobs table which has sessionId)
+    const runningJobs = await db.select({ sessionId: jobs.sessionId })
+      .from(jobs)
+      .where(eq(jobs.status, 'running'));
+    const activeProcessingIds = new Set(runningJobs.map(a => a.sessionId));
     const orphans = allProcessing.filter(s => !activeProcessingIds.has(s.id));
 
     if (orphans.length > 0) {

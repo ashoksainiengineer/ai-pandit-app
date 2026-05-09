@@ -87,7 +87,6 @@ export function getFinalPrecisionPrompt(
 
   // Anti-bias: Final shuffling
 
-  // Anti-bias: Final shuffling
   const shuffledCandidates = shuffleArray(candidates);
   const duplicateTimes = buildDuplicateTimeSet(shuffledCandidates);
 
@@ -202,7 +201,6 @@ Execute the following 10-step final judgment sequence:
 
 ════════════════════════════════════════════════════════════════════════════════
 
-SPOUSE INFO: ${spouseText}
 SPOUSE INFO: ${spouseText}
 ${presentTransitSection}
 

@@ -111,20 +111,18 @@ export default function Hero() {
             className="animate-fade-in-up flex flex-col sm:flex-row gap-4 justify-center mb-8"
             style={{ animationDelay: '0.3s' }}
           >
-            <Link href="/rectify">
-              <button
-                className="group relative px-10 py-4 bg-gradient-to-r from-[#000000] via-[#000000] to-[#E5C880]
-                           text-white font-medium text-base rounded-xl
-                           overflow-hidden transition-all duration-300 hover:brightness-105 active:brightness-95"
-              >
+            <Link href="/rectify"
+              className="group relative px-10 py-4 bg-gradient-to-r from-[#000000] via-[#000000] to-[#E5C880]
+                         text-white font-medium text-base rounded-xl
+                         overflow-hidden transition-all duration-300 hover:brightness-105 active:brightness-95 inline-block"
+            >
                 <span className="relative z-10 flex items-center justify-center gap-2">
                   Begin Your Journey
                   <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                 </span>
                 <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent
                                 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700" />
-              </button>
-            </Link>
+              </Link>
           </div>
 
           {/* Core Stats - Horizontal Inline Layout */}
@@ -191,6 +189,7 @@ export default function Hero() {
               <span className="text-sm font-medium text-black">Live Analysis Engine</span>
             </div>
             <button
+              onClick={() => document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' })}
               className="flex items-center gap-2 px-4 py-2 bg-white border border-[#000000] text-black
                          text-sm rounded-lg hover:bg-[#ffffff] transition-colors"
             >

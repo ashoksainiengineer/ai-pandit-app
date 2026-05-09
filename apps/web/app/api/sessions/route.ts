@@ -120,7 +120,7 @@ export async function POST(req: NextRequest) {
             birthPlace: encrypt(bd.birthPlace || '', user.id),
             latitude: bd.latitude || 0,
             longitude: bd.longitude || 0,
-            timezone: String(bd.timezone || 5.5),
+            timezone: String(bd.timezone ?? 5.5), // BUG-FIX: ?? instead of || to allow UTC 0
             gender: bd.gender || 'male',
 
             // Encrypted JSON fields

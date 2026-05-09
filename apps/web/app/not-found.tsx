@@ -57,6 +57,7 @@ function NotFoundIllustration() {
       {/* Outer ring */}
       <svg 
         viewBox="0 0 200 200" 
+        aria-hidden="true"
         className="w-full h-full animate-spin text-black/8"
         style={{ animationDuration: '20s' }}
       >

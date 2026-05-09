@@ -294,7 +294,13 @@ export async function stage2BatchTournament(
             if (!hasSurvivor) {
                 const bestInQuadrant = currentCandidates
                     .filter(c => c.offsetMinutes >= qStart && c.offsetMinutes <= qEnd)
-                    .sort((a, _b) => (a.time === input.tentativeTime ? -1 : 1))[0]; // Favor tentative if in quadrant
+                    .sort((a, b) => {
+                      // BUG-FIX: Proper transitive comparator — favor tentative, then by offset
+                      const aTent = a.time === input.tentativeTime ? 0 : 1;
+                      const bTent = b.time === input.tentativeTime ? 0 : 1;
+                      if (aTent !== bTent) return aTent - bTent;
+                      return a.offsetMinutes - b.offsetMinutes;
+                    })[0]; // Favor tentative if in quadrant
                 if (bestInQuadrant) {
                     nextCandidates.push(bestInQuadrant);
                     logger.info('🔱 Safety Net: Injected Wildcard from quadrant', { quadrant: i + 1, time: bestInQuadrant.time });

@@ -26,6 +26,5 @@ async function main(): Promise<void> {
   }
 }
 
-if (require.main === module) {
-  main();
-}
+// BUG-FIX: ESM modules don't have require.main; always run main()
+main();

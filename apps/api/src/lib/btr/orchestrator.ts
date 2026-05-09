@@ -176,7 +176,8 @@ async function buildTransitAnalysis(
 ): Promise<Map<string, ComprehensiveTransitResult>> {
   try {
     const candidateTime = getCandidateTimeString(bestCandidate, input.tentativeTime);
-    let ascendantSign = 'Aries';
+    // BUG-FIX: Skip transit analysis entirely if ephemeris fails, don't use random ascendant
+    let ascendantSign: string | null = null;
 
     try {
       const candidateEphemeris = await calculateEphemeris(
@@ -189,10 +190,10 @@ async function buildTransitAnalysis(
       );
       ascendantSign = candidateEphemeris.ascendant.sign;
     } catch (ephemerisError) {
-      logger.warn('[BTR] Transit ascendant fallback used', {
-        error: getErrorMessage(ephemerisError),
-        fallback: ascendantSign
+      logger.warn('[BTR] Ephemeris unavailable — skipping transit analysis', {
+        error: getErrorMessage(ephemerisError)
       });
+      return new Map(); // BUG-FIX: Return empty instead of using wrong ascendant
     }
 
     return await TransitAnalyzer.batchAnalyze(
@@ -258,7 +259,7 @@ function buildFailedResult(
 ): DetailedResult {
   return {
     rectifiedTime: input.tentativeTime,
-    rectifiedDate: parseBirthTime(input.tentativeTime, input.birthDate, input.timezone),
+    rectifiedDate: (() => { const d = parseBirthTime(input.tentativeTime, input.birthDate, input.timezone); return isNaN(d.getTime()) ? new Date() : d; })(),
     confidenceLevel: 'LOW',
     confidencePercentage: 0,
     marginOfErrorSeconds: 3600,

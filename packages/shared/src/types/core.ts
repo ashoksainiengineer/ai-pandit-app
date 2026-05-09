@@ -77,6 +77,11 @@ export type EventCategory =
   | 'surgery'
   | 'inheritance'
   | 'awards'
+  | 'sanskars'
+  | 'childhood'
+  | 'adolescent'
+  | 'teen'
+  | 'btr_markers'
   | 'other';
 
 export type DatePrecision =
@@ -94,7 +99,8 @@ export type SessionStatus =
   | 'queued'
   | 'processing'
   | 'complete'
-  | 'failed';
+  | 'failed'
+  | 'cancelled';
 
 // ═════════════════════════════════════════════════════════════════════════════
 // BIRTH DATA TYPES
@@ -168,7 +174,8 @@ export const LifeEventSchema = z.object({
         .min(1, "Event type is required")
         .max(100, "Event type must be less than 100 characters")
         .transform(sanitizeString),
-    category: z.enum(['education', 'career', 'marriage', 'children', 'family', 'health', 'financial', 'finance', 'travel', 'spiritual', 'legal', 'public_life', 'karmic_events', 'identity_shifts', 'promotion', 'business', 'property', 'relocation', 'accident', 'death_relative', 'divorce', 'surgery', 'inheritance', 'awards', 'other']),
+    // BUG-FIX: Added missing categories that TypeScript type already includes
+    category: z.enum(['education', 'career', 'marriage', 'children', 'family', 'health', 'financial', 'finance', 'travel', 'spiritual', 'legal', 'public_life', 'karmic_events', 'identity_shifts', 'promotion', 'business', 'property', 'relocation', 'accident', 'death_relative', 'divorce', 'surgery', 'inheritance', 'awards', 'sanskars', 'childhood', 'adolescent', 'teen', 'btr_markers', 'other']),
     eventDate: z.string().min(1, "Event date is required"),
     eventTime: z.string().regex(TIME_PATTERN, "Invalid time format (HH:MM or HH:MM:SS required)").optional().nullable(),
     endDate: z.string().optional().nullable(),
@@ -304,7 +311,7 @@ export type OffsetPreset =
   | 'seconds-6';
 
 export interface TimeOffsetConfig {
-  preset?: OffsetPreset;
+  preset: OffsetPreset;
   customMinutes?: number;
   description: string;
 }
@@ -431,5 +438,10 @@ export const EVENT_TYPES: Record<EventCategory, string[]> = {
   surgery: ['Surgery', 'Procedure', 'Hospital admission'],
   inheritance: ['Inheritance received', 'Estate settlement', 'Will dispute'],
   awards: ['Award', 'Prize', 'Public recognition'],
+  sanskars: ['Mundan', 'Upanayan', 'Namkaran', 'Annaprashan'],
+  childhood: ['First steps', 'First words', 'School start', 'Milestone event'],
+  adolescent: ['Coming of age', 'Identity shift', 'Peer milestone'],
+  teen: ['Teen achievement', 'Teen struggle', 'Coming of age'],
+  btr_markers: ['Birth time verification', 'Rectification marker'],
   other: ['Custom event'],
 };

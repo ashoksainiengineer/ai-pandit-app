@@ -16,8 +16,8 @@ const SUSPICIOUS_PATTERNS = [
     /bypassing rules/i,
     // Exploits
     /```json/i,
-    // Length limits for injection padding
-    /.{1000,}/
+    // BUG-FIX: Removed /.1000,/ — dead code since input is always truncated to 500 chars
+  // Length-limit check is handled by substring(0, maxLength) above
 ];
 
 export class SecurityGuard {

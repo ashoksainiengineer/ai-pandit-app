@@ -24,7 +24,12 @@ const sanitizeString = (val: string) => {
 // BirthDataSchema with XSS protection (BUG-004: added sanitizeString transforms)
 export const BirthDataSchema = z.object({
     fullName: z.string().min(1, 'Full name is required').max(100).transform(sanitizeString),
-    dateOfBirth: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must be YYYY-MM-DD'),
+    // BUG-FIX: Added refine to validate actual calendar date, not just format
+    dateOfBirth: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must be YYYY-MM-DD').refine((val) => {
+      const [y, m, d] = val.split('-').map(Number);
+      const dt = new Date(Date.UTC(y, m - 1, d));
+      return dt.getUTCFullYear() === y && dt.getUTCMonth() + 1 === m && dt.getUTCDate() === d;
+    }, 'Invalid calendar date'),
     tentativeTime: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)(:[0-5]\d)?$/, 'Time must be a valid HH:MM or HH:MM:SS format'),
     birthPlace: z.string().min(1).max(200).transform(sanitizeString),
     latitude: z.number().min(-90).max(90),

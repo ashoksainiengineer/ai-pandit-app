@@ -143,7 +143,7 @@ export function createStreamStateMachine(
     let sessionNotFoundRetryCount = 0;
     let autoRequeueAttempted = false;
     let cachedToken: string | null = null;
-let connectionAttemptedForSession: string | null = null;
+let _connectionAttemptedForSession: string | null = null;
 let pollAuthRetried = false;
     // ── helpers ───────────────────────────────────────────────────────────────
 
@@ -157,7 +157,7 @@ currentSessionId = sid;
 pollRetryCount = 0;
 sessionNotFoundRetryCount = 0;
 autoRequeueAttempted = false;
-connectionAttemptedForSession = null;
+_connectionAttemptedForSession = null;
 pollAuthRetried = false;
 }
 
@@ -308,7 +308,7 @@ isTerminalReceived: () => terminalStateReceived,
             const transport = decideTransport(options.forcePolling, options.skipSse);
             resetForNewSession(sid);
             resetRetryCounters();
-            connectionAttemptedForSession = sid;
+            _connectionAttemptedForSession = sid;
             state = { status: 'connecting', url: '', lastError: null };
 
             if (transport === 'polling') {
@@ -430,7 +430,7 @@ isTerminalReceived: () => terminalStateReceived,
             res: { status: number; ok: boolean; json: () => Promise<Record<string, unknown>> | Record<string, unknown> },
             options: PollOptions,
             interval: number,
-            token: string | null
+            _token: string | null
         ) => {
             // Handle 404 - session not in queue
             if (res.status === 404) {
@@ -662,7 +662,7 @@ effects: [{ type: 'FORCE_ERROR', message: 'Authentication expired. Please retry.
         // ── Cleanup ───────────────────────────────────────────────────────────
 
         onCleanup: () => {
-            connectionAttemptedForSession = null;
+            _connectionAttemptedForSession = null;
 return {
 state,
 effects: [{ type: 'CLEANUP' }],

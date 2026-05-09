@@ -116,7 +116,7 @@ async function getDebugRouter(): Promise<Router> {
   if (!debugAnalysisRouter) {
     // eslint-disable-next-line @typescript-eslint/ban-ts-comment
     // @ts-ignore debug-analysis may be excluded from build
-    try { debugAnalysisRouter = (await import('./debug-analysis.js')).default; } catch { debugAnalysisRouter = Router(); }
+    try { debugAnalysisRouter = (await import('./debug-analysis.js')).default; } catch (err) { logger.warn('[ROUTES] debug-analysis module unavailable, using empty router', { error: String(err) }); debugAnalysisRouter = Router(); }
   }
   return debugAnalysisRouter!;
 }

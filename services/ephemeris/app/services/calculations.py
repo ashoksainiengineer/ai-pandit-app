@@ -3,6 +3,8 @@ from __future__ import annotations
 import math
 from datetime import datetime, timedelta, timezone
 import concurrent.futures
+import threading
+import time
 import time
 
 from skyfield import almanac
@@ -139,8 +141,10 @@ def calculate_ascendant_tropical(observer, moment, latitude_degrees=None, ramc_d
         ramc_rad = math.radians(ramc_degrees)
         lat_rad = math.radians(latitude_degrees)
         obliquity_rad = math.radians(obliquity_degrees)
-        numerator = math.cos(ramc_rad)
-        denominator = -math.sin(ramc_rad) * math.cos(obliquity_rad) - math.tan(lat_rad) * math.sin(obliquity_rad)
+        # BUG-FIX: Ascendant formula was 180° off — negated numerator and fixed denominator sign
+        # Standard formula: atan2(-cos(RAMC), sin(RAMC)·cos(ε) + tan(φ)·sin(ε))
+        numerator = -math.cos(ramc_rad)
+        denominator = math.sin(ramc_rad) * math.cos(obliquity_rad) + math.tan(lat_rad) * math.sin(obliquity_rad)
         asc_rad = math.atan2(numerator, denominator)
         return normalize_degrees(math.degrees(asc_rad))
 
@@ -275,7 +279,7 @@ def calculate_placidus_target_hour_angle(longitude_degrees: float, latitude_degr
     if house_number == 9:
         return semi_diurnal_arc / 3.0
 
-    raise ServiceInitializationError(f"Unsupported Placidus house number: {house_number}")
+    raise ValueError(f"Unsupported Placidus house number: {house_number}")  # BUG-FIX: validation error, not init error
 
 
 def calculate_house_hour_angle(longitude_degrees: float, ramc_degrees: float, obliquity_degrees: float) -> float:
@@ -333,7 +337,7 @@ def solve_placidus_cusp(start_longitude: float, end_longitude: float, latitude_d
         previous_progress = progress
         previous_value = current_value
 
-    raise ServiceInitializationError(f"Failed to solve Placidus cusp for house {house_number}")
+    raise ValueError(f"Failed to solve Placidus cusp for house {house_number}")  # BUG-FIX: calculation error, not init error
 
 
 def build_placidus_house_cusps(ascendant_longitude: float, midheaven_longitude: float, latitude_degrees: float, ramc_degrees: float, obliquity_degrees: float) -> list[float]:
@@ -460,9 +464,9 @@ def calculate_nodes(
 
 
 _chart_cache: dict[str, tuple[float, ChartResponse]] = {}
+_chart_cache_lock = threading.Lock()  # BUG-FIX: protect cache from ThreadPoolExecutor races
 _CHART_CACHE_TTL = 300  # 5 minutes
 _CHART_CACHE_MAX = 1000
-
 
 def _get_chart_cache_key(
     timestamp_utc: str, lat: float, lon: float, alt: float,
@@ -483,19 +487,22 @@ def _cached_calculate_chart(timestamp_utc: str, request: SingleEphemerisRequest)
         request.topocentricMoon,
     )
     now = time.time()
-    if key in _chart_cache:
-        cached_time, cached_result = _chart_cache[key]
-        if now - cached_time < _CHART_CACHE_TTL:
-            return cached_result
+    with _chart_cache_lock:
+        if key in _chart_cache:
+            cached_time, cached_result = _chart_cache[key]
+            if now - cached_time < _CHART_CACHE_TTL:
+                return cached_result
 
+    # BUG-FIX: Compute outside lock to avoid serializing all calculations
     result = calculate_chart_raw(timestamp_utc, request)
 
-    # Evict oldest if at capacity
-    if len(_chart_cache) >= _CHART_CACHE_MAX:
-        oldest_key = min(_chart_cache, key=lambda k: _chart_cache[k][0])
-        del _chart_cache[oldest_key]
+    with _chart_cache_lock:
+        # Evict oldest if at capacity
+        if len(_chart_cache) >= _CHART_CACHE_MAX:
+            oldest_key = min(_chart_cache, key=lambda k: _chart_cache[k][0])
+            del _chart_cache[oldest_key]
 
-    _chart_cache[key] = (now, result)
+        _chart_cache[key] = (now, result)
     return result
 
 def calculate_chart_raw(timestamp_utc: str, request: SingleEphemerisRequest) -> ChartResponse:
@@ -609,7 +616,7 @@ def calculate_sunrise(request: SunriseRequest) -> SunriseResponse:
     start_dt = parse_timestamp_utc(request.startTimestampUtc)
     end_dt = parse_timestamp_utc(request.endTimestampUtc)
     if end_dt <= start_dt:
-        raise ServiceInitializationError("Sunrise search window must have endTimestampUtc after startTimestampUtc")
+        raise ValueError("Sunrise search window must have endTimestampUtc after startTimestampUtc")  # BUG-FIX: validation error, not init error
 
     observer = earth + wgs84.latlon(
         request.location.latitude,
@@ -638,7 +645,7 @@ def calculate_sunset(request: SunriseRequest) -> SunriseResponse:
     start_dt = parse_timestamp_utc(request.startTimestampUtc)
     end_dt = parse_timestamp_utc(request.endTimestampUtc)
     if end_dt <= start_dt:
-        raise ServiceInitializationError("Sunset search window must have endTimestampUtc after startTimestampUtc")
+        raise ValueError("Sunset search window must have endTimestampUtc after startTimestampUtc")  # BUG-FIX: validation error, not init error
 
     observer = earth + wgs84.latlon(
         request.location.latitude,

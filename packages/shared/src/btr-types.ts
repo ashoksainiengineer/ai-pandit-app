@@ -369,7 +369,7 @@ export interface FinalVerdict {
 // PRECISION BTR ENHANCEMENT TYPES
 // ═════════════════════════════════════════════════════════════════════════════
 
-export type ConfidenceLevel = 'STANDARD_PRECISION' | 'VERY_HIGH' | 'HIGH' | 'MEDIUM' | 'LOW';
+export type ConfidenceLevel = 'GOD_TIER' | 'STANDARD_PRECISION' | 'VERY_HIGH' | 'HIGH' | 'MEDIUM' | 'LOW';
 
 export type EventSource = 'document' | 'memory' | 'approximate' | 'calculated';
 

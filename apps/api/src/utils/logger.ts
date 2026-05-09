@@ -196,15 +196,18 @@ class Logger {
       }) + '\n';
 
       ensureLogDir();
-      appendFile(path.join(LOG_DIR, `${category}.log`), logEntry).catch(() => {});
+      appendFile(path.join(LOG_DIR, `${category}.log`), logEntry).catch((err) => { process.stderr.write(`[LOGGER] Failed to write ${category}.log: ${String(err)}
+`); });
 
       // Master log
-      appendFile(path.join(LOG_DIR, 'master.log'), logEntry).catch(() => {});
+      appendFile(path.join(LOG_DIR, 'master.log'), logEntry).catch((err) => { process.stderr.write(`[LOGGER] Failed to write master.log: ${String(err)}
+`); });
     } catch (err) {
-      // Fail silently to not crash the app
+      // Log to stderr as last resort — prevents complete silence on log system failures
+      process.stderr.write(`[LOGGER] Critical log failure: ${String(err)}
+`);
     }
   }
-
   // Public API
   trace(message: string, meta?: Record<string, unknown>): void {
     this.log('trace', message, meta);

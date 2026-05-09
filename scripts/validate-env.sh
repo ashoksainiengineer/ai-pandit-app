@@ -12,8 +12,9 @@ REQUIRED=(
   "NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY"
   "CLERK_SECRET_KEY"
   "NEON_DATABASE_URL"
-  "REDIS_URL"
+  # BUG-FIX: REDIS_URL only required when not using db_polling
   "ENCRYPTION_SECRET"
+  "AI_API_KEY"
 )
 
 # Production-only requirements

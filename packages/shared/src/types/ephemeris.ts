@@ -96,9 +96,9 @@ export interface MinifiedEphemeris {
   ascendant: string;
 }
 
-export type EphemerisAyanamsaMode = 'lahiri';
+export type EphemerisAyanamsaMode = 'lahiri' | 'raman' | 'kp' | 'krishnamurti';
 
-export type EphemerisHouseSystem = 'whole_sign' | 'equal' | 'placidus';
+export type EphemerisHouseSystem = 'whole_sign' | 'equal' | 'placidus' | 'koch';
 
 export type EphemerisNodeMode = 'true' | 'mean';
 

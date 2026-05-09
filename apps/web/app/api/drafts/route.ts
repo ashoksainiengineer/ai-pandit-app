@@ -64,11 +64,12 @@ export async function POST(request: NextRequest) {
         const encryptedLifeEvents = lifeEvents && lifeEvents.length > 0 ? encryptObject(lifeEvents, internalUserId) : '';
         const encryptedSpouseData = spouseData ? encryptObject(spouseData, internalUserId) : null;
 
+        // BUG-FIX: Encrypt PII fields (dateOfBirth, tentativeTime, birthPlace) like sessions route does
         const draftData = {
             fullName: encryptedFullName,
-            dateOfBirth: birthData.dateOfBirth || '',
-            tentativeTime: birthData.tentativeTime || '',
-            birthPlace: birthData.birthPlace || '',
+            dateOfBirth: encrypt(birthData.dateOfBirth || '', internalUserId),
+            tentativeTime: encrypt(birthData.tentativeTime || '', internalUserId),
+            birthPlace: encrypt(birthData.birthPlace || '', internalUserId),
             latitude: birthData.latitude || 0,
             longitude: birthData.longitude || 0,
             timezone: birthData.timezone?.toString() || '5.5',
@@ -82,9 +83,8 @@ export async function POST(request: NextRequest) {
         if (sessionId) {
             const existing = await db.select({ clerkId: sessions.clerkId, status: sessions.status }).from(sessions).where(eq(sessions.id, sessionId)).limit(1);
             if (existing.length === 0) {
-                if (env.app.isProduction) {
-                    return NextResponse.json({ error: 'Session not found' }, { status: 404 });
-                }
+                // BUG-FIX: Return 404 in all environments — prevent TypeError crash
+                return NextResponse.json({ error: 'Session not found' }, { status: 404 });
             }
             if (existing[0].clerkId !== clerkId) return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
             if (!canFrontendMutateSession(existing[0].status)) {

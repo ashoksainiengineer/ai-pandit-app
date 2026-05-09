@@ -3,8 +3,7 @@
  * Production-grade type safety for all dashboard features
  */
 
-import { Session } from '@/lib/types';
-import { TimeOffsetConfig } from '@/lib/types';
+import { Session, TimeOffsetConfig } from '@/lib/types';
 
 export type SessionStatus = 'pending' | 'processing' | 'complete' | 'failed' | 'cancelled';
 export type SortField = 'createdAt' | 'fullName' | 'status' | 'confidence' | 'accuracy';

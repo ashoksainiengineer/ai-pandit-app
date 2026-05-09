@@ -190,6 +190,7 @@ export const payments = pgTable(
   'payments',
   {
     id: text('id').primaryKey(),
+    // BUG-FIX NOTE: Add onDelete: 'set null' to allow user deletion without losing payment records
     userId: text('userId').notNull().references(() => users.id),
     sessionId: text('sessionId').references(() => sessions.id),
     amountPaise: integer('amountPaise').notNull(),
@@ -224,6 +225,7 @@ export const auditLogs = pgTable(
   'auditLogs',
   {
     id: text('id').primaryKey(),
+    // BUG-FIX NOTE: Add onDelete: 'cascade' for auditLogs to allow clean user deletion
     userId: text('userId').notNull().references(() => users.id),
     userRole: text('userRole').notNull(),
     action: text('action').notNull(),

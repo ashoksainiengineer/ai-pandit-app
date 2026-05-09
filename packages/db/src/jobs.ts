@@ -175,17 +175,19 @@ export async function getLatestJobForSession(sessionId: string): Promise<Job | n
   return job ?? null;
 }
 
-export function listActiveJobs(): Promise<Job[]> {
+export function listActiveJobs(limit = 100): Promise<Job[]> {
   return executeWithRetry(() =>
     db
       .select()
       .from(jobs)
       .where(inArray(jobs.status, ['queued', 'running', 'retrying']))
       .orderBy(asc(jobs.createdAt))
+      .limit(limit)
   );
 }
 
-export async function countQueuedJobs(): Promise<number> {
+/** Counts jobs with status in ['queued', 'running', 'retrying'] */
+export async function countActiveJobs(): Promise<number> {
   const result = await executeWithRetry(() =>
     db
       .select({ count: sql<number>`count(*)` })
@@ -554,23 +556,25 @@ export async function appendJobEvent(input: CreateJobEventInput): Promise<JobEve
   throw new DatabaseError('Failed to append job event after retries');
 }
 
-export function listJobEvents(jobId: string): Promise<JobEvent[]> {
+export function listJobEvents(jobId: string, limit = 1000): Promise<JobEvent[]> {
   return executeWithRetry(() =>
     db
       .select()
       .from(jobEvents)
       .where(eq(jobEvents.jobId, jobId))
       .orderBy(jobEvents.sequenceNo)
+      .limit(limit)
   );
 }
 
-export function listJobEventsSince(jobId: string, sequenceNo: number): Promise<JobEvent[]> {
+export function listJobEventsSince(jobId: string, sequenceNo: number, limit = 1000): Promise<JobEvent[]> {
   return executeWithRetry(() =>
     db
       .select()
       .from(jobEvents)
       .where(and(eq(jobEvents.jobId, jobId), gt(jobEvents.sequenceNo, sequenceNo)))
       .orderBy(jobEvents.sequenceNo)
+      .limit(limit)
   );
 }
 
@@ -626,13 +630,14 @@ export async function createArtifact(input: CreateArtifactInput): Promise<Artifa
   return artifact;
 }
 
-export function listArtifactsForJob(jobId: string): Promise<Artifact[]> {
+export function listArtifactsForJob(jobId: string, limit = 100): Promise<Artifact[]> {
   return executeWithRetry(() =>
     db
       .select()
       .from(artifacts)
       .where(eq(artifacts.jobId, jobId))
       .orderBy(desc(artifacts.createdAt))
+      .limit(limit)
   );
 }
 

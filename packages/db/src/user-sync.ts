@@ -7,8 +7,13 @@ import crypto from 'node:crypto';
 // ── Helpers ────────────────────────────────────────────────────────────────
 
 function isUniqueConstraintError(error: unknown): boolean {
-  const message = error instanceof AppError ? error.message : String(error);
-  return message.toLowerCase().includes('unique') || message.toLowerCase().includes('constraint');
+  // BUG-FIX: Use PG error code 23505 instead of fragile string matching
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    'code' in error &&
+    (error as { code?: string }).code === '23505'
+  );
 }
 
 // ── Simple ensure-exists (no Clerk lookup) ─────────────────────────────────
@@ -23,29 +28,33 @@ export async function ensureUserRecord(
   input: EnsureUserInput,
 ): Promise<{ id: string; clerkId: string }> {
   const db = getDb();
-  const rows = await db.select().from(users).where(eq(users.clerkId, input.clerkId)).limit(1);
-  if (rows.length > 0) {
-    return { id: rows[0].id, clerkId: rows[0].clerkId };
-  }
 
-  const now = new Date().toISOString();
-  await db
-    .insert(users)
-    .values({
-      id: crypto.randomUUID(),
-      clerkId: input.clerkId,
-      email: input.email ?? '',
-      fullName: input.fullName ?? null,
-      createdAt: now,
-      updatedAt: now,
-    })
-    .onConflictDoNothing({ target: users.clerkId });
+  // BUG-FIX: Use a transaction to prevent race between SELECT and INSERT
+  return db.transaction(async (tx) => {
+    const rows = await tx.select().from(users).where(eq(users.clerkId, input.clerkId)).limit(1);
+    if (rows.length > 0) {
+      return { id: rows[0].id, clerkId: rows[0].clerkId };
+    }
 
-  const resolved = await db.select().from(users).where(eq(users.clerkId, input.clerkId)).limit(1);
-  if (resolved.length === 0) {
-    throw new DatabaseError('Failed to resolve user after upsert');
-  }
-  return { id: resolved[0].id, clerkId: resolved[0].clerkId };
+    const now = new Date().toISOString();
+    await tx
+      .insert(users)
+      .values({
+        id: crypto.randomUUID(),
+        clerkId: input.clerkId,
+        email: input.email ?? '',
+        fullName: input.fullName ?? null,
+        createdAt: now,
+        updatedAt: now,
+      })
+      .onConflictDoNothing({ target: users.clerkId });
+
+    const resolved = await tx.select().from(users).where(eq(users.clerkId, input.clerkId)).limit(1);
+    if (resolved.length === 0) {
+      throw new DatabaseError('Failed to resolve user after upsert');
+    }
+    return { id: resolved[0].id, clerkId: resolved[0].clerkId };
+  });
 }
 
 // ── Full sync-from-Clerk (with retry + logging) ────────────────────────────

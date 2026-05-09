@@ -45,9 +45,8 @@ export function logAnalysisContainerAction(stage: number | string, context: stri
     }) + '\n';
 
     try {
-        if (!fs.existsSync(path.dirname(DEBUG_LOG_FILE))) {
-            fs.mkdirSync(path.dirname(DEBUG_LOG_FILE), { recursive: true });
-        }
+        // BUG-FIX: mkdirSync recursive is idempotent — no existsSync TOCTOU
+        fs.mkdirSync(path.dirname(DEBUG_LOG_FILE), { recursive: true });
         fs.appendFileSync(DEBUG_LOG_FILE, entry);
     } catch (e) {
         console.error('Failed to write debug log:', e);

@@ -213,7 +213,8 @@ export function tracingMiddleware(options: TracingOptions = {}) {
 function sanitizeBody(body: unknown): unknown {
   if (!body || typeof body !== 'object') return body;
 
-  const sensitiveFields = ['password', 'token', 'apiKey', 'secret', 'authorization'];
+  // BUG-FIX: Added birth-related PII fields to prevent logging of sensitive data
+  const sensitiveFields = ['password', 'token', 'apiKey', 'secret', 'authorization', 'fullName', 'dateOfBirth', 'birthPlace', 'lifeEvents', 'spouseData'];
   const sanitized: Record<string, unknown> = {};
 
   for (const [key, value] of Object.entries(body as Record<string, unknown>)) {

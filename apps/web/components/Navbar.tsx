@@ -122,7 +122,7 @@ export default function Navbar({ transparent: _transparent = false }: NavbarProp
 
       {/* Mobile Drawer */}
       {isOpen && (
-        <div className="md:hidden mx-4 mt-2 bg-white rounded-3xl shadow-lg border border-black/5 overflow-hidden">
+        <div id="mobile-menu" className="md:hidden mx-4 mt-2 bg-white rounded-3xl shadow-lg border border-black/5 overflow-hidden">
           <div className="px-4 py-4 space-y-1">
             {navLinks.map((link) => (
               <Link

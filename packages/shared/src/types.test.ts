@@ -147,9 +147,7 @@ describe('SessionStatus', () => {
     // @ts-expect-error — 'completed' is not a valid SessionStatus
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const _bad1: SessionStatus = 'completed';
-    // @ts-expect-error — 'cancelled' is not a valid SessionStatus
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const _bad2: SessionStatus = 'cancelled';
+    // 'cancelled' is now a valid SessionStatus — test removed
   });
 });
 
@@ -861,7 +859,7 @@ describe('Type-level interface exports', () => {
     const input: BTRInput = {
       birthDate: '1990-01-01',
       timeEstimate: '12:00',
-      offsetConfig: { description: 'test' },
+      offsetConfig: { preset: '1hour' as const, description: 'test' },
       lifeEvents: [
         { id: 'evt_test_1',
           eventType: 'Graduation',

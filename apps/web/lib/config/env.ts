@@ -27,12 +27,12 @@ function getEnvVarOptional(value: string | undefined): string | undefined {
   return value;
 }
 
-function parseBoolean(value: string | undefined, defaultValue: boolean): boolean {
+export function parseBoolean(value: string | undefined, defaultValue: boolean): boolean {
   if (value === undefined) return defaultValue;
   return value.toLowerCase() === 'true';
 }
 
-function parseNumber(value: string | undefined, defaultValue: number): number {
+export function parseNumber(value: string | undefined, defaultValue: number): number {
   if (value === undefined) return defaultValue;
   const parsed = parseInt(value, 10);
   return isNaN(parsed) ? defaultValue : parsed;

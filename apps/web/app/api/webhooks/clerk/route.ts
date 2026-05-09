@@ -30,7 +30,8 @@ export async function POST(req: Request) {
     const WEBHOOK_SECRET = env.clerk.webhookSecret;
 
     if (!WEBHOOK_SECRET) {
-        throw new Error('Please add CLERK_WEBHOOK_SECRET from Clerk Dashboard to .env or .env.local');
+        // BUG-FIX: Return proper response instead of unhandled throw
+        return new Response('Webhook secret not configured', { status: 500 });
     }
 
     const [{ Webhook }, { db }, { users }, { eq }] = await Promise.all([
@@ -95,8 +96,14 @@ export async function POST(req: Request) {
     if (eventType === 'user.deleted') {
         const { id } = evt.data;
         if (id) {
-            await db.delete(users).where(eq(users.clerkId, id));
-            logger.info('User deleted via webhook', { clerkId: id });
+            try {
+                // BUG-FIX: Wrap delete in try/catch to prevent unhandled errors
+                await db.delete(users).where(eq(users.clerkId, id));
+                logger.info('User deleted via webhook', { clerkId: id });
+            } catch (error) {
+                logger.error('Webhook user delete error', { error, clerkId: id });
+                return new Response('Database error during user deletion', { status: 500 });
+            }
         }
     }
 

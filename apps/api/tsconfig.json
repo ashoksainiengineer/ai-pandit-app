@@ -9,7 +9,7 @@
         "outDir": "./dist",
         "rootDir": "./src",
         "strict": true,
-        "noImplicitAny": false,
+        "noImplicitAny": false, // BUG-FIX TODO: remove this and fix all implicit any types
         "esModuleInterop": true,
         "skipLibCheck": true,
         "forceConsistentCasingInFileNames": true,

@@ -137,7 +137,8 @@ export function calculateD150Nadi(longitude: number): NadiAmshaData {
     index: canonicalIndex,
     indexWithinSign,
     sign: ZODIAC_SIGNS[signIndex],
-    degree: degreeInNadi * 150,
+    // BUG-FIX: Correct degree calculation — degree within sign, not inflated by 150x
+    degree: (normalizedLongitude % 30),
     totalLongitude: normalizedLongitude,
     nadiName: `Nadi ${canonicalIndex}`,
     deity,

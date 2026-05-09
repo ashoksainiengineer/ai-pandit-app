@@ -108,9 +108,11 @@ export function isRetryableError(error: unknown): boolean {
     }
 
     // Database transient errors - retry
-    if (msg.includes('database is locked') ||
-      msg.includes('busy') ||
-      msg.includes('sqlITE_BUSY')) {
+    // BUG-FIX: normalize to lowercase for consistent matching
+    const lowerMsg = msg.toLowerCase();
+    if (lowerMsg.includes('database is locked') ||
+      lowerMsg.includes('busy') ||
+      lowerMsg.includes('sqlite_busy')) {
       return true;
     }
   }

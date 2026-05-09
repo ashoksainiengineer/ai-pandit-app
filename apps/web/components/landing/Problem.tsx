@@ -347,12 +347,10 @@ export default function Problem() {
                 Join the sacred revolution in Vedic astrology through algorithmic mastery.
               </p>
             </div>
-            <Link href="/rectify">
-              <button
-                className="px-8 py-4 bg-gradient-to-r from-[#000000] to-[#000000] text-white font-medium rounded-xl shadow-amber-500/25 hover:shadow-amber-500/40 transition-all hover:scale-[1.02] active:scale-[0.98]"
-              >
+            <Link href="/rectify"
+              className="px-8 py-4 bg-gradient-to-r from-[#000000] to-[#000000] text-white font-medium rounded-xl shadow-amber-500/25 hover:shadow-amber-500/40 transition-all hover:scale-[1.02] active:scale-[0.98] inline-block"
+            >
                 Start Analysis
-              </button>
             </Link>
           </div>
         </div>

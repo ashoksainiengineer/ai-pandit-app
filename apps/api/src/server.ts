@@ -37,12 +37,16 @@ const startupState: StartupState = {
 };
 
 async function withTimeout<T>(promise: Promise<T>, timeoutMs: number, label: string): Promise<T> {
-    return Promise.race([
-        promise,
-        new Promise<T>((_, reject) => {
-            setTimeout(() => reject(new Error(`${label} timed out after ${timeoutMs}ms`)), timeoutMs);
-        }),
-    ]);
+    let timer: NodeJS.Timeout | undefined;
+    const timeout = new Promise<T>((_, reject) => {
+        timer = setTimeout(() => reject(new Error(`${label} timed out after ${timeoutMs}ms`)), timeoutMs);
+    });
+    try {
+        return await Promise.race([promise, timeout]);
+    } finally {
+        // BUG-FIX: Clear the timeout timer to prevent resource leak
+        if (timer) clearTimeout(timer);
+    }
 }
 
 async function initializeStartupDependencies(): Promise<void> {

@@ -187,6 +187,8 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 }
 
 export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+    const buildPhaseResponse = getBuildPhaseRouteResponse(); // BUG-FIX: missing build guard
+    if (buildPhaseResponse) return buildPhaseResponse;
     try {
         const { userId: clerkId } = await auth();
         if (!clerkId) {

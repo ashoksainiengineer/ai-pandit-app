@@ -9,9 +9,7 @@ const YOGAS_AND_TERMS = [
     'Vargottama Placement', 'Shashtiamsha Drift', 'Pancha-Dasha Subdivisions', 'Nadi-Amsha Window', 'Ephemeris Engine'
 ];
 
-const planetRegex = new RegExp(`\\b(${PLANETS.join('|')})\\b`, 'gi');
-const houseRegex = new RegExp(`\\b(${HOUSES.join('|')})\\b`, 'gi');
-const termRegex = new RegExp(`\\b(${YOGAS_AND_TERMS.join('|')})\\b`, 'gi');
+// Note: planetRegex, houseRegex, termRegex removed; MASTER_REGEX handles all astrological term matching
 
 const escapeRegExp = (string: string) => string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 const allTerms = [...PLANETS, ...HOUSES, ...YOGAS_AND_TERMS].map(escapeRegExp);

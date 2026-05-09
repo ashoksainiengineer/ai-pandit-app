@@ -181,7 +181,7 @@ export function decrypt(encryptedString: string, userId: string): string {
 
     const decrypted = Buffer.concat([decipher.update(ciphertext), decipher.final()]);
     return decrypted.toString('utf8');
-  } catch (_error) {
+  } catch {
     throw new Error('Decryption failed. The data may be corrupt or the key may be incorrect.');
   }
 }

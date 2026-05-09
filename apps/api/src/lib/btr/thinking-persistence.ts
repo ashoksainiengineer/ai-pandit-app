@@ -124,7 +124,7 @@ ${thinking}
         
         for (const line of lines) {
           if (line) {
-            try { entries.push(JSON.parse(line)); } catch { /* skip malformed line */ }
+            try { entries.push(JSON.parse(line)); } catch { /* skip malformed line */ logger.warn('[THINKING] Skipping malformed JSON line'); }
           }
         }
       }

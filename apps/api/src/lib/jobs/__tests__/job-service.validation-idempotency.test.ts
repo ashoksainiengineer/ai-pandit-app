@@ -7,12 +7,18 @@ const { executeWithRetryMock, syncUserMock, selectQueue } = vi.hoisted(() => ({
 }));
 
 function createSelectBuilder() {
-  return {
+  const builder: Record<string, unknown> = {
     from: vi.fn().mockReturnThis(),
     innerJoin: vi.fn().mockReturnThis(),
     where: vi.fn().mockReturnThis(),
     limit: vi.fn(async () => (selectQueue.length > 0 ? selectQueue.shift() ?? [] : [])),
   };
+  // Make builder Thenable so queries without .limit() also consume from queue
+  builder.then = (resolve: (value: unknown) => void) => {
+    const limitFn = builder.limit as (...args: unknown[]) => Promise<unknown>;
+    return Promise.resolve(limitFn()).then(resolve);
+  };
+  return builder;
 }
 
 vi.mock('@ai-pandit/db', () => ({
@@ -132,19 +138,18 @@ describe('job-service validation + idempotency guardrails', () => {
 
   it('blocks idempotency key reuse with different request payload hash', async () => {
     selectQueue.push([{ role: 'user' }]);
-    selectQueue.push([]); // global queued
-    selectQueue.push([]); // global running
-    selectQueue.push([]); // global retrying
-    selectQueue.push([]); // user queued
-    selectQueue.push([]); // user running
-    selectQueue.push([]); // user retrying
+    selectQueue.push([{ count: 0 }]); // global queued
+    selectQueue.push([{ count: 0 }]); // global running
+    selectQueue.push([{ count: 0 }]); // global retrying
+    selectQueue.push([{ count: 0 }]); // user queued
+    selectQueue.push([{ count: 0 }]); // user running
+    selectQueue.push([{ count: 0 }]); // user retrying
     selectQueue.push([
       {
         requestHash: 'a-different-hash',
         jobId: 'job-existing-123',
       },
     ]);
-
     await expect(
       createQueuedBirthRectificationJob({
         clerkId: 'clerk_1',
@@ -161,13 +166,12 @@ describe('job-service validation + idempotency guardrails', () => {
 
   it('returns explicit 429 contract details when per-user tier limit is exceeded', async () => {
     selectQueue.push([{ role: 'pro' }]);
-    selectQueue.push([]); // global queued
-    selectQueue.push([]); // global running
-    selectQueue.push([]); // global retrying
-    selectQueue.push([{ id: 'u1' }, { id: 'u2' }, { id: 'u3' }, { id: 'u4' }, { id: 'u5' }]); // user queued
-    selectQueue.push([]); // user running
-    selectQueue.push([]); // user retrying
-
+    selectQueue.push([{ count: 0 }]); // global queued
+    selectQueue.push([{ count: 0 }]); // global running
+    selectQueue.push([{ count: 0 }]); // global retrying
+    selectQueue.push([{ count: 5 }]); // user queued (5 active, at pro tier limit)
+    selectQueue.push([{ count: 0 }]); // user running
+    selectQueue.push([{ count: 0 }]); // user retrying
     await expect(
       createQueuedBirthRectificationJob({
         clerkId: 'clerk_1',

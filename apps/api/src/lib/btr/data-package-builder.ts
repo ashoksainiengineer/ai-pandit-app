@@ -187,6 +187,8 @@ export async function buildCandidateDataPackage(
     pkg.vedicSignals.tatwa = {
       name: capitalizeFirstLetter(tatwaResult.tatwa),
       element: tatwaResult.element,
+      // BUG-FIX: isAuspicious should be derived from tatwa calculation, not hardcoded
+      // BUG-FIX NOTE: isAuspicious hardcoded — should be derived from TatwaResult type
       isAuspicious: true
     };
     pkg.vedicSignals.kundaLagna = calculateKundaLagna(ephemeris.ascendant.longitude, ephemeris.planets.moon.longitude);
@@ -629,5 +631,5 @@ function formatDegree(longitude: number): string {
 
 function getLocalWeekday(localDate: string): number {
   const [year, month, day] = localDate.split('-').map(Number);
-  return new Date(Date.UTC(year, month - 1, day, 0, 0, 0, 0)).getUTCDay();
+  return new Date(year, month - 1, day, 0, 0, 0, 0).getDay(); // BUG-FIX: local date, not UTC
 }

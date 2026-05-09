@@ -77,9 +77,8 @@ class BTRDataCapture {
   }
 
   private ensureDirectory(): void {
-    if (!fs.existsSync(this.tracesDir)) {
-      fs.mkdirSync(this.tracesDir, { recursive: true });
-    }
+    // BUG-FIX: mkdirSync with recursive:true is idempotent — no TOCTOU race
+    fs.mkdirSync(this.tracesDir, { recursive: true });
   }
 
   private getPath(sessionId: string, stage: number, round?: number, batch?: number): string {
@@ -175,7 +174,6 @@ Tokens: ${promptData.promptTokens}
 
 CANDIDATES: ${contextData.candidateCount}
 EVENTS: ${contextData.eventCount}
-SPOUSE: ${contextData.spouseDataPresent ? 'Yes' : 'No'}
 SPOUSE: ${contextData.spouseDataPresent ? 'Yes' : 'No'}
 
 ════════════════════════════════════════════════════════════════

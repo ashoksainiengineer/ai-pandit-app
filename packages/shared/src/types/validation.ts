@@ -62,7 +62,7 @@ export interface DashaData {
 export interface ConsensusResult {
   scores: ConsensusScores;
   overallConsensus: number;
-  confidenceLevel: 'STANDARD_PRECISION' | 'VERY_HIGH' | 'HIGH' | 'MEDIUM' | 'LOW';
+  confidenceLevel: 'GOD_TIER' | 'STANDARD_PRECISION' | 'VERY_HIGH' | 'HIGH' | 'MEDIUM' | 'LOW';
   marginOfError: number;
   validationDetails: ValidationDetail[];
   redFlags: RedFlags;

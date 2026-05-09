@@ -10,7 +10,7 @@ export async function executeAIInParallel<T>(
   staggerMs: number = 500
 ) : Promise<T[]> {
   const results: T[] = new Array(tasks.length);
-    const errors: Array<{ index: number; error: unknown }> = [];
+    // BUG-FIX: Removed unused errors array (dead code)
     let activeCount = 0;
     let nextIndex = 0;
 
@@ -32,7 +32,6 @@ export async function executeAIInParallel<T>(
                     } catch (error) {
                         logger.error(`Parallel task ${index} failed`, error);
                         results[index] = undefined as unknown as T;
-                        errors.push({ index, error });
                     } finally {
                         activeCount--;
                         runNext();

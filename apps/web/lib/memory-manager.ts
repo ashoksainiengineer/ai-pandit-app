@@ -8,13 +8,17 @@ export interface MemoryStats {
 }
 
 export function getMemoryStats(): MemoryStats {
-  // In browser/frontend, we don't have process.memoryUsage()
-  return {
-    heapUsed: 0,
-    heapTotal: 0,
-    rss: 0,
-    percentUsed: 0
-  };
+  // BUG-FIX: Use process.memoryUsage() when available (API routes run in nodejs runtime)
+  if (typeof process !== 'undefined' && process.memoryUsage) {
+    const mem = process.memoryUsage();
+    return {
+      heapUsed: mem.heapUsed,
+      heapTotal: mem.heapTotal,
+      rss: mem.rss,
+      percentUsed: mem.heapTotal > 0 ? (mem.heapUsed / mem.heapTotal) * 100 : 0
+    };
+  }
+  return { heapUsed: 0, heapTotal: 0, rss: 0, percentUsed: 0 };
 }
 
 export function getActiveCalculations(): number {

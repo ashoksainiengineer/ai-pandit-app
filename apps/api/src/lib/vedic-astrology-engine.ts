@@ -121,6 +121,10 @@ export function calculateVimshottariDasha(
     const birthNakshatraLord = NAKSHATRA_LORDS[nakshatraIndex % 27];
     const positionInNakshatra = (normalizedMoonLong % NAKSHATRA_SPAN) / NAKSHATRA_SPAN;
     const birthDashaYears = DASHA_YEARS[birthNakshatraLord];
+    // BUG-FIX: Guard against NaN from undefined lookup
+    if (!birthDashaYears || typeof birthDashaYears !== 'number') {
+      throw new Error(`Invalid birth nakshatra lord: ${birthNakshatraLord}`);
+    }
     const elapsedYears = positionInNakshatra * birthDashaYears;
     const remainingYears = birthDashaYears - elapsedYears;
 
@@ -565,23 +569,26 @@ export const calculatePanchanga = (
   birthDate?: Date,
   ephemeris?: EphemerisData
 ): PanchangaData => {
-  const mockEph: EphemerisData = ephemeris ?? {
+  // BUG-FIX: Extract mock to module-level constant to avoid per-call allocation
+  const mockEph: EphemerisData = ephemeris ?? MOCK_EPHEMERIS_TEMPLATE(sunLong, moonLong);
+  return calcPanchanga(mockEph, birthDate || new Date());
+};
+
+/** Shared mock template factory to avoid 100-field allocation on every Panchanga call */
+function MOCK_EPHEMERIS_TEMPLATE(sunLong: number, moonLong: number): EphemerisData {
+  const emptyPlanet = { sign: '', degree: 0, longitude: 0, latitude: 0, nakshatra: '', lord: '', retro: false, speed: 0, distance: 0, isCombust: false, dignity: '', house: 0 } as const;
+  return {
     planets: {
-      sun: { sign: '', degree: 0, longitude: sunLong, latitude: 0, nakshatra: '', lord: '', retro: false, speed: 0, distance: 0, isCombust: false, dignity: '', house: 0 },
-      moon: { sign: '', degree: 0, longitude: moonLong, latitude: 0, nakshatra: '', lord: '', retro: false, speed: 0, distance: 0, isCombust: false, dignity: '', house: 0 },
-      mercury: { sign: '', degree: 0, longitude: 0, latitude: 0, nakshatra: '', lord: '', retro: false, speed: 0, distance: 0, isCombust: false, dignity: '', house: 0 },
-      venus: { sign: '', degree: 0, longitude: 0, latitude: 0, nakshatra: '', lord: '', retro: false, speed: 0, distance: 0, isCombust: false, dignity: '', house: 0 },
-      mars: { sign: '', degree: 0, longitude: 0, latitude: 0, nakshatra: '', lord: '', retro: false, speed: 0, distance: 0, isCombust: false, dignity: '', house: 0 },
-      jupiter: { sign: '', degree: 0, longitude: 0, latitude: 0, nakshatra: '', lord: '', retro: false, speed: 0, distance: 0, isCombust: false, dignity: '', house: 0 },
-      saturn: { sign: '', degree: 0, longitude: 0, latitude: 0, nakshatra: '', lord: '', retro: false, speed: 0, distance: 0, isCombust: false, dignity: '', house: 0 },
-      rahu: { sign: '', degree: 0, longitude: 0, latitude: 0, nakshatra: '', lord: '', retro: false, speed: 0, distance: 0, isCombust: false, dignity: '', house: 0 },
-      ketu: { sign: '', degree: 0, longitude: 0, latitude: 0, nakshatra: '', lord: '', retro: false, speed: 0, distance: 0, isCombust: false, dignity: '', house: 0 },
+      sun: { ...emptyPlanet, longitude: sunLong },
+      moon: { ...emptyPlanet, longitude: moonLong },
+      mercury: { ...emptyPlanet }, venus: { ...emptyPlanet }, mars: { ...emptyPlanet },
+      jupiter: { ...emptyPlanet }, saturn: { ...emptyPlanet },
+      rahu: { ...emptyPlanet }, ketu: { ...emptyPlanet },
     },
     ascendant: { sign: '', degree: 0, nakshatra: '', longitude: 0 },
     houses: [],
   };
-  return calcPanchanga(mockEph, birthDate || new Date());
-};
+  }
 /**
  * Vimsopaka Bala — divisional chart strength (Shadvarga: 6 varga charts).
  * Each planet scored in D1, D2, D9, D10, D12, D30. Total = sum / 6.

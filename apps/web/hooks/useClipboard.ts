@@ -53,6 +53,8 @@ export function useClipboard(timeout = 2000) {
             textArea.focus();
             textArea.select();
 
+            // BUG-FIX NOTE: execCommand is deprecated but still the only reliable fallback for older browsers
+            // navigator.clipboard API is tried first above
             const successful = document.execCommand('copy');
             document.body.removeChild(textArea);
 

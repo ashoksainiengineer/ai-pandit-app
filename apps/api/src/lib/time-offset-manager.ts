@@ -445,6 +445,12 @@ export function generateRefinementGrid(
   const baseSeconds = hours * 3600 + minutes * 60 + seconds;
   const rangeSec = rangeMinutes * 60;
 
+  // BUG-FIX: Guard against zero/negative interval that would cause infinite loop
+  if (intervalSeconds <= 0) {
+    logger.warn('[TIME-OFFSET] generateRefinementGrid called with invalid intervalSeconds, defaulting to 1');
+    intervalSeconds = 1;
+  }
+
   for (let offset = -rangeSec; offset <= rangeSec; offset += intervalSeconds) {
     candidates.push(convertSecondsToCandidate(
       baseSeconds + offset,

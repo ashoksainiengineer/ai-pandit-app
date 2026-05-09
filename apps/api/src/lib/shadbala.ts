@@ -236,9 +236,9 @@ function calculateKalaBala(
 ): number {
   let bala = 25;
 
-  // Day = Sun above horizon: houses 10-12 and 1-3. Night = houses 4-9.
+  // BUG-FIX: Correct day/night — Sun above horizon = houses 7-12 (ascendant at house 1)
   const sunHouse = ephemeris.planets.sun?.house;
-  const isDayBirth = typeof sunHouse === 'number' ? (sunHouse >= 10 || sunHouse <= 3) : true;
+  const isDayBirth = typeof sunHouse === 'number' && Number.isFinite(sunHouse) ? (sunHouse >= 7 && sunHouse <= 12) : true;
   
   const dayPlanets = ['sun', 'jupiter', 'venus'];
   const nightPlanets = ['moon', 'mars', 'saturn'];

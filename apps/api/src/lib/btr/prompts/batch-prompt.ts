@@ -223,7 +223,7 @@ LIFE EVENTS:
 ${eventsText}
 
 
-${spouseText}
+
 ${spouseText}
 
 CANDIDATES WITH ENRICHED VEDIC DATA (VSL Protocol):

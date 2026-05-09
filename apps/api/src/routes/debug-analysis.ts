@@ -10,6 +10,10 @@ interface DebugLogEntry {
   payload?: unknown;
 }
 
+function escapeHtml(str: string): string {
+  return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
 router.get('/', (req, res) => {
     if (!config.app.isDevelopment) {
         res.status(404).json({ success: false, error: 'Not found' });
@@ -104,9 +108,8 @@ router.get('/', (req, res) => {
             ${logs.reverse().map(log => `
                 <div class="card">
                     <div class="card-header">
-                        <span class="badge">Stage ${log?.stage ?? '?'} | ${log?.context ?? '?'}</span>
+                        <span class="badge">Stage ${escapeHtml(String(log?.stage ?? '?'))} | ${escapeHtml(String(log?.context ?? '?'))}</span>
                         <span class="timestamp">${new Date(log?.timestamp ?? 0).toLocaleTimeString()}</span>
-                        <span class="timestamp">${new Date((log as any)?.timestamp ?? 0).toLocaleTimeString()}</span>
                     </div>
                     ${log?.payload && typeof log?.payload === 'object' ? `<pre>${JSON.stringify(log.payload, null, 2).replace(/</g, '&lt;').replace(/>/g, '&gt;')}</pre>` : `<pre>${String(log?.payload ?? '').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</pre>`}
                 </div>

@@ -45,6 +45,18 @@ vi.mock('../../lib/logger.js', () => ({
     logger: { info: vi.fn(), error: vi.fn(), warn: vi.fn(), debug: vi.fn() },
 }));
 
+vi.mock('../../lib/session-ownership.js', () => ({
+  isSessionOwnedByContext: vi.fn(() => true),
+  resolveSessionOwnershipContext: vi.fn(async (clerkId: string) => ({
+    clerkId,
+    internalUserId: null,
+  })),
+}));
+
+vi.mock('../../middleware/validation.js', () => ({
+  validateBody: () => (req: any, _res: any, next: any) => next(),
+  SessionUpdateSchema: {},
+}));
 import sessionsRouter from '../sessions.js';
 import * as encryption from '../../lib/encryption/index.js';
 

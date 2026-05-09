@@ -1,4 +1,4 @@
-#!/usr/bin/env sh
+#!/usr/bin/env bash  # BUG-FIX: bash needed for 'local' keyword
 set -eu
 
 PROJECT_ID="${GCP_PROJECT_ID:-${GOOGLE_CLOUD_PROJECT:-}}"

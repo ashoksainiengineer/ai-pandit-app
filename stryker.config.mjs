@@ -85,7 +85,8 @@ const config = {
     timeoutMS: 60000,
     
     // TypeScript configuration
-    tsconfigFile: 'tsconfig.json',
+    // BUG-FIX: Use API tsconfig (no root tsconfig exists)
+    tsconfigFile: 'apps/api/tsconfig.json',
     
     // Additional settings
     allowConsoleColors: true,

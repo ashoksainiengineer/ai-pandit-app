@@ -1,7 +1,7 @@
 // lib/fuzzy-date-parser.ts
 // Utility to parse human-centric date strings into machine-readable format for BTR
 
-import { format, addYears, subYears } from 'date-fns';
+import { format, addYears } from 'date-fns';
 
 export interface ParsedFuzzyDate {
     startDate: string; // YYYY-MM-DD
@@ -13,7 +13,6 @@ export interface ParsedFuzzyDate {
 export function parseFuzzyDate(input: string, birthDate: string): ParsedFuzzyDate | null {
     const text = input.toLowerCase().trim();
     const birth = new Date(birthDate);
-    const currentYear = new Date().getFullYear();
 
     // 1. Age-based: "Age 22", "When I was 10"
     const ageMatch = text.match(/(?:age|at|when i was)\s*(\d{1,2})/);
@@ -37,6 +36,7 @@ export function parseFuzzyDate(input: string, birthDate: string): ParsedFuzzyDat
         if (season === 'summer') months = ['04', '06'];
         if (season === 'monsoon') months = ['07', '09'];
         if (season === 'autumn') months = ['10', '12'];
+        if (season === 'spring') months = ['03', '05']; // BUG-FIX: spring was missing
 
         return {
             startDate: `${year}-${months[0]}-01`,

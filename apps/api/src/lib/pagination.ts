@@ -101,8 +101,11 @@ export function decodeCursor(cursor: string): string {
  */
 export const validatePagination = (params: unknown): { page: number; limit: number } => {
   const p = params as PaginationParams;
+  // BUG-FIX: Guard against NaN from invalid number conversion
+  const page = p?.page ? Number(p.page) : undefined;
+  const limit = p?.limit ? Number(p.limit) : undefined;
   return sanitizePagination({
-    page: p?.page ? Number(p.page) : undefined,
-    limit: p?.limit ? Number(p.limit) : undefined,
+    page: Number.isFinite(page) ? page : undefined,
+    limit: Number.isFinite(limit) ? limit : undefined,
   });
 };

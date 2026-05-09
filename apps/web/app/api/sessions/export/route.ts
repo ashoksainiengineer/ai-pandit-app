@@ -42,8 +42,9 @@ export async function POST(req: NextRequest) {
 
     const body = (await req.json().catch(() => ({}))) as ExportOptions;
     const format = body.format ?? 'json';
-    if (!['json', 'csv', 'pdf'].includes(format)) {
-      return NextResponse.json({ success: false, error: 'Invalid export format' }, { status: 400 });
+    // BUG-FIX: Removed 'pdf' — server-side PDF not implemented, returns text misleadingly
+    if (!['json', 'csv'].includes(format)) {
+      return NextResponse.json({ success: false, error: 'Invalid export format. Use json or csv.' }, { status: 400 });
     }
 
     const user = await db.query.users.findFirst({

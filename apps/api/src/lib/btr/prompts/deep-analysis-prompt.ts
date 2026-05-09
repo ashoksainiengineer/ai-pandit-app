@@ -151,7 +151,7 @@ You are in Stage 4. The Lagna is fixed. Your objective is hunting the correct Na
       : `════════════════════════════════════════════════════════════════════════════════
 🪐 PHASE C: THE MICRO SWEEP PROTOCOL (Offset: ±${offsetMinutes} mins)
 ════════════════════════════════════════════════════════════════════════════════
-We are in the terminal varga zones. We are hunting exact D60 / D1080 (Nadi) alignments.
+We are in the terminal varga zones. We are hunting exact D60 / D150 (Nadi) alignments. // BUG-FIX: D150 not D1080
 - ANALYZE Vimshottari down to Pratyantar / Sookshma levels.
 - USE D60 deities and configurations to map traumatic or sudden events.
 - Your final judgment MUST hinge on mathematical precision in the micro-charts matching the situational narrative.`}

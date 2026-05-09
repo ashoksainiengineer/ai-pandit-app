@@ -363,11 +363,12 @@ function nadiKeyWeight(key: string): number {
 
 function encodeKarmic(raw: string): string {
   const value = raw.toLowerCase();
+  // BUG-FIX: Reordered checks — spiritual before relation, present first, word-anchored
   if (value.includes('past')) return 'PL';
   if (value.includes('family')) return 'FL';
-  if (value.includes('relation')) return 'RE';
+  if (value.includes('spiritual')) return 'SP';  // check before relation
   if (value.includes('career')) return 'CR';
-  if (value.includes('spiritual')) return 'SP';
+  if (value.includes('relation')) return 'RE';
   if (value.includes('present')) return 'PR';
   return '~';
 }

@@ -1,6 +1,6 @@
 import {
   claimNextQueuedJob,
-  countQueuedJobs,
+  countActiveJobs,
   listActiveJobs,
 } from '@ai-pandit/db/jobs';
 import type { QueueDriver } from '../driver.js';
@@ -12,8 +12,8 @@ export class DbPollingQueueDriver implements QueueDriver {
     return listActiveJobs();
   }
 
-  public countQueuedJobs() {
-    return countQueuedJobs();
+  public countActiveJobs() {
+    return countActiveJobs();
   }
 
   public claimNextQueuedJob() {

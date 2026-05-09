@@ -612,7 +612,7 @@ if (typeof window !== 'undefined') {
         });
         // Use synchronous set via a best-effort approach
         try {
-            set('btr-stream-storage', payload).catch(() => {});
-        } catch {}
+            set('btr-stream-storage', payload).catch((err) => { console.warn('[StreamStore] Failed to persist state', err); });
+        } catch (err) { console.warn('[StreamStore] set() threw synchronously', err); }
     });
 }

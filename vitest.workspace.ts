@@ -33,5 +33,11 @@ export default [
       name: 'shared',
       environment: 'node',
     },
+  {
+    extends: './packages/worker-runtime/vitest.config.ts',
+    test: {
+      name: 'worker-runtime',
+      environment: 'node',
+    },
   },
 ];

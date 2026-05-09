@@ -275,7 +275,7 @@ function computeEstimatedWait(position: number, queueStatus: QueueStatus): numbe
 
 async function getQueuedCount(): Promise<number> {
   try {
-    return await queueDriver.countQueuedJobs();
+    return await queueDriver.countActiveJobs();
   } catch (error) {
     logger.error('Failed to get queued count', error);
     return 0;
@@ -673,7 +673,8 @@ async function scheduleRetry(
       error: errorMsg,
       isRetryable: true,
     });
-    return analyzeBirthTimeWithRetry(sessionId, attempt + 1);
+    // BUG-FIX: Added await to prevent fire-and-forget retry with unhandled promise
+    return await analyzeBirthTimeWithRetry(sessionId, attempt + 1);
   }
 
   // Another iteration claimed our session, or it became invalid
