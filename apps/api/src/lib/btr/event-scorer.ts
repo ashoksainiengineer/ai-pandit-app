@@ -21,12 +21,10 @@ import {
   type DatePrecision
 } from '@ai-pandit/shared';
 import {
-  EVENT_IMPORTANCE_WEIGHTS,
   IMPORTANCE_TO_IMPACT,
-  VEDIC_EVENT_IMPORTANCE,
   EventImportance,
   getEventWeightFromImportance,
-  _getDefaultImportance,
+  _getDefaultImportance
 } from './precision-weights.js';
 import { resolveEventDateWindow } from './event-date-utils.js';
 

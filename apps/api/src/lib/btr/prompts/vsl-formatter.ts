@@ -10,6 +10,9 @@ import { CandidateDataPackage, PlanetData } from '@ai-pandit/shared';
 
 export interface EnhancedCandidate extends CandidateDataPackage {
   precision?: CandidateDataPackage['precision'];
+  kpCuspalData?: Record<number, { cusp: number; sign: string
+}>;
+  houses?: Record<number, number>;
 }
 
 type KPPlanetSubMap = NonNullable<NonNullable<CandidateDataPackage['kpData']>['planetSubLords']>;
@@ -146,8 +149,8 @@ function formatAyanamsa(pkg: EnhancedCandidate): string {
 
 function formatHouseCusps(pkg: EnhancedCandidate): string {
   // Try KP cuspal data first, then houses passthrough
-  const kpCusps = (pkg as any).kpCuspalData as Record<number, { cusp: number; sign: string }> | undefined;
-  const houses = (pkg as any).houses as Record<number, number> | undefined;
+  const kpCusps = pkg.kpCuspalData;
+  const houses = pkg.houses;
 
   const entries: string[] = [];
   for (let i = 1; i <= 12; i++) {
@@ -193,9 +196,9 @@ function formatSpecialPoints(pkg: EnhancedCandidate): string {
 function formatPakshi(pkg: EnhancedCandidate): string {
   const pa = pkg.pakshiAnalysis;
   if (!pa) return '!PP|~';
-  const bird = sanitizeToken((pa as any).bird || (pa as any).pakshi || '~', 16);
-  const phase = sanitizeToken((pa as any).phase || '~', 12);
-  const activity = sanitizeToken((pa as any).activity || '~', 12);
+  const bird = sanitizeToken(pa.rulingBird?.name || '~', 16);
+  const phase = sanitizeToken(pa.birdStrength || '~', 12);
+  const activity = sanitizeToken(pa.activityStrengths?.[0] || '~', 12);
   return `!PP|${bird}|${phase}|${activity}`;
 }
 
@@ -236,11 +239,12 @@ function formatMatrix(pkg: EnhancedCandidate): string {
   return `!M|${entries.join('|')}`;
 }
 
-function formatAspects(aspects: unknown): string {
-  if (!Array.isArray(aspects) || aspects.length === 0) return '~';
-  return aspects.slice(0, 5).map((a: any) => {
-    const planet = a.planet ? getPlan(String(a.planet)) : '~';
-    const type = a.type || a.aspectType || '~';
+function formatAspects(aspects: unknown[] | undefined): string {
+  if (!aspects || aspects.length === 0) return '~';
+  return aspects.slice(0, 5).map((a) => {
+    const ar = a as Record<string, unknown>;
+    const planet = ar.planet ? getPlan(String(ar.planet)) : '~';
+    const type = String(ar.type || ar.aspectType || '~');
     const abbr = type.length <= 4 ? type : type.slice(0, 4);
     return `${planet}>${abbr}`;
   }).join(',');
@@ -299,7 +303,7 @@ function formatD60Deities(pkg: EnhancedCandidate): string {
   if (!dp || Object.keys(dp).length === 0) return '';
   const entries = Object.entries(dp)
     .sort((a, b) => planetSortWeight(a[0]) - planetSortWeight(b[0]))
-    .map(([name, data]: [string, any]) => {
+    .map(([name, data]: [string, { deity?: string }]) => {
       const deity = sanitizeToken(data.deity || '~', 20);
       return `${getPlan(name)}:${deity}`;
     });
@@ -313,7 +317,7 @@ function formatAshtakavarga(pkg: EnhancedCandidate): string {
   if (!av || Object.keys(av).length === 0) return '!AV|~';
   const entries = Object.entries(av)
     .sort((a, b) => planetSortWeight(a[0]) - planetSortWeight(b[0]))
-    .map(([name, scores]: [string, any]) => {
+    .map(([name, scores]: [string, number[] | number]) => {
       const total = Array.isArray(scores)
         ? scores.reduce((sum: number, s: number) => sum + s, 0)
         : (typeof scores === 'number' ? scores : '~');
@@ -437,11 +441,14 @@ function formatYogas(pkg: EnhancedCandidate): string {
 
   const entries = (Array.isArray(yogas) ? yogas : Object.entries(yogas))
     .slice(0, 8)
-    .map((y: any) => {
-      const name = sanitizeToken(y.name || y.yogaName || String(y), 28);
-      const nature = y.nature ? sanitizeToken(String(y.nature), 12) : '~';
-      return `${name}:${nature}`;
-    });
+    .map((y) => {
+      const entry = y as { name?: string;
+    yogaName?: string;
+    nature?: string };
+      const name = sanitizeToken(entry.name || entry.yogaName || String(y), 28);
+      const nature = entry.nature ? sanitizeToken(String(entry.nature), 12) : '~';
+return `${name}:${nature}`;
+});
   return `!YG|${entries.join('|')}`;
 }
 
@@ -450,10 +457,11 @@ function formatYogas(pkg: EnhancedCandidate): string {
 function formatChalit(pkg: EnhancedCandidate): string {
   const cd = pkg.chalitDiscrepancies;
   if (!cd || !Array.isArray(cd) || cd.length === 0) return '!BC|~';
-  const entries = cd.slice(0, 6).map((d: any) => {
-    const planet = d.planet ? getPlan(String(d.planet)) : '~';
-    const fromHouse = d.rashiHouse ?? d.rasiHouse ?? '~';
-    const toHouse = d.chalitHouse ?? '~';
+  const entries = cd.slice(0, 6).map((d) => {
+    const item = d as { planet?: string; rasiHouse?: number; rashiHouse?: number; chalitHouse?: number };
+    const planet = item.planet ? getPlan(String(item.planet)) : '~';
+    const fromHouse = item.rashiHouse ?? item.rasiHouse ?? '~';
+    const toHouse = item.chalitHouse ?? '~';
     return `${planet}:H${fromHouse}>H${toHouse}`;
   });
   return `!BC|${entries.join('|')}`;
@@ -482,10 +490,12 @@ function formatDashas(pkg: EnhancedCandidate): string {
   }
   // Kalachakra Dasha
   if (pkg.kalachakraDasha && pkg.kalachakraDasha.length > 0) {
-    const kalEntries = pkg.kalachakraDasha.slice(0, 5).map((k: any) => {
+    const kalEntries = pkg.kalachakraDasha.slice(0, 5).map((k) => {
       const lord = getPlan(k.lord || '~');
       const sign = k.sign ? getSgn(k.sign) : '~';
-      const window = sanitizeToken(k.startEnd || '~', 22);
+      const window = k.startDate && k.endDate
+        ? `${k.startDate.toISOString().slice(0, 10)}~${k.endDate.toISOString().slice(0, 10)}`
+        : sanitizeToken('~', 22);
       return `KAL[${lord}|${sign}|${window}]`;
     }).join(';');
     extras.push(kalEntries);

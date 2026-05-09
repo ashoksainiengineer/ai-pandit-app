@@ -40,7 +40,7 @@ const YoginiDashaTimeline: React.FC<YoginiDashaTimelineProps> = ({ dashaPeriods 
   // A real implementation would need a more robust way to get the sequence around the event
   const dashaSequence = [eventDasha, currentDasha]; // Simplified
 
-  const formatDate = (dateString: string) => new Date(dateString).getFullYear();
+  const getYearFromDate = (dateString: string) => new Date(dateString).getFullYear();
 
   return (
     <SignalCard
@@ -84,7 +84,7 @@ const YoginiDashaTimeline: React.FC<YoginiDashaTimelineProps> = ({ dashaPeriods 
                   )}
                   <circle cx={cx} cy={50} r="6" fill={isEvent ? "#8B5CF6" : "#5A6475"} stroke="#0A0F1C" strokeWidth="2" />
                   <text x={cx} y={80} textAnchor="middle" fill="#C4B8AD" fontSize="10">{dasha.dashaName}</text>
-                  <text x={cx} y={95} textAnchor="middle" fill="#8C7F72" fontSize="9">{formatDate(dasha.startDate)}</text>
+                  <text x={cx} y={95} textAnchor="middle" fill="#8C7F72" fontSize="9">{getYearFromDate(dasha.startDate)}</text>
                 </g>
               );
             })}
@@ -100,7 +100,7 @@ const YoginiDashaTimeline: React.FC<YoginiDashaTimelineProps> = ({ dashaPeriods 
                 className="absolute top-0 left-1/2 -translate-x-1/2 p-2 bg-bg-input text-white text-xs rounded-md shadow-lg pointer-events-none"
               >
                 <strong>{hoveredDasha.dashaName}</strong> ({hoveredDasha.rulingPlanet})<br />
-                {formatDate(hoveredDasha.startDate)} - {formatDate(hoveredDasha.endDate)}
+                {getYearFromDate(hoveredDasha.startDate)} - {getYearFromDate(hoveredDasha.endDate)}
               </motion.div>
             )}
           </AnimatePresence>

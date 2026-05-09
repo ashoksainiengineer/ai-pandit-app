@@ -6,7 +6,6 @@ import {
     extractKeyDignities,
     hasSandhiWarnings,
     getPrimaryDashaLord,
-    type MinifiedEphemeris,
 } from './ephemeris-helpers.js';
 
 describe('ephemeris-helpers', () => {

@@ -553,7 +553,7 @@ export async function getJobDetailById(
     throw new ForbiddenError('Access denied');
   }
 
-  return mapJobDetail(jobRow.job as any, jobRow.sessionStatus as string, jobRow.sessionResult as string);
+  return mapJobDetail(jobRow.job as typeof jobs.$inferSelect, jobRow.sessionStatus as string, jobRow.sessionResult as string);
 }
 
 export async function cancelJobById(

@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useAuth } from '@clerk/nextjs';
 import { DashboardClient } from './DashboardClient';
 import { DashboardSession } from '@/lib/dashboard/types';
 import { DashboardSkeleton } from './DashboardSkeleton';
@@ -11,6 +12,7 @@ interface Props {
 }
 
 export function DashboardContent({ clerkId, userName }: Props) {
+  const { getToken } = useAuth();
   const [sessions, setSessions] = useState<DashboardSession[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -19,7 +21,12 @@ export function DashboardContent({ clerkId, userName }: Props) {
 
     async function load() {
       try {
-        const res = await fetch(`/api/sessions`);
+        const token = await getToken();
+        const res = await fetch(`/api/sessions`, {
+          headers: {
+            ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+          },
+        });
         if (!res.ok) throw new Error('Failed to load sessions');
         const data = await res.json();
         if (!cancelled) setSessions(data.data ?? []);
@@ -30,7 +37,7 @@ export function DashboardContent({ clerkId, userName }: Props) {
 
     load();
     return () => { cancelled = true; };
-  }, [clerkId]);
+  }, [clerkId, getToken]);
 
   if (error) {
     return (

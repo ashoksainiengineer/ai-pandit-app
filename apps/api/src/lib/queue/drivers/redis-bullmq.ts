@@ -11,6 +11,7 @@ import { and, eq, lte, or } from 'drizzle-orm';
 import { config } from '../../../config/index.js';
 import { logger } from '../../../utils/logger.js';
 import type { QueueDriver } from '../driver.js';
+import { AppError, ErrorCodes } from '../../../errors/index.js';
 
 const REDIS_CLAIM_BATCH_SIZE = 50;
 
@@ -23,7 +24,7 @@ export class RedisBullMqQueueDriver implements QueueDriver {
 
   public constructor() {
     if (!config.queue.redis?.url) {
-      throw new Error('REDIS_URL is required for redis_bullmq queue architecture.');
+      throw new AppError(ErrorCodes.INTERNAL_ERROR, 'REDIS_URL is required for redis_bullmq queue architecture.');
     }
 
     this.client = new IORedis(config.queue.redis.url, {

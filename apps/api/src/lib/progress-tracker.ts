@@ -7,7 +7,14 @@
 import { db } from '@ai-pandit/db';
 import { sessions } from '@ai-pandit/db/schema';
 import { eq } from 'drizzle-orm';
-import { emitProgress, emitComplete, emitError, emitCandidateScore, emitAIContext, emitEstimatedTime, emitAIThinking } from './session-events.js';
+import {
+  emitProgress,
+  emitError,
+  emitCandidateScore,
+  emitAIContext,
+  emitEstimatedTime,
+  emitAIThinking
+} from './session-events.js';
 import { logger } from '../utils/logger.js';
 import { safeJsonParse } from './utils/safe-json-parse.js';
 import type { CandidateScore, ProgressStep, AIThinkingData, AIContextData, ProgressData } from '@ai-pandit/shared';
@@ -130,7 +137,7 @@ export class ProgressTracker {
             fullText: updatedLog
         };
 
-        // 🏛️ Real-time memory sync for stage history
+        // Real-time memory sync for stage history
         if (!this.progress.stageHistory) this.progress.stageHistory = {};
 
         // Memory logging for diagnosis
@@ -144,7 +151,7 @@ export class ProgressTracker {
             });
         }
 
-        // 🔥 GOD-TIER MEMORY PROTECTION: Cap thinking and stage history
+        // Memory protection: cap thinking and stage history
         // Increased for Deep Results Archive (100KB per stage)
         const MEMORY_LIMIT = 100000;
 
@@ -376,7 +383,7 @@ export class ProgressTracker {
         this.progress.percentage = Math.round((completedCount / this.progress.totalSteps) * 100);
         this.progress.lastUpdate = new Date().toISOString();
 
-        // 🛡️ PERSISTENT FLUSH: Save thinking to DB on stage completion
+        // Persistent flush: save thinking to DB on stage completion
         await this.saveProgress(true);
 
         // Emit SSE event for real-time streaming
@@ -419,7 +426,7 @@ export class ProgressTracker {
         this.progress.liveMessage = 'Analysis complete!';
         this.progress.lastUpdate = new Date().toISOString();
 
-        // 🛡️ NO PRUNING: Keep all calculation logs and candidate scores for long-term audit
+        // No pruning: keep all calculation logs and candidate scores for long-term audit
         // Only reasoning (lastAIThinking/stageHistory) is filtered in saveProgress()
 
         await this.saveProgress(true); // Final flush
@@ -472,12 +479,12 @@ export class ProgressTracker {
 
             this.lastSaveTime = Date.now();
 
-            // 🛡️ Data Persistence with Volatile Reasoning
+            // Data persistence with volatile reasoning
             // We persist everything except AI thinking logs (stageHistory and lastAIThinking)
             // as per user request for "No permanent reasoning store".
             const dbProgress = { ...this.progress };
 
-            // 🛡️ Data Persistence
+            // Data persistence
             // We now PERSIST stageHistory (Reasoning Logs) as per "Industry Standard" request.
             // But we still strip `lastAIThinking` as it's a transient UI state, not a permanent log.
 
@@ -536,7 +543,7 @@ export class ProgressTracker {
     }
 
     /**
-     * 🔱 TIERED LOADING: Get AI reasoning log for a specific candidate
+     * Get AI reasoning log for a specific candidate
      * Used by candidate-detail API for on-demand loading
      */
     getCandidateLog(candidateTime: string): string | undefined {
@@ -544,7 +551,7 @@ export class ProgressTracker {
     }
 
     /**
-     * 🔱 TIERED LOADING: Get score data for a specific candidate
+     * Get score data for a specific candidate
      */
     getCandidateScoreByTime(candidateTime: string, stage?: number): CandidateScore | undefined {
         if (stage !== undefined) {
@@ -558,7 +565,7 @@ export class ProgressTracker {
     }
 
     /**
-     * 🔱 TIERED LOADING: Get all candidate times that have reasoning logs
+     * Get all candidate times that have reasoning logs
      */
     getAllCandidateLogTimes(): string[] {
         return Array.from(this.candidateLogs.keys());
@@ -571,7 +578,7 @@ export class ProgressTracker {
 
 /**
  * Get progress for a session
- * 🚀 PRIORITIZES IN-MEMORY STATE FOR STREAMING
+ * Prioritizes in-memory state for streaming
  */
 export async function getSessionProgress(sessionId: string): Promise<ProgressData | null> {
 
@@ -592,7 +599,7 @@ export async function getSessionProgress(sessionId: string): Promise<ProgressDat
             return null;
         }
 
-        try { return safeJsonParse<ProgressData>((result[0].progressData || "{}") as string, null as any); } catch (error) { logger.warn('[PROGRESS-TRACKER] Corrupt progress data, returning null', { error }); return null; }
+        try { return safeJsonParse<ProgressData>((result[0].progressData || "{}") as string, null as unknown as ProgressData); } catch (error) { logger.warn('[PROGRESS-TRACKER] Corrupt progress data, returning null', { error }); return null; }
     } catch (error) {
         logger.error('Failed to get progress', { sessionId, error });
         return null;

@@ -1,7 +1,5 @@
 /**
  * Simple className merge utility.
- * Filters out falsy values and joins with a space.
+ * Re-exported from lib/utils for consistency.
  */
-export function cn(...inputs: (string | false | null | undefined)[]): string {
-  return inputs.filter(Boolean).join(' ');
-}
+export { cn } from '@/lib/utils';

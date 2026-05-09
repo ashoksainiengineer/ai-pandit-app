@@ -1,6 +1,5 @@
 
-import { getAyanamsa } from './ephemeris.js';
-import { EphemerisData, PlanetData } from '@ai-pandit/shared';
+import { EphemerisData } from '@ai-pandit/shared';
 import { DAYS_PER_YEAR, addYears } from './utils/time-constants.js';
 
 // ═════════════════════════════════════════════════════════════════════════════
@@ -354,7 +353,6 @@ function calculateDashaSandhi(dasha: DashaAtDate, date: Date): DashaAtDate['sand
     return undefined;
 }
 
-
 /**
  * Format dasha for a specific date for the AI prompt.
  * HARDENED: Uses a string builder and checks for null dates.
@@ -367,24 +365,23 @@ export function formatDashaForDate(
     const dasha = getDashaForDate(periods, date);
 
     if (!dasha) {
-        return `${formatDate(date)}: Dasha calculation out of range.`;
+    return `${formatDashaDate(date)}: Dasha calculation out of range.`;
     }
 
     const lines = [
-        `${formatDate(date)} - ${eventDescription}`,
-        `  Mahadasha: ${dasha.mahadasha} (${formatDate(dasha.mahadashaStart)} to ${formatDate(dasha.mahadashaEnd)})`
+        `${formatDashaDate(date)} - ${eventDescription}`,
+        `  Mahadasha: ${dasha.mahadasha} (${formatDashaDate(dasha.mahadashaStart)} to ${formatDashaDate(dasha.mahadashaEnd)})`
     ];
 
     if (dasha.antardasha !== 'Unknown' && dasha.antardashaStart && dasha.antardashaEnd) {
-        lines.push(`  Antardasha: ${dasha.antardasha} (${formatDate(dasha.antardashaStart)} to ${formatDate(dasha.antardashaEnd)})`);
+        lines.push(`  Antardasha: ${dasha.antardasha} (${formatDashaDate(dasha.antardashaStart)} to ${formatDashaDate(dasha.antardashaEnd)})`);
     }
     if (dasha.pratyantardasha !== 'Unknown' && dasha.pratyantarStart && dasha.pratyantarEnd) {
-        lines.push(`  Pratyantardasha: ${dasha.pratyantardasha} (${formatDate(dasha.pratyantarStart)} to ${formatDate(dasha.pratyantarEnd)})`);
+        lines.push(`  Pratyantardasha: ${dasha.pratyantardasha} (${formatDashaDate(dasha.pratyantarStart)} to ${formatDashaDate(dasha.pratyantarEnd)})`);
     }
 
     return lines.join('\n');
 }
-
 
 // ═════════════════════════════════════════════════════════════════════════════
 // UTILITY FUNCTIONS
@@ -461,12 +458,9 @@ const ZODIAC_SIGNS = [
     'Aries','Taurus','Gemini','Cancer','Leo','Virgo','Libra','Scorpio','Sagittarius','Capricorn','Aquarius','Pisces'
 ];
 
-
-
-function formatDate(date: Date): string {
+function formatDashaDate(date: Date): string {
     return date.toISOString().split('T')[0];
 }
-
 
 // ═════════════════════════════════════════════════════════════════════════════
 // CORE ASTROLOGICAL ENGINE RESTORATION
@@ -483,7 +477,6 @@ import {
     detectParivartana,
     type DivisionalChart,
     type AspectData,
-    type ArudhaLagna,
     type PanchangaData,
 } from './advanced-btr-methods.js';
 import { calculateCharaKarakas as _calcCK } from './jaimini-astrology.js';
@@ -671,7 +664,6 @@ export const calculateHouse = (longitude: number, houseCusps: number[]): number 
     }
     return 12;
 };
-
 
 /**
  * planetary aspects (Sign-based Parashari Drishti).

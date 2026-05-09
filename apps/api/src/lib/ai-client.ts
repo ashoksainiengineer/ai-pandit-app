@@ -1,13 +1,14 @@
 import { logger } from '../utils/logger.js';
 import { config } from '../config/index.js';
+import { AIServiceError } from '../errors/index.js';
 import {
-  AI_CONFIG,
-  USE_DETERMINISTIC_AI_MOCK_IN_TESTS,
-  isFetchMockedByTestRunner,
-  buildDeterministicMockAIResponse,
-  type AICompletionRequest,
-  type AIResponse,
-  type AIMessage,
+    AI_CONFIG,
+    USE_DETERMINISTIC_AI_MOCK_IN_TESTS,
+    isFetchMockedByTestRunner,
+    buildDeterministicMockAIResponse,
+    type AICompletionRequest,
+    type AIResponse,
+    type AIMessage,
 } from './ai-config.js';
 import { sleep } from './ai-helpers.js';
 
@@ -161,12 +162,12 @@ export async function callAI(
                     };
                 }
 
-                throw new Error(`AI API error ${response.status}: ${errorText}`);
+                throw new AIServiceError(`AI API error ${response.status}: ${errorText}`, { status: response.status });
             }
 
             const rawData = await response.json() as Record<string, unknown>;
             if (!rawData?.choices && !(rawData?.choices as Array<unknown>)?.[0]) {
-                throw new Error(`Invalid response format from AI: missing message content in response`);
+                throw new AIServiceError('Invalid response format from AI: missing message content in response');
             }
             const data = rawData as unknown as AICompletionResponse;
             const message = data.choices[0].message;

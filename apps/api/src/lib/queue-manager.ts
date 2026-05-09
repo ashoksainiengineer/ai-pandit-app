@@ -14,6 +14,7 @@ import {
   lt
 } from 'drizzle-orm';
 import { logger } from '../utils/logger.js';
+import { NotFoundError, ProcessingError, ValidationError } from '../errors/index.js';
 import { safeDecryptWithFallback, parseSensitiveField } from './encryption/index.js';
 import {
   createAbortController,
@@ -57,10 +58,7 @@ import {
   mapReasonToDependency,
   isRetryableError,
 } from './retry-policies.js';
-import {
-  recoveryTelemetry,
-  getRecoveryTelemetryInstance,
-} from './metrics-reporter.js';
+import { getRecoveryTelemetryInstance } from './metrics-reporter.js';
 
 import { sleep } from './ai-helpers.js';
 
@@ -100,7 +98,6 @@ const workerId = process.env.K_SERVICE
 export function getActiveProcessingCount(): number {
   return activeProcessingIds.size;
 }
-
 
 export function isQueueProcessorRunning(): boolean {
   return isProcessorRunning;
@@ -251,7 +248,7 @@ async function computeQueuePosition(sessionId: string, queueStatus: QueueStatus)
   if (queueStatus !== 'queued' && queueStatus !== 'processing') {
     return 0;
   }
-  return getQueuePosition(sessionId);
+  return await getQueuePosition(sessionId);
 }
 
 function computeEstimatedWait(position: number, queueStatus: QueueStatus): number {
@@ -882,7 +879,7 @@ async function fetchSessionRow(sessionId: string): Promise<typeof sessions.$infe
   );
 
   if (rows.length === 0) {
-    throw new Error('Session not found');
+    throw new NotFoundError('Session not found');
   }
   return rows[0];
 }
@@ -910,7 +907,7 @@ function decryptSessionFields(
   sessionId: string
 ): DecryptedSessionData {
   if (!s.lifeEvents) {
-    throw new Error('lifeEvents data is missing - cannot process without life events');
+    throw new ValidationError('lifeEvents data is missing - cannot process without life events');
   }
 
   const lifeEvents = decryptJsonField(s.lifeEvents, s.clerkId, s.userId, true);
@@ -952,13 +949,13 @@ function decryptJsonField(
   } catch (error) {
     logger.error('[QUEUE-MANAGER] Failed to parse encrypted data', error as Error);
     if (required) {
-      throw new Error('Failed to decrypt or parse required field');
+      throw new ProcessingError('Failed to decrypt or parse required field');
     }
     return undefined;
   }
 }
 
-function decryptOptionalJsonField<T>(
+function _decryptOptionalJsonField<T>(
   encrypted: string | null,
   clerkId: string,
   userId: string,

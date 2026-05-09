@@ -11,7 +11,7 @@ import { SecondsPrecisionInput } from '@ai-pandit/shared';
 import { CandidateTime, getCandidateIdentity, getDynamicBatchSize, getDynamicSurvivors, sortCandidatesByMerit, splitIntoBatches } from '../../time-offset-manager.js';
 import { ProgressTracker } from '../../progress-tracker.js';
 import { _callAIWithStream, _executeAIInParallel } from '../../ai-client.js';
-import { emitCandidateScore, emitAIContext, emitDecision } from '../../session-events.js';
+import { emitAIContext, emitDecision } from '../../session-events.js';
 import { throwIfCancelled } from '../../cancellation-manager.js';
 import { cleanup } from '../../ephemeris.js';
 import { buildCandidateDataPackage } from '../data-package-builder.js';
@@ -34,7 +34,6 @@ type LifecycleShift = NonNullable<CandidateDataPackage['lifecycleShifts']>[numbe
  * @param input - BTR input parameters
  * @param candidates - Initial candidate list from Stage 1
  * @param progress - Progress tracker
- * @param globalLifecycle - Pre-calculated lifecycle shifts
  * @param globalLifecycle - Pre-calculated lifecycle shifts
  * @returns Tournament survivors and round statistics
  */
@@ -313,7 +312,6 @@ export async function stage2BatchTournament(
                 nextCandidates.push(p);
             }
         }
-
 
         rounds.push({ roundNumber, batchesProcessed: batches.length, candidatesIn: currentCandidates.length, candidatesOut: nextCandidates.length });
         currentCandidates = nextCandidates;

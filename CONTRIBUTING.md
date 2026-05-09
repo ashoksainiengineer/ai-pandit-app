@@ -4,29 +4,115 @@
 > AI-Pandit is proprietary software. No license is granted to use, copy, modify, or distribute this code.  
 > See [LICENSE](LICENSE) for full terms.
 
+Thank you for your interest in contributing to AI-Pandit. This document outlines the process, standards, and legal requirements for all contributions.
+
+---
+
+## Table of Contents
+
+- [Before You Start](#before-you-start)
+- [Contributor License Agreement (CLA)](#contributor-license-agreement-cla)
+- [Development Workflow](#development-workflow)
+- [How to Report Bugs](#how-to-report-bugs)
+- [Code Style Guide](#code-style-guide)
+- [Conventional Commits](#conventional-commits)
+- [Pull Request Process](#pull-request-process)
+- [Development Setup](#development-setup)
+- [Code of Conduct](#code-of-conduct)
+- [Questions?](#questions)
+
+---
+
+## Before You Start
+
+- [ ] You have read and agree to the [Contributor License Agreement](#contributor-license-agreement-cla) below
+- [ ] You have reviewed the [Code of Conduct](#code-of-conduct)
+- [ ] Your development environment meets the requirements in [Development Setup](#development-setup)
+- [ ] You understand that all contributions become part of proprietary code owned by the project owner
+
+---
+
 ## Contributor License Agreement (CLA)
 
 By submitting a contribution to this repository, you agree to the following terms:
 
-1. You grant the project owner a perpetual, worldwide, non-exclusive, royalty-free, irrevocable license to use, reproduce, modify, display, distribute, and otherwise exploit your contribution in any manner the project owner sees fit.
-2. You represent that you have the legal right to grant this license and that your contribution is your original work.
-3. You understand that this project is proprietary software and your contribution will become part of proprietary code owned by the project owner.
+### Grant of License
 
-**No contribution will be accepted without explicit agreement to these terms.** By opening a pull request, you are deemed to have accepted this CLA.
+You grant the project owner a **perpetual, worldwide, non-exclusive, royalty-free, irrevocable** license to use, reproduce, modify, display, distribute, and otherwise exploit your contribution in any manner the project owner sees fit.
+
+### Representations and Warranties
+
+- You represent that you have the legal right to grant this license.
+- You represent that your contribution is your original work.
+- You represent that your contribution does not infringe on any third-party rights.
+
+### Ownership and Proprietary Nature
+
+- You understand that this project is **proprietary software**.
+- You understand that your contribution will become part of proprietary code owned by the project owner.
+- You understand that no open-source license is granted to your contribution.
+
+### Acceptance
+
+**No contribution will be accepted without explicit agreement to these terms.** By opening a pull request, you are deemed to have accepted this CLA in full.
+
+---
+
+## Development Workflow
+
+### Branching Strategy
+
+We use a simple trunk-based workflow:
+
+- **`main`** — Production-ready code. Always deployable.
+- **`feat/<short-description>`** — New features
+- **`fix/<short-description>`** — Bug fixes
+- **`refactor/<short-description>`** — Code refactoring
+- **`docs/<short-description>`** — Documentation changes
+
+### Workflow Steps
+
+1. Create a branch from `main` using the naming convention above
+2. Make focused, atomic commits following [Conventional Commits](#conventional-commits)
+3. Push your branch and open a Pull Request
+4. Ensure all checks pass (lint, test, build)
+5. Request review from maintainers
+6. Address feedback and merge (maintainers only)
 
 ---
 
 ## How to Report Bugs
 
-Please open a [Bug Fix issue](https://github.com/ashoksainiengineer/ai-pandit-app/issues/new/choose) using the provided template. Include:
+Please open a [Bug Fix issue](https://github.com/ashoksainiengineer/ai-pandit-app/issues/new/choose) using the provided template. If no template fits, use the general bug report and include the following:
 
-- A one-line summary of the bug
-- Exact steps to reproduce
-- Expected vs actual behavior
-- Environment details (OS, Node version, browser)
-- Relevant logs or screenshots (if safe to share)
+### Required Information
 
-For security vulnerabilities, **do not** open a public issue. Email `app [at] aipandit [dot] gmail [dot] com` instead.
+- **Summary**: One-line description of the bug
+- **Steps to Reproduce**: Exact, numbered steps to trigger the bug
+- **Expected Behavior**: What should have happened
+- **Actual Behavior**: What actually happened
+- **Environment**: OS, Node.js version, browser (if applicable)
+- **Logs/Screenshots**: Relevant logs or screenshots (only if safe to share — **never include PII, birth details, or encryption keys**)
+
+### Issue Templates
+
+We provide the following issue templates:
+
+| Template | Use For |
+|----------|---------|
+| Bug Report | Functional bugs, crashes, incorrect behavior |
+| Feature Request | New capabilities or enhancements |
+| Refactor | Code cleanup, performance improvements |
+| Documentation | README, inline docs, or CONTRIBUTING updates |
+
+### Security Vulnerabilities
+
+**Do not** open a public issue for security vulnerabilities.  
+Email **app.aipandit [at] gmail [dot] com** with:
+- A description of the vulnerability
+- Steps to reproduce (if applicable)
+- Potential impact assessment
+- Your contact information for follow-up
 
 ---
 
@@ -48,12 +134,14 @@ AI-Pandit uses strict code quality standards. All contributions must follow thes
 
 ### Naming Conventions
 
-- **Files**: `kebab-case.ts` — lowercase with hyphens.
-- **Functions/Variables**: `camelCase`.
-- **Classes/Interfaces/Types**: `PascalCase`.
-- **Constants**: `UPPER_SNAKE_CASE` for truly constant values.
-- **Zod schemas**: Suffix with `Schema`, e.g., `birthDataSchema`.
-- **React components**: PascalCase in files matching their name.
+| Category | Convention | Example |
+|----------|-----------|---------|
+| Files | `kebab-case.ts` | `birth-time-validator.ts` |
+| Functions/Variables | `camelCase` | `calculateDashaPeriod` |
+| Classes/Interfaces/Types | `PascalCase` | `BirthTimeRectifier` |
+| Constants | `UPPER_SNAKE_CASE` | `MAX_CANDIDATE_BATCH_SIZE` |
+| Zod schemas | Suffix with `Schema` | `birthDataSchema` |
+| React components | `PascalCase` matching filename | `RectificationDashboard.tsx` |
 
 ### Error Handling
 
@@ -83,21 +171,22 @@ All commit messages and PR titles **must** follow the [Conventional Commits](htt
 <type>(<scope>): <description>
 
 [optional body]
+
 [optional footer]
 ```
 
 ### Types
 
-| Type       | Usage                                |
-|-----------|--------------------------------------|
-| `feat`    | A new feature                        |
-| `fix`     | A bug fix                            |
+| Type       | Usage                                   |
+|-----------|----------------------------------------|
+| `feat`    | A new feature                          |
+| `fix`     | A bug fix                              |
 | `refactor`| Code change that neither fixes nor adds |
-| `test`    | Adding or updating tests             |
-| `docs`    | Documentation only                   |
-| `chore`   | Maintenance, deps, config, build     |
-| `perf`    | Performance improvement              |
-| `style`   | Formatting, missing semicolons, etc. |
+| `test`    | Adding or updating tests               |
+| `docs`    | Documentation only                     |
+| `chore`   | Maintenance, deps, config, build       |
+| `perf`    | Performance improvement                |
+| `style`   | Formatting, missing semicolons, etc.   |
 
 ### Examples
 
@@ -141,6 +230,14 @@ See [README.md](README.md#quick-start) for local development setup instructions.
 ## Code of Conduct
 
 Be professional, respectful, and constructive. Harassment, trolling, or disrespectful behavior will result in immediate removal from the project.
+
+---
+
+## Questions?
+
+- **General inquiries**: app.aipandit [at] gmail [dot] com
+- **Security issues**: app.aipandit [at] gmail [dot] com (do not open public issues)
+- **Bug reports**: Use the [Bug Fix issue template](https://github.com/ashoksainiengineer/ai-pandit-app/issues/new/choose)
 
 ---
 

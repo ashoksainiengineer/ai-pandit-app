@@ -24,6 +24,10 @@ const router = Router();
  * The client should poll /api/queue/progress/:sessionId for results.
  */
 router.post('/', validateBody(QueueSubmitSchema), async (req: AuthenticatedRequest, res: Response) => {
+    // Deprecation warning: this endpoint is maintained for backward compatibility only.
+    res.setHeader('Deprecation', 'true');
+    res.setHeader('Sunset', 'Sat, 31 Dec 2026 23:59:59 GMT');
+    res.setHeader('Link', '</api/queue>; rel="successor-version"');
     const startTime = Date.now();
 
     try {

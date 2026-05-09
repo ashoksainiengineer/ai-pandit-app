@@ -11,7 +11,7 @@ import { SecondsPrecisionInput, EphemerisData } from '@ai-pandit/shared';
 import { CandidateTime, getCandidateIdentity, getDynamicBatchSize, getDynamicSurvivors, sortCandidatesByMerit, splitIntoBatches } from '../../time-offset-manager.js';
 import { ProgressTracker } from '../../progress-tracker.js';
 import { _callAIWithStream, _executeAIInParallel } from '../../ai-client.js';
-import { emitCandidateScore, emitAIContext } from '../../session-events.js';
+import { emitAIContext } from '../../session-events.js';
 import { calculateEphemeris } from '../../ephemeris.js';
 import { getDashaForDate } from '../../vedic-astrology-engine.js';
 import type { DashaPeriod } from '../../vedic-astrology-engine.js';

@@ -1,9 +1,8 @@
 import { logger } from '../utils/logger.js';
 import { config } from '../config/index.js';
+import { AIServiceError } from '../errors/index.js';
 import type { AIResponse } from '@ai-pandit/shared';
-// debug-logger may be excluded; fall back to no-op
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-let logAnalysisContainerAction: any = () => {};
+let logAnalysisContainerAction: (stage: number, message: string, data: Record<string, unknown>) => void = () => {};
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore debug-logger may be excluded from build
 try { ({ logAnalysisContainerAction } = await import('../utils/debug-logger.js')); } catch {}
@@ -146,7 +145,7 @@ export async function callAIWithStream(
                     const waitMs = waitMatch ? Math.ceil(parseFloat(waitMatch[1]) * 1000) + 1000 : 5000;
                     logger.warn(`🔱 Rate limit hit (429). Waiting ${waitMs}ms before retry ${attempt}/${AI_CONFIG.retryAttempts}`, { sessionId, stage });
                     await sleep(waitMs);
-                    throw new Error(`API error 429 (rate limited, waited ${waitMs}ms): ${errorText}`);
+                    throw new AIServiceError(`API error 429 (rate limited, waited ${waitMs}ms): ${errorText}`, { status: 429, waitMs });
                 }
 
                 if (response.status === 400) {
@@ -155,12 +154,12 @@ export async function callAIWithStream(
                     break;
                 }
 
-                throw new Error(`API error ${response.status}: ${errorText}`);
+                throw new AIServiceError(`API error ${response.status}: ${errorText}`, { status: response.status });
             }
 
             const reader = response.body?.getReader();
             if (!reader) {
-                throw new Error('No response body');
+                throw new AIServiceError('No response body');
             }
 
             const decoder = new TextDecoder();
@@ -266,13 +265,13 @@ export async function callAIWithStream(
             });
 
             if (!fullThinking && !fullContent) {
-                throw new Error('Empty response from AI provider');
+                throw new AIServiceError('Empty response from AI provider');
             }
 
             const MIN_THINKING_LENGTH = 1500;
             if (fullThinking.length > 0 && fullThinking.length < MIN_THINKING_LENGTH && !fullContent.trim()) {
                 logger.warn(`🔱 Suspiciously short AI response (thinking: ${fullThinking.length} chars). Retrying.`, { sessionId, stage });
-                throw new Error(`AI response too short (${fullThinking.length} chars thinking, no content). Likely truncated.`);
+                throw new AIServiceError(`AI response too short (${fullThinking.length} chars thinking, no content). Likely truncated.`, { thinkingLength: fullThinking.length });
             }
 
             const thinkMatch = fullContent.match(/<(?:thinking|think|thought)>([\s\S]*?)<\/(?:thinking|think|thought)>/i);

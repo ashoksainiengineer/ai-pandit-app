@@ -5,6 +5,7 @@
 
 import { config } from '../config/index.js';
 import { logger } from '../utils/logger.js';
+import { ProcessingError } from '../errors/index.js';
 
 interface MemoryStats {
     heapUsed: number;
@@ -102,7 +103,7 @@ export async function withMemoryCheck<T>(
     if (!checkMemory()) {
         triggerGC();
         if (!checkMemory()) {
-            throw new Error(`Memory limit exceeded before ${label}`);
+            throw new ProcessingError(`Memory limit exceeded before ${label}`);
         }
     }
 

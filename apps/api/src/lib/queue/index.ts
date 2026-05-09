@@ -2,6 +2,7 @@ import { config } from '../../config/index.js';
 import type { QueueDriver } from './driver.js';
 import { DbPollingQueueDriver } from './drivers/db-polling.js';
 import { RedisBullMqQueueDriver } from './drivers/redis-bullmq.js';
+import { AppError, ErrorCodes } from '../../errors/index.js';
 
 let queueDriver: QueueDriver | null = null;
 
@@ -20,7 +21,7 @@ export function getQueueDriver(): QueueDriver {
       queueDriver = new RedisBullMqQueueDriver();
       return queueDriver;
     default:
-      throw new Error(`Unsupported queue architecture: ${architecture}`);
+      throw new AppError(ErrorCodes.INTERNAL_ERROR, `Unsupported queue architecture: ${architecture}`);
   }
 }
 

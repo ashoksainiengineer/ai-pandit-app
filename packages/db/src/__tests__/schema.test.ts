@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { sessions, jobs, users } from '../schema.js';
+import { sessions, jobs, users, jobStatusEnum, jobKindEnum } from '../schema.js';
 
 describe('Database Schema', () => {
   describe('Sessions Table', () => {
@@ -58,12 +58,10 @@ describe('Database Schema', () => {
 
   describe('Enums', () => {
     it('should have job status enum', () => {
-      const { jobStatusEnum } = require('../schema');
       expect(jobStatusEnum).toBeDefined();
     });
 
     it('should have job kind enum', () => {
-      const { jobKindEnum } = require('../schema');
       expect(jobKindEnum).toBeDefined();
     });
   });

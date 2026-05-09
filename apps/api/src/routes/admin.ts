@@ -6,7 +6,7 @@
 import { Router, Request, Response } from 'express';
 import { db, executeWithRetry } from '@ai-pandit/db';
 import { getLatestArtifactForJobByKind, listDeadLetterArtifacts } from '@ai-pandit/db/jobs';
-import { jobs, sessions, users } from '@ai-pandit/db/schema';
+import { jobs, sessions, users, sessionStatusEnum } from '@ai-pandit/db/schema';
 import { eq, and, gte, sql, desc, count, SQL } from 'drizzle-orm';
 import { AuthenticatedRequest } from '../middleware/auth.js';
 import { config } from '../config/index.js';
@@ -19,7 +19,7 @@ const ROLES = {
   USER: 'user',
 } as const;
 
-async function requireAdmin(req: AuthenticatedRequest, res: Response): Promise<boolean> {
+async function assertAdminAccess(req: AuthenticatedRequest, res: Response): Promise<boolean> {
   const clerkId = req.clerkId;
   if (!clerkId) {
     res.status(401).json({
@@ -52,7 +52,7 @@ async function requireAdmin(req: AuthenticatedRequest, res: Response): Promise<b
  */
 router.get('/metrics', async (req: AuthenticatedRequest, res: Response) => {
   try {
-    if (!(await requireAdmin(req, res))) return;
+    if (!(await assertAdminAccess(req, res))) return;
 
     // Get total readings count
     const totalReadingsResult = await db
@@ -169,7 +169,7 @@ router.get('/metrics', async (req: AuthenticatedRequest, res: Response) => {
 
 router.get('/jobs/dead-letter', async (req: AuthenticatedRequest, res: Response) => {
   try {
-    if (!(await requireAdmin(req, res))) return;
+    if (!(await assertAdminAccess(req, res))) return;
 
     const limit = Math.min(100, Math.max(1, Number.parseInt(String(req.query.limit ?? '25'), 10) || 25));
     const artifacts = await listDeadLetterArtifacts(limit);
@@ -219,7 +219,7 @@ router.get('/jobs/dead-letter', async (req: AuthenticatedRequest, res: Response)
 
 router.get('/jobs/:jobId/dead-letter', async (req: AuthenticatedRequest, res: Response) => {
   try {
-    if (!(await requireAdmin(req, res))) return;
+    if (!(await assertAdminAccess(req, res))) return;
 
     const [job] = await db
       .select({
@@ -293,7 +293,7 @@ router.head('/db-check', (req: Request, res: Response) => {
 router.get('/db-check', async (req: AuthenticatedRequest, res: Response) => {
   const startTime = Date.now();
   try {
-    if (!(await requireAdmin(req, res))) return;
+    if (!(await assertAdminAccess(req, res))) return;
 
     // 1. Check raw connectivity
     await db.select({ val: sql`1` }).from(sessions).limit(1);
@@ -334,7 +334,7 @@ router.get('/db-check', async (req: AuthenticatedRequest, res: Response) => {
  */
 router.get('/readings', async (req: AuthenticatedRequest, res: Response) => {
   try {
-    if (!(await requireAdmin(req, res))) return;
+    if (!(await assertAdminAccess(req, res))) return;
 
     const page = Math.max(1, parseInt(req.query.page as string, 10) || 1);
     const requestedLimit = parseInt(req.query.limit as string, 10) || 10;
@@ -344,7 +344,7 @@ router.get('/readings', async (req: AuthenticatedRequest, res: Response) => {
 
     const conditions: SQL<unknown>[] = [];
     if (status) {
-      conditions.push(eq(sessions.status, status as any));
+      conditions.push(eq(sessions.status, status as (typeof sessionStatusEnum.enumValues)[number]));
     }
 
     // Get total count
@@ -421,7 +421,7 @@ router.get('/readings', async (req: AuthenticatedRequest, res: Response) => {
  */
 router.get('/readings/:id', async (req: AuthenticatedRequest, res: Response) => {
   try {
-    if (!(await requireAdmin(req, res))) return;
+    if (!(await assertAdminAccess(req, res))) return;
 
     const { id } = req.params;
 
@@ -481,7 +481,7 @@ router.get('/readings/:id', async (req: AuthenticatedRequest, res: Response) => 
  */
 router.get('/analytics/timeseries', async (req: AuthenticatedRequest, res: Response) => {
   try {
-    if (!(await requireAdmin(req, res))) return;
+    if (!(await assertAdminAccess(req, res))) return;
 
     const days = Math.min(365, Math.max(1, parseInt(req.query.days as string, 10) || 30));
     const startDate = new Date();

@@ -28,13 +28,14 @@
  */
 
 import { logger } from '../utils/logger.js';
-import { _calculateKPSubLords, KPCuspalData } from './kp-sublords.js';
+import { _calculateKPSubLords } from './kp-sublords.js';
 import type {
   ConsensusScores,
   ValidationDetail,
   RedFlags,
   ConsensusResult,
-  ValidationInput
+  ValidationInput,
+  DashaData
 } from '@ai-pandit/shared';
 import {
   METHOD_WEIGHTS,
@@ -49,7 +50,8 @@ export type {
   ValidationDetail,
   RedFlags,
   ConsensusResult,
-  ValidationInput
+  ValidationInput,
+  DashaData
 };
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -176,6 +178,11 @@ function parseDateWindow(startEnd: unknown): { startDate?: Date; endDate?: Date 
   };
 }
 
+function getDashaData(dasha: DashaData | unknown[] | undefined): DashaData {
+  if (!dasha || Array.isArray(dasha)) return {};
+  return dasha as DashaData;
+}
+
 function getVimshottariSnapshot(candidate: ValidationInput['candidate']): {
   maha?: string;
   antar?: string;
@@ -185,7 +192,7 @@ function getVimshottariSnapshot(candidate: ValidationInput['candidate']): {
   startDate?: Date;
   endDate?: Date;
 } {
-  const structured = (candidate.dasha as any)?.vimshottari;
+  const structured = getDashaData(candidate.dasha).vimshottari;
   if (structured?.mahadasha?.lord) {
     return {
       maha: structured.mahadasha.lord,
@@ -284,7 +291,8 @@ function validateVimshottari(input: ValidationInput): ValidationDetail {
 function validateYogini(input: ValidationInput): ValidationDetail {
   const { candidate, events } = input;
 
-  if (!(candidate.dasha as any)?.yogini || !Array.isArray((candidate.dasha as any).yogini)) {
+  const dashaData = getDashaData(candidate.dasha);
+  if (!dashaData.yogini || !Array.isArray(dashaData.yogini)) {
     return {
       method: 'Yogini Dasha',
         score: 0,
@@ -313,17 +321,17 @@ function validateYogini(input: ValidationInput): ValidationDetail {
     const eventDate = new Date(eventWindow.midpointMs);
 
     // Find which Yogini period contains this event
-    const yoginiPeriod = ((candidate.dasha as any).yogini as unknown[]).find((y: any) => {
+    const yoginiPeriod = dashaData.yogini?.find((y: { lord?: string; startEnd?: string }) => {
       if (!y.startEnd) return false;
       const [start, end] = y.startEnd.split(' to ').map((d: string) => new Date(d));
       return eventDate >= start && eventDate <= end;
     });
 
     if (yoginiPeriod) {
-      const supports = correlateYoginiWithEvent((yoginiPeriod as any).lord, event.category);
+      const supports = correlateYoginiWithEvent(yoginiPeriod.lord || '', event.category);
       if (supports) {
         matchCount += weight;
-        findings.push(`${event.type}: ${(yoginiPeriod as any).lord} Yogini supports ${event.category}`);
+        findings.push(`${event.type}: ${yoginiPeriod.lord || ''} Yogini supports ${event.category}`);
       }
     }
   }
@@ -343,7 +351,7 @@ function validateYogini(input: ValidationInput): ValidationDetail {
 function validateChara(input: ValidationInput): ValidationDetail {
   const { candidate, events } = input;
 
-  if (!(candidate.dasha as any)?.chara) {
+  if (!getDashaData(candidate.dasha).chara) {
     return {
       method: 'Chara Dasha',
         score: 0,
@@ -354,7 +362,7 @@ function validateChara(input: ValidationInput): ValidationDetail {
     };
   }
 
-  const charaSign = ((candidate.dasha as any).chara as Record<string, unknown>).currentSign;
+  const charaSign = getDashaData(candidate.dasha).chara?.currentSign;
   const matchingEvents = events.filter(e =>
     correlateCharaWithEvent(charaSign as string, e.category)
   );
@@ -880,7 +888,7 @@ function detectD60Instability(candidate: ValidationInput['candidate']): boolean 
     return true;
   }
 
-  const d60SunDeity = (candidate.ephemeris as any)?.d60Planets?.Sun?.deity;
+  const d60SunDeity = candidate.ephemeris.d60Planets?.Sun?.deity;
   if (typeof d60SunDeity === 'string' && d60SunDeity === 'Unknown') {
     return true;
   }

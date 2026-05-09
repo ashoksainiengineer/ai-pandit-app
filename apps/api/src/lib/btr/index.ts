@@ -6,7 +6,6 @@
  */
 
 // Core Orchestrator
-export { ProfessionalBTR } from './orchestrator.js';
 export type {
   RectificationInput,
   DetailedResult

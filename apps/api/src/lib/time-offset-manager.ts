@@ -4,6 +4,7 @@
 
 import { config } from '../config/index.js';
 import { logger } from '../utils/logger.js';
+import { InvalidInputError } from '../errors/index.js';
 import type { OffsetPreset, TimeOffsetConfig, CandidateTime } from '@ai-pandit/shared';
 
 const DAY_SECONDS = 24 * 60 * 60;
@@ -12,9 +13,7 @@ const MAX_CANDIDATES = 500;
 // Re-export types for backwards compatibility
 export type { OffsetPreset, TimeOffsetConfig, CandidateTime };
 
-// ═════════════════════════════════════════════════════════════════════════
 // CONSTANTS - RESEARCH-BACKED (Dynamic)
-// ═════════════════════════════════════════════════════════════════════════
 
 // Absolute max candidates per AI call
 export const MAX_BATCH_SIZE = config.ai.batchSizeMax;
@@ -31,7 +30,7 @@ export const SURVIVORS_PER_BATCH = Math.ceil(config.ai.batchSizeMax * config.ai.
  * @param offsetMinutes The offset range in minutes
  * @returns Optimal batch size (5-10)
  */
-export function getDynamicBatchSize(totalCandidates: number, offsetMinutes: number): number {
+export function getDynamicBatchSize(_totalCandidates: number, offsetMinutes: number): number {
   const min = config.ai.batchSizeMin;
   const max = config.ai.batchSizeMax;
 
@@ -80,9 +79,7 @@ export function getDynamicSurvivors(batchSize: number, offsetMinutes: number, is
   return survivors;
 }
 
-// ═════════════════════════════════════════════════════════════════════════
 // OFFSET CONFIGURATION PRESETS
-// ═════════════════════════════════════════════════════════════════════════
 
 const OFFSET_PRESETS: Record<OffsetPreset, { label: string; minutes: number; interval: number; intervalSeconds?: number }> = {
   '30min': {
@@ -128,9 +125,7 @@ const OFFSET_PRESETS: Record<OffsetPreset, { label: string; minutes: number; int
   },
 };
 
-// ═════════════════════════════════════════════════════════════════════════
 // 🔱 VEDIC-BASED ADAPTIVE INTERVAL
-// ═════════════════════════════════════════════════════════════════════════
 // 
 // Based on Vedic Astrology principles:
 // - Lagna (Ascendant) changes sign every ~2 hours
@@ -187,9 +182,7 @@ export function getExpectedCandidateCount(offsetMinutes: number): number {
   return Math.ceil((offsetMinutes * 2) / interval) + 1;
 }
 
-// ═════════════════════════════════════════════════════════════════════════
 // MAIN FUNCTION: Generate Candidate Times (CHRONOLOGICAL ORDER)
-// ═════════════════════════════════════════════════════════════════════════
 
 export function generateCandidateTimes(
   tentativeTime: string, // HH:MM:SS
@@ -222,7 +215,7 @@ export function generateCandidateTimes(
         offsetMinutes = preset.minutes;
       }
     } else {
-      throw new Error('No offset configuration provided');
+      throw new InvalidInputError('No offset configuration provided');
     }
 
     // 🔱 Adaptive interval for consistent candidate count
@@ -300,9 +293,7 @@ export function generateCandidateTimes(
   }
 }
 
-// ═════════════════════════════════════════════════════════════════════════
 // 🔱 BATCH SPLITTER - Research-backed 10-candidate batches
-// ═════════════════════════════════════════════════════════════════════════
 
 function hashStringToUint32(input: string): number {
   let hash = 2166136261;
@@ -367,9 +358,7 @@ export function splitIntoBatches<T>(
   return batches;
 }
 
-// ═════════════════════════════════════════════════════════════════════════
 // 🔱 GOD-TIER SAFETY NET - Ensure tentative time never gets eliminated
-// ═════════════════════════════════════════════════════════════════════════
 
 /**
  * Creates a "safety net" of candidates around the tentative time
@@ -439,9 +428,7 @@ function convertMinutesToTimeSafetyNet(
   return convertMinutesToCandidate(totalMinutes, offsetMinutes, description, baseDate);
 }
 
-// ═════════════════════════════════════════════════════════════════════════
 // 🔱 REFINEMENT GRID - Generate finer grid around survivors
-// ═════════════════════════════════════════════════════════════════════════
 
 export function generateRefinementGrid(
   center: string | CandidateTime,
@@ -495,9 +482,7 @@ export function getCandidateIdentity(candidate: Pick<CandidateTime, 'time' | 'ca
   return candidate.candidateKey || candidate.time;
 }
 
-// ═════════════════════════════════════════════════════════════════════════
 // HELPER: Convert Minutes to Time String
-// ═════════════════════════════════════════════════════════════════════════
 
 function convertMinutesToTime(
   totalMinutes: number,
@@ -602,9 +587,7 @@ function compareOptionalOrder(a: number, b: number): number {
   return a - b;
 }
 
-// ═════════════════════════════════════════════════════════════════════════
 // HELPER: Get Configuration Description
-// ═════════════════════════════════════════════════════════════════════════
 
 export function getOffsetConfigDescription(config: TimeOffsetConfig): string {
   if (config.customMinutes !== undefined) {
@@ -616,9 +599,7 @@ export function getOffsetConfigDescription(config: TimeOffsetConfig): string {
   return config.description || 'No offset specified';
 }
 
-// ═════════════════════════════════════════════════════════════════════════
 // HELPER: Validate Offset Config
-// ═════════════════════════════════════════════════════════════════════════
 
 export function validateOffsetConfig(config: TimeOffsetConfig): {
   valid: boolean;
@@ -658,9 +639,7 @@ export function validateOffsetConfig(config: TimeOffsetConfig): {
 
 export const MAX_OFFSET_MINUTES = 720;
 
-// ═════════════════════════════════════════════════════════════════════════
 // Calculate Tournament Rounds
-// ═════════════════════════════════════════════════════════════════════════
 
 export function calculateTournamentStructure(totalCandidates: number): {
   rounds: number;

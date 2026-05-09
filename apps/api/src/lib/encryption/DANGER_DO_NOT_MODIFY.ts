@@ -9,6 +9,7 @@
  */
 import crypto from 'crypto';
 import { logger } from '../../utils/logger.js';
+import { ValidationError, ProcessingError } from '../../errors/index.js';
 
 // ═════════════════════════════════════════════════════════════════════════════
 // V4 CONFIGURATION
@@ -37,8 +38,8 @@ function deriveKeyV4(secret: string, userId: string, salt: Buffer): Buffer {
  * Encrypt data using the v4 standard (User Isolated).
  */
 export function encryptData(plaintext: string, userId: string, secret: string): string {
-    if (!secret) throw new Error('Encryption secret is required');
-    if (!userId) throw new Error('userId is required for v4 encryption isolation');
+    if (!secret) throw new ValidationError('Encryption secret is required');
+    if (!userId) throw new ValidationError('userId is required for v4 encryption isolation');
 
     try {
         const salt = crypto.randomBytes(V4_CONFIG.SALT_LENGTH);
@@ -65,7 +66,7 @@ const cipher = crypto.createCipheriv(V4_CONFIG.ALGORITHM, derivedKey, iv, {
         ].join(':');
     } catch (err) {
         logger.error('Encryption failed', { error: err });
-        throw new Error('Encryption failed');
+        throw new ProcessingError('Encryption failed');
     }
 }
 
@@ -83,7 +84,7 @@ export function decryptData(payload: string, userId: string, secrets: string | s
             // 🚀 Handle v4 (User Isolated)
             if (payload.startsWith('v4:')) {
                 const parts = payload.split(':');
-                if (parts.length !== 5) throw new Error('Invalid v4 format');
+                if (parts.length !== 5) throw new ValidationError('Invalid v4 format');
 
                 const [, saltB64, ivB64, authTagB64, ciphertextB64] = parts;
                 const salt = Buffer.from(saltB64, 'base64');
@@ -106,7 +107,7 @@ export function decryptData(payload: string, userId: string, secrets: string | s
         }
     }
 
-    throw new Error('All decryption attempts failed (wrong format or incorrect secret)');
+    throw new ValidationError('All decryption attempts failed (wrong format or incorrect secret)');
 }
 
 // ═════════════════════════════════════════════════════════════════════════════
@@ -116,6 +117,7 @@ export function safeEncrypt(plaintext: string, userId: string, secret: string): 
     try {
         return encryptData(plaintext, userId, secret);
     } catch (e) {
+        logger.error('safeEncrypt failed', { error: (e as Error)?.message, userId: userId.slice(0, 8) });
         return null;
     }
 }
@@ -124,6 +126,7 @@ export function safeDecrypt(encryptedString: string, userId: string, secrets: st
     try {
         return decryptData(encryptedString, userId, secrets);
     } catch (e) {
+        logger.error('safeDecrypt failed', { error: (e as Error)?.message, userId: userId.slice(0, 8) });
         return null;
     }
 }
@@ -137,7 +140,7 @@ export function decryptObject<T extends Record<string, unknown>>(encryptedString
     try {
         return JSON.parse(plaintext) as T;
     } catch (error) {
-        throw new Error('Decrypted data is not valid JSON');
+        throw new ValidationError('Decrypted data is not valid JSON');
     }
 }
 

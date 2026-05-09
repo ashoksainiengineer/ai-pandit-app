@@ -13,7 +13,7 @@
  * Reference: Deva-Keralam (Nadiamsha counting rules), KP/BTR timing usage
  */
 
-import { EphemerisData, ZODIAC_SIGNS } from '@ai-pandit/shared';
+import { EphemerisData, PlanetPosition, ZODIAC_SIGNS } from '@ai-pandit/shared';
 
 
 const NADI_COUNT = 150;
@@ -263,7 +263,7 @@ export function calculateD150ForAllPlanets(
   const results: Record<string, NadiAmshaData> = {};
   
   for (const [name, data] of Object.entries(ephemeris.planets)) {
-    const pos = data as any;
+    const pos = data as PlanetPosition;
     if (pos.longitude !== undefined) {
       results[name] = calculateD150Nadi(pos.longitude);
     }

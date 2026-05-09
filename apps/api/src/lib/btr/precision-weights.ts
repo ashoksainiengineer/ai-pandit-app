@@ -14,9 +14,7 @@
  */
 
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // METHOD WEIGHTS - For overall candidate scoring
-// ═══════════════════════════════════════════════════════════════════════════════
 
 export const METHOD_WEIGHTS = {
   // TIER 1: PRECISION LAYER (Seconds-Level Accuracy)
@@ -49,9 +47,7 @@ export const METHOD_WEIGHTS = {
 
 export type MethodName = keyof typeof METHOD_WEIGHTS;
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // EVENT IMPORTANCE WEIGHTS - User-selected importance levels
-// ═══════════════════════════════════════════════════════════════════════════════
 
 export const EVENT_IMPORTANCE_WEIGHTS = {
   critical: 5.0,       // Moksha-Karma events (parent death, child birth, near-death)
@@ -72,9 +68,7 @@ export const EVENT_IMPACT_WEIGHTS = {
 
 export type EventImpact = keyof typeof EVENT_IMPACT_WEIGHTS;
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // IMPORTANCE TO IMPACT MAPPING - Converts user selection to internal weight
-// ═══════════════════════════════════════════════════════════════════════════════
 
 export const IMPORTANCE_TO_IMPACT: Record<EventImportance, EventImpact> = {
   critical: 'critical',
@@ -90,9 +84,7 @@ export const IMPORTANCE_TO_WEIGHT: Record<EventImportance, number> = {
   low: 1.0,
 };
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // DASHA DEPTH WEIGHTS - For seconds-level precision
-// ═══════════════════════════════════════════════════════════════════════════════
 
 export const DASHA_DEPTH_WEIGHTS = {
   mahadasha: {
@@ -133,9 +125,7 @@ export const DASHA_MATCH_SCORES = {
   pranaMatch: 25,                 // Prana lord matches (SECONDS precision)
 } as const;
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // KP SUB-LORD WEIGHTS - For precision timing
-// ═══════════════════════════════════════════════════════════════════════════════
 
 export const KP_SCORES = {
   subLordMatch: 95,               // Primary significator match
@@ -148,9 +138,7 @@ export const KP_SCORES = {
   contraMatch: 0,                 // Negative significator
 } as const;
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // VEDIC EVENT CATEGORIES - Default importance by event type
-// ═══════════════════════════════════════════════════════════════════════════════
 
 export const VEDIC_EVENT_IMPORTANCE: Record<string, EventImportance> = {
   // MOKSHA-KARMA (Weight 5.0)
@@ -186,9 +174,7 @@ export const VEDIC_EVENT_IMPORTANCE: Record<string, EventImportance> = {
   minor_purchase: 'low',
 };
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // HOUSE SIGNIFICANCE WEIGHTS - Based on Vedic principles
-// ═══════════════════════════════════════════════════════════════════════════════
 
 export const HOUSE_TYPE_MULTIPLIERS = {
   kendra: 1.5,        // Houses 1, 4, 7, 10 - Foundation
@@ -200,9 +186,7 @@ export const HOUSE_TYPE_MULTIPLIERS = {
   maraka: 1.5,         // Houses 2, 7 - Death-inflicting
 } as const;
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // SOURCE & PRECISION MULTIPLIERS
-// ═══════════════════════════════════════════════════════════════════════════════
 
 export const SOURCE_MULTIPLIERS = {
   document: 1.3,      // Certificate, legal document
@@ -219,9 +203,7 @@ export const DATE_PRECISION_MULTIPLIERS = {
   approximate: 0.4,       // Approximate
 } as const;
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // CONFIDENCE THRESHOLDS
-// ═══════════════════════════════════════════════════════════════════════════════
 
 export const CONFIDENCE_THRESHOLDS = {
   standard_precision: {
@@ -252,17 +234,13 @@ export const CONFIDENCE_THRESHOLDS = {
 } as const;
 
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // RANK FUSION CONSENSUS CONSTANTS
-// ═══════════════════════════════════════════════════════════════════════════════
 
 /**
  * Minimum methods required for a valid consensus
  */
 export const MIN_CONSENSUS_METHODS = 3;
-// ═══════════════════════════════════════════════════════════════════════════════
 // HELPER FUNCTIONS
-// ═══════════════════════════════════════════════════════════════════════════════
 
 /**
  * Get the weight for an event based on user-selected importance
@@ -360,9 +338,7 @@ export function getDefaultImportance(category: string): EventImportance {
   return VEDIC_EVENT_IMPORTANCE[category] || 'medium';
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // EXPORT DEFAULT
-// ═══════════════════════════════════════════════════════════════════════════════
 
 export default {
   METHOD_WEIGHTS,

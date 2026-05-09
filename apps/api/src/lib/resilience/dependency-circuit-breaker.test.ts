@@ -6,7 +6,6 @@ import {
     getCircuitSnapshots,
     getBlockingCircuitBreakers,
     resetAllCircuitBreakersForTests,
-    type CircuitDependency,
 } from './dependency-circuit-breaker.js';
 
 describe('dependency-circuit-breaker', () => {

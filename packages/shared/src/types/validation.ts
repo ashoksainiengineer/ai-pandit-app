@@ -47,6 +47,18 @@ export interface RedFlags {
   d60Instability: boolean;
 }
 
+export interface DashaData {
+  vimshottari?: {
+    mahadasha?: { lord?: string; startDate?: Date; endDate?: Date };
+    antardasha?: { lord?: string };
+    pratyantardasha?: { lord?: string };
+    sukshmadasha?: { lord?: string };
+    pranadasha?: { lord?: string };
+  };
+  yogini?: Array<{ lord?: string; startEnd?: string }>;
+  chara?: { currentSign?: string };
+}
+
 export interface ConsensusResult {
   scores: ConsensusScores;
   overallConsensus: number;
@@ -63,7 +75,7 @@ export interface ValidationInput {
   candidate: {
     time: string;
     ephemeris: EphemerisData;
-    dasha: Record<string, unknown> | unknown[];
+    dasha: DashaData | unknown[];
     vargas: Record<string, unknown>;
     kpData: Record<string, unknown>;
     aiScore?: number;
@@ -102,7 +114,7 @@ export interface CandidateWithPrecisionData {
   time: string;
   offsetMinutes: number;
   ephemeris: EphemerisData;
-  dasha: Record<string, unknown> | unknown[];
+  dasha: DashaData | unknown[];
   vargas: Record<string, unknown>;
   kpData: Record<string, unknown>;
   precision?: PrecisionEnhancement;

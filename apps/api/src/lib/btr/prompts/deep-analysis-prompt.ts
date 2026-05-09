@@ -16,6 +16,7 @@ import { logger } from '../../../utils/logger.js';
 import { formatCandidateVSL, EnhancedCandidate } from './vsl-formatter.js';
 import { resolveEventDateWindow } from '../event-date-utils.js';
 import { buildDuplicateTimeSet, getCandidateReference } from '../candidate-reference.js';
+import { ValidationError } from '../../../errors/index.js';
 
 /**
  * Get event importance summary for AI
@@ -90,7 +91,7 @@ export function getDeepAnalysisPrompt(
       } else {
         logger.error(`[VALIDATION-GATE] Candidate ${c.time} failed validation:`, err);
       }
-      throw new Error(`Data Pipeline Contract Violation: Candidate ${c.time} is missing required data for AI analysis.`);
+      throw new ValidationError(`Data Pipeline Contract Violation: Candidate ${c.time} is missing required data for AI analysis.`);
     }
   });
 

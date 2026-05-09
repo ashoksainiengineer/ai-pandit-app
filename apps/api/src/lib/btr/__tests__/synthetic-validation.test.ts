@@ -10,7 +10,6 @@ describe('🏆 GOD-TIER PROOF: Synthetic Birth Time Recovery', () => {
 
     it('should recover the TRUE birth time from a 15-minute shifted input', async () => {
         // 1. TRUE BIRTH DATA (Hidden from the engine's initial start point)
-        const TRUE_TIME = '10:00:00';
         const TRUE_DATE = '1990-01-01';
         const LAT = 28.6139;
         const LON = 77.2090;

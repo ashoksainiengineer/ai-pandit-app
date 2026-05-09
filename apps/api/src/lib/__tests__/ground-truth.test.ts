@@ -8,9 +8,6 @@ describe('Historical Ground-Truth Validation (Domain Precision)', () => {
   beforeAll(async () => {
     const success = await initEphemerisProvider();
     ephemerisAvailable = success && isHighPrecisionMode();
-    if (!ephemerisAvailable) {
-      console.warn('[SKIP] Ephemeris service unavailable — ground-truth tests skipped. Start with: npm run setup:ephemeris');
-    }
   });
 
     const TEST_VECTORS = [

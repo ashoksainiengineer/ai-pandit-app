@@ -3,6 +3,7 @@ import { createArtifact } from '@ai-pandit/db/jobs';
 import type { ArtifactKind } from '@ai-pandit/db/schema';
 import { config } from '../../config/index.js';
 import { logger } from '../../utils/logger.js';
+import { ProcessingError } from '../../errors/index.js';
 
 interface PersistArtifactInput {
   jobId: string;
@@ -39,7 +40,7 @@ async function uploadToGcs(
 ): Promise<string> {
   const bucketName = config.storage.gcsBucket;
   if (!bucketName) {
-    throw new Error('GCS bucket is not configured');
+    throw new ProcessingError('GCS bucket is not configured');
   }
 
   const { Storage } = await getStorageModule();

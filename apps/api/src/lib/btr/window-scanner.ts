@@ -32,18 +32,13 @@ import {
   DEFAULT_SCAN_CONFIG,
   EphemerisData,
   KPSubLordData,
-  ZODIAC_SIGNS,
   EVENT_HOUSE_MAP,
   EVENT_SIGNIFICATORS,
   EVENT_SPECIFIC_SIGNIFICATORS,
   DATE_PRECISION_WEIGHTS
 } from '@ai-pandit/shared';
 import type { DivisionalChart, BoundarySafety } from '../advanced-btr-methods.js';
-import {
-  TatwaShuddhi,
-  calculateTatwaAtTime,
-  FULL_CYCLE_MINUTES
-} from './tatwa-shuddhi.js';
+import { calculateTatwaAtTime, FULL_CYCLE_MINUTES } from './tatwa-shuddhi.js';
 import { TransitAnalyzer } from './transit-analyzer.js';
 import type { TransitMatchResult } from '@ai-pandit/shared';
 import { EventScorer, ScoredEvent } from './event-scorer.js';
@@ -55,6 +50,7 @@ import {
   _calculateWeightedAverage
 } from './precision-weights.js';
 import { logger } from '../../utils/logger.js';
+import { InvalidInputError } from '../../errors/index.js';
 
 function getErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
@@ -62,6 +58,16 @@ function getErrorMessage(error: unknown): string {
 
 const MINUTE_MS = 60 * 1000;
 
+/** Selection ratio for overall top candidates in diverse selection policy. */
+const OVERALL_TOP_K_RATIO = 0.6;
+
+/** Event impact multipliers for scoring. */
+const EVENT_IMPACT_MULTIPLIERS: Record<string, number> = {
+  critical: 2.0,
+  major: 1.5,
+  moderate: 1.0,
+  minor: 0.5,
+};
 export interface ScannerInput {
   birthDate: string;
   tentativeTime: string;
@@ -203,7 +209,7 @@ export async function scanBirthTimeWindow(
 
     // 1. Add overall Top-K
     const sortedOverall = [...scoredCandidates].sort((a, b) => (b.overallScore || 0) - (a.overallScore || 0));
-    sortedOverall.slice(0, Math.floor(maxSurvivors * 0.6)).forEach(c => {
+    sortedOverall.slice(0, Math.floor(maxSurvivors * OVERALL_TOP_K_RATIO)).forEach(c => {
       if (c.timeString && !selectionSet.has(c.timeString)) {
         diverseSurvivors.push(c);
         selectionSet.add(c.timeString);
@@ -480,9 +486,8 @@ function scoreVimshottariMatch(
     eventScore *= precisionWeight;
 
     // APPLY IMPORTANCE WEIGHT — critical events amplify, low events dampen
-    const impactMultiplier: Record<string, number> = { critical: 2.0, major: 1.5, moderate: 1.0, minor: 0.5 };
     const imp = event.impact ?? 'moderate';
-    eventScore *= impactMultiplier[imp] ?? 1.0;
+    eventScore *= EVENT_IMPACT_MULTIPLIERS[imp] ?? 1.0;
 
     totalScore += eventScore * event.calculatedWeight;
     totalWeight += event.calculatedWeight;
@@ -743,12 +748,12 @@ function normalizeTransitDateLiteral(rawEventDate: unknown, fallbackDate: Date):
 
 function parseTime(timeStr: string, dateStr: string, timezone: string | number): Date {
   if (!timeStr || !dateStr) {
-    throw new Error('Missing time or date string for parsing');
+    throw new InvalidInputError('Missing time or date string for parsing');
   }
   return convertToUTC(dateStr, timeStr, timezone);
 }
 
-function formatLocalBirthDateTime(date: Date, timezone: string | number): LocalBirthDateTime {
+function _formatLocalBirthDateTime(date: Date, timezone: string | number): LocalBirthDateTime {
   if (typeof timezone === 'number') {
     const shifted = new Date(date.getTime() + timezone * 3600000);
     return {
@@ -875,7 +880,6 @@ function generateFinalRecommendations(
     recommendations.push(`Margin of error: ±${best.marginOfErrorSeconds} seconds`);
   }
 }
-
 
 export const WindowScanner = {
   scan: (input: ScannerInput, sessionId?: string) => scanBirthTimeWindow(input, sessionId),

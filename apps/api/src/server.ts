@@ -88,9 +88,7 @@ async function initializeStartupDependencies(): Promise<void> {
     });
 }
 
-// ═════════════════════════════════════════════════════════════════════════════
 // APP FACTORY
-// ═════════════════════════════════════════════════════════════════════════════
 
 export function createApp() {
     const app = express();

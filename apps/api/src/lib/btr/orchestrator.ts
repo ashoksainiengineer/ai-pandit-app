@@ -102,42 +102,6 @@ export async function rectifyBirthTime(input: RectificationInput): Promise<Detai
   }
 }
 
-/**
- * Quick rectification for simple use cases
- */
-export async function quickRectify(
-  birthDate: string,
-  tentativeTime: string,
-  latitude: number,
-  longitude: number,
-  timezone: string | number,
-  events: Array<{
-    category: string;
-    date: string;
-    source?: 'document' | 'memory' | 'approximate';
-  }>
-): Promise<{
-  rectifiedTime: string;
-  confidence: ConfidenceLevel;
-  marginSeconds: number;
-}> {
-  const btrEvents: BtrEvent[] = events.map(mapSimpleEventToBtrEvent);
-
-  const result = await rectifyBirthTime({
-    birthDate,
-    tentativeTime,
-    latitude,
-    longitude,
-    timezone,
-    events: btrEvents
-  });
-
-  return {
-    rectifiedTime: result.rectifiedTime,
-    confidence: result.confidenceLevel || 'LOW',
-    marginSeconds: result.marginOfErrorSeconds || 0
-  };
-}
 
 /**
  * Convert a simple event descriptor into a full BtrEvent object.
@@ -170,102 +134,8 @@ function mapSimpleEventToBtrEvent(
   };
 }
 
-/**
- * Validate events before rectification
- */
-export function validateEvents(events: BtrEvent[]): {
-  valid: boolean;
-  issues: string[];
-  suggestions: string[];
-} {
-  const scored = EventScorer.scoreEvents(events);
-  const validation = EventScorer.validateCollection(scored);
 
-  return {
-    valid: validation.isValid,
-    issues: validation.issues,
-    suggestions: validation.suggestions
-  };
-}
 
-/**
- * Get Tatwa information for a birth time
- */
-export async function getTatwaInfo(
-  birthDate: string,
-  birthTime: string,
-  latitude: number,
-  longitude: number,
-  timezone: string | number
-): Promise<{
-  currentTatwa: string;
-  element: string;
-  windows: Array<{
-    startTime: string;
-    endTime: string;
-    tatwa: string;
-  }>;
-}> {
-  try {
-    const sunrise = await calculateSunrise(birthDate, latitude, longitude, timezone);
-    const birthDate_ = parseBirthTime(birthTime, birthDate, timezone);
-
-    const result = TatwaShuddhi.calculate(sunrise, birthDate_);
-    const dailyWindows = TatwaShuddhi.getDailyWindows(sunrise, 6);
-
-    return {
-      currentTatwa: result.tatwa,
-      element: result.element,
-      windows: dailyWindows.slice(0, 12).map(w => ({
-        startTime: w.startTime.toISOString(),
-        endTime: w.endTime.toISOString(),
-        tatwa: w.tatwa
-      }))
-    };
-  } catch (error) {
-    logger.error('[BTR] Failed to get Tatwa info', error);
-    return {
-      currentTatwa: 'unknown',
-      element: 'unknown',
-      windows: []
-    };
-  }
-}
-
-/**
- * Analyze transits for a birth chart
- */
-export async function analyzeTransits(
-  birthDate: string,
-  birthTime: string,
-  latitude: number,
-  longitude: number,
-  timezone: string | number,
-  events: Array<{ category: string; date: string }>
-): Promise<Map<string, ComprehensiveTransitResult>> {
-  try {
-    const ephemeris = await calculateEphemeris(
-      birthDate,
-      birthTime,
-      latitude,
-      longitude,
-      timezone
-    );
-
-    return await TransitAnalyzer.batchAnalyze(
-      events.map(e => ({ ...e, time: '12:00' })),
-      {
-        latitude,
-        longitude,
-        timezone,
-        ascendantSign: ephemeris.ascendant.sign
-      }
-    );
-  } catch (error) {
-    logger.error('[BTR] Transit analysis failed', error);
-    return new Map();
-  }
-}
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // INTERNAL FUNCTIONS
@@ -521,5 +391,3 @@ async function logAndRecoverRectificationFailure(
   return buildFailedResult(input, fallbackCtx, [errorMessage], startTime);
 }
 
-/** Backward-compatible alias for ProfessionalBTR export */
-export const ProfessionalBTR = { rectify: rectifyBirthTime, quickRectify, validateEvents, getTatwaInfo, analyzeTransits };

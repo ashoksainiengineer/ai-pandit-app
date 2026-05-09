@@ -36,7 +36,7 @@ async function triggerBlindedTest() {
             throw new Error(`API Error ${response.status}: ${error}`);
         }
 
-        const result = await response.json() as any;
+        const result = await response.json() as Record<string, unknown>;
         const sessionId = result.data?.sessionId || result.sessionId;
 
         console.log('✅ Analysis Triggered Successfully!');

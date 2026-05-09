@@ -104,6 +104,5 @@ beforeAll(async () => {
     const { initEphemerisProvider } = await import('../ephemeris.js');
     await initEphemerisProvider();
   } catch (error) {
-    console.warn('⚠️ [TEST SETUP] Ephemeris init skipped (tests will use mocks or algorithmic fallback):', (error as Error).message);
   }
 });

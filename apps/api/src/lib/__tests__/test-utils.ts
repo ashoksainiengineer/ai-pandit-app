@@ -130,7 +130,6 @@ export function createLifeEvent(overrides: Partial<LifeEvent> = {}): LifeEvent {
   };
 }
 
-
 // ═════════════════════════════════════════════════════════════════════════════
 
 // ═════════════════════════════════════════════════════════════════════════════
@@ -235,7 +234,7 @@ export function restoreTimers() {
 // DATABASE HELPERS - Clean Test State
 // ═════════════════════════════════════════════════════════════════════════════
 
-export async function cleanupTestSession(sessionId: string): Promise<void> {
+export async function cleanupTestSession(_sessionId: string): Promise<void> {
   // Implementation depends on your DB setup
   // This is a placeholder
 }

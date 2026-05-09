@@ -8,7 +8,7 @@
  * Reference: Brihat Parashara Hora Shastra
  */
 import { ZODIAC_SIGNS } from '@ai-pandit/shared';
-import { DAYS_PER_YEAR, addYears } from './utils/time-constants.js';
+import { addYears } from './utils/time-constants.js';
 
 const NAKSHATRA_NAMES = [
   'Ashwini', 'Bharani', 'Krittika', 'Rohini', 'Mrigashirsha', 'Ardra',

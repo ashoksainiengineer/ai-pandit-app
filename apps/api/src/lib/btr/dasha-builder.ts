@@ -140,7 +140,7 @@ function processSukshmaLevel(
 
   if (dashaDepth === 4) {
     result.push(createDashaEntry(maha.lord, antar.lord, prat.lord, suksh.lord, '-',
-      formatDate(suksh.startDate)));
+      formatDashaDate(suksh.startDate)));
     return result;
   }
 
@@ -171,7 +171,7 @@ function processSukshmaLevel(
       // but if we are here it means depth is 5+. 
       // If not near event, we just show the Sukshma entry without Pranas.
       result.push(createDashaEntry(maha.lord, antar.lord, prat.lord, suksh.lord, '-',
-        formatDate(suksh.startDate)));
+        formatDashaDate(suksh.startDate)));
     }
   }
 
@@ -202,7 +202,7 @@ function formatDateRange(start: Date, end: Date): string {
 /**
  * Format single date as string
  */
-function formatDate(date: Date): string {
+function formatDashaDate(date: Date): string {
   return date.toISOString().split('T')[0];
 }
 

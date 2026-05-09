@@ -1,9 +1,11 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import request from 'supertest';
+import {
+  describe,
+  it,
+  expect,
+  vi
+} from 'vitest';
 import express from 'express';
 import sessionRouter from '../sessions.js';
-import { db } from '@ai-pandit/db';
-import { safeDecrypt } from '../../lib/encryption/index.js';
 
 // Setup Mock Express App
 const app = express();

@@ -63,7 +63,7 @@ const statusConfig = {
   },
 };
 
-function formatDate(dateString: string): string {
+function formatReadingDate(dateString: string): string {
   const date = new Date(dateString);
   return new Intl.DateTimeFormat('en-US', {
     month: 'short',
@@ -158,7 +158,7 @@ export default function RecentReadingsTable({ readings, loading }: RecentReading
                     <div className="flex items-center gap-3 text-sm text-[#636363]">
                       <span className="flex items-center gap-1">
                         <Calendar className="w-3.5 h-3.5" />
-                        {formatDate(reading.createdAt)}
+                        {formatReadingDate(reading.createdAt)}
                       </span>
                       <span className="flex items-center gap-1">
                         <MapPin className="w-3.5 h-3.5" />

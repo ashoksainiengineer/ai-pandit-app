@@ -423,11 +423,3 @@ export function buildDeadLetterPayload(
   };
 }
 
-
-/**
- * Get the tracked job for a session. Wraps getLatestJobForSession from the DB layer.
- * Used by queue-manager for cancel/retry flows.
- */
-export async function getTrackedJob(sessionId: string) {
-  return getLatestJobForSession(sessionId);
-  }

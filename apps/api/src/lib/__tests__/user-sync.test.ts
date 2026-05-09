@@ -35,7 +35,6 @@ vi.mock('../logger.js', () => ({
 
 import { syncUser } from '../user-sync.js';
 import { syncUser as syncUserShared } from '@ai-pandit/db';
-import { getClerk } from '../../middleware/auth.js';
 
 describe('User Sync - Unit Tests', () => {
 

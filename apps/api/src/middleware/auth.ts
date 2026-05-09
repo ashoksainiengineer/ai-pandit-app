@@ -3,6 +3,7 @@ import { createClerkClient, verifyToken } from '@clerk/backend';
 import { config } from '../config/index.js';
 import { logger } from '../utils/logger.js';
 import { consumeStreamTicket } from '../lib/stream-ticket-manager.js';
+import { UnauthorizedError } from '../errors/index.js';
 
 
 let _clerk: ReturnType<typeof createClerkClient> | null = null;
@@ -27,7 +28,7 @@ export interface AuthenticatedRequest extends Request {
  */
 export function requireClerkId(req: AuthenticatedRequest): string {
     if (!req.clerkId) {
-        throw new Error('Authentication required: clerkId missing from request');
+        throw new UnauthorizedError('Authentication required: clerkId missing from request');
     }
     return req.clerkId;
 }
@@ -73,7 +74,7 @@ function sendAuthError(
 
 /**
  * Middleware to verify Clerk authentication
- * Extracts user ID from Bearer token using industrial-grade verification
+ * Extracts user ID from Bearer token using Clerk token verification
  */
 export async function authMiddleware(
     req: AuthenticatedRequest,

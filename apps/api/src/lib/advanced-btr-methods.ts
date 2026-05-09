@@ -3,13 +3,11 @@
 // Advanced Vedic Astrology Methods for 99%+ BTR Accuracy
 // Includes: Yogini Dasha, Divisional Charts, Physical Traits, Advanced Aspects, Arudha Lagna
 
-import { EphemerisData, PlanetPosition, LifeEvent, ZODIAC_SIGNS, SIGN_LORDS } from '@ai-pandit/shared';
+import { EphemerisData, ZODIAC_SIGNS, SIGN_LORDS } from '@ai-pandit/shared';
 import { calculateEphemeris } from './ephemeris.js';
 import { DAYS_PER_YEAR, addYears } from './utils/time-constants.js';
 
-// ═════════════════════════════════════════════════════════════════════════════
 // TYPES AND CONSTANTS
-// ═════════════════════════════════════════════════════════════════════════════
 
 export interface YoginiDashaPeriod {
     name: string;
@@ -66,9 +64,7 @@ export interface VedicSignal {
     kundaLagna?: { sign: string; degree: number; matchesMoon: boolean };
 }
 
-// ═════════════════════════════════════════════════════════════════════════════
 // YOGINI DASHA (36-Year Cycle)
-// ═════════════════════════════════════════════════════════════════════════════
 
 // Yogini sequence with durations
 const YOGINI_SEQUENCE = [
@@ -207,9 +203,7 @@ export function yoginiSupportsEvent(
     };
 }
 
-// ═════════════════════════════════════════════════════════════════════════════
 // DIVISIONAL CHARTS (D2, D7, D9, D10, D30)
-// ═════════════════════════════════════════════════════════════════════════════
 
 // ZODIAC_SIGNS moved to shared
 
@@ -563,9 +557,7 @@ export function calculateShadbalaLite(ephemeris: EphemerisData): Record<string, 
 }
 
 
-// ═════════════════════════════════════════════════════════════════════════════
 // ADVANCED ASPECTS ANALYSIS
-// ═════════════════════════════════════════════════════════════════════════════
 
 const PARASHARI_SPECIAL_DRISHTI: Record<string, number[]> = {
     mars: [4, 8],
@@ -626,9 +618,7 @@ export function calculateAdvancedAspects(ephemeris: EphemerisData): AspectData[]
     return aspects;
 }
 
-// ═════════════════════════════════════════════════════════════════════════════
 // ARUDHA LAGNA CALCULATION
-// ═════════════════════════════════════════════════════════════════════════════
 
 // SIGN_LORDS moved to shared
 
@@ -699,9 +689,7 @@ function checkDebilitation(planet: string, sign: string): boolean {
     return debilitations[planet] === sign;
 }
 
-// ═════════════════════════════════════════════════════════════════════════════
 // SECONDARY PROGRESSIONS (Phaladesha)
-// ═════════════════════════════════════════════════════════════════════════════
 
 /**
  * Calculate secondary progressions for a life event
@@ -739,9 +727,7 @@ export function getProgressedDate(birthDate: Date, eventAge: number): Date {
     return progressedDate;
 }
 
-// ═════════════════════════════════════════════════════════════════════════════
 // PANCHANGA CALCULATION (Five Pillars)
-// ═════════════════════════════════════════════════════════════════════════════
 
 export interface PanchangaData {
     tithi: { name: string; number: number; percentage: number };
@@ -805,9 +791,7 @@ export function calculatePanchanga(ephemeris: EphemerisData, birthDate: Date): P
     };
 }
 
-// ═════════════════════════════════════════════════════════════════════════════
 // BOUNDARY SAFETY (Seconds to Boundary)
-// ═════════════════════════════════════════════════════════════════════════════
 
 export interface BoundarySafety {
     lagnaSignBoundary: number; // Seconds to closest sign boundary
@@ -846,9 +830,7 @@ export function calculateBoundarySafety(ephemeris: EphemerisData): BoundarySafet
     };
 }
 
-// ═════════════════════════════════════════════════════════════════════════════
 // FORMATTING ENHANCEMENTS
-// ═════════════════════════════════════════════════════════════════════════════
 
 export function formatPanchanga(p: PanchangaData): string {
     return `PANCHANGA:
@@ -865,9 +847,7 @@ Moon Nakshatra Boundary: ${b.moonNakshatraBoundary}s away
 Status: ${b.isDangerous ? '⚠️ CRITICAL (Highly sensitive to seconds)' : 'Stable'}`;
 }
 
-// ═════════════════════════════════════════════════════════════════════════════
 // FORMATTING FOR AI K2 PROMPTS
-// ═════════════════════════════════════════════════════════════════════════════
 
 export function formatYoginiDashaSequence(periods: YoginiDashaPeriod[]): string {
     const lines = ['YOGINI DASHA SEQUENCE (36-year cycle):'];
@@ -978,9 +958,7 @@ export function formatSpecialLagnas(hl: SpecialLagna, gl: SpecialLagna): string 
    Verification: Check GL house/lord strength for promotions, authority, or leadership.`;
 }
 
-// ═════════════════════════════════════════════════════════════════════════════
 // SHADBALA (6-SOURCE PLANETARY STRENGTHS - PHASE 4)
-// ═════════════════════════════════════════════════════════════════════════════
 
 /**
  * Calculates the full Shadbala (Sixfold Strength) for all planets.
@@ -1061,9 +1039,7 @@ export function formatShadbala(strengths: Record<string, number>): string {
     return lines.join('\n');
 }
 
-// ═════════════════════════════════════════════════════════════════════════════
 // PLANETARY MATURATION AGES (Traditional Vedic Ages)
-// ═════════════════════════════════════════════════════════════════════════════
 
 const MATURATION_AGES: Record<string, number> = {
     jupiter: 16, // Also 24
@@ -1103,13 +1079,9 @@ export function formatPlanetaryMaturation(maturation: Array<{ planet: string; ag
     return lines.join('\n');
 }
 
-// ═════════════════════════════════════════════════════════════════════════════
 // UTILITY
-// ═════════════════════════════════════════════════════════════════════════════
 
-// ═════════════════════════════════════════════════════════════════════════════
 // ASHTAKAVARGA (PHASE 4)
-// ═════════════════════════════════════════════════════════════════════════════
 
 /**
  * Ashtakavarga Bindu Tables (Standard Parashari Rules)

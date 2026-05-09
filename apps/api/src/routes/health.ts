@@ -1,7 +1,5 @@
-// ═══════════════════════════════════════════════════════════════════════════════
 // HEALTH & MONITORING ROUTES
 // Comprehensive health checks and system monitoring endpoints
-// ═══════════════════════════════════════════════════════════════════════════════
 
 import { Router, Request, Response } from 'express';
 import { checkDatabaseHealth, db } from '@ai-pandit/db';
@@ -18,9 +16,7 @@ import { getQueueRecoveryTelemetry as _getQueueRecoveryTelemetry } from '../lib/
 
 const router = Router();
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // TYPES
-// ═══════════════════════════════════════════════════════════════════════════════
 
 interface HealthStatus {
   status: 'healthy' | 'degraded' | 'unhealthy';
@@ -103,9 +99,7 @@ export async function getApiReadinessStatus(): Promise<ApiReadinessStatus> {
   }
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // HEALTH CHECK ENDPOINT
-// ═══════════════════════════════════════════════════════════════════════════════
 
 router.get('/', async (_req: Request, res: Response) => {
   try {
@@ -123,9 +117,7 @@ router.get('/', async (_req: Request, res: Response) => {
   }
 });
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // READINESS CHECK
-// ═══════════════════════════════════════════════════════════════════════════════
 
 router.get('/ready', async (_req: Request, res: Response) => {
   const readiness = await getApiReadinessStatus();
@@ -137,9 +129,7 @@ router.get('/ready', async (_req: Request, res: Response) => {
   res.status(readiness.ready ? 200 : 503).json(readiness);
 });
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // LIVENESS CHECK
-// ═══════════════════════════════════════════════════════════════════════════════
 
 router.get('/live', (_req: Request, res: Response) => {
   res.json({
@@ -150,9 +140,7 @@ router.get('/live', (_req: Request, res: Response) => {
   });
 });
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // METRICS ENDPOINT
-// ═══════════════════════════════════════════════════════════════════════════════
 
 router.get('/metrics', async (_req: Request, res: Response) => {
   try {
@@ -175,9 +163,7 @@ router.get('/metrics', async (_req: Request, res: Response) => {
   }
 });
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // HELPER FUNCTIONS
-// ═══════════════════════════════════════════════════════════════════════════════
 
 async function performHealthCheck(): Promise<HealthStatus> {
   const [dbStatus, memoryStatus] = await Promise.all([

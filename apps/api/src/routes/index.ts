@@ -14,7 +14,6 @@ import jobsRouter from './jobs.js';
 import progressRouter from './progress.js';
 import streamRouter from './stream.js';
 // warmupRouter removed for security realignment
-import adminRouter from './admin.js';
 import sessionsRouter from './sessions.js';
 import candidateDetailRouter from './candidate-detail.js';
 import { config } from '../config/index.js';

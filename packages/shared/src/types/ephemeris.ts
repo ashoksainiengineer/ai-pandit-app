@@ -87,6 +87,7 @@ ayanamsa?: number;
   nadiData?: Record<string, unknown>;
   vargaDegrees?: Record<string, Record<string, string>>;
   d60Sign?: string;
+  d60Planets?: Record<string, { sign?: string; degree?: string; deity?: string }>;
 }
 
 export interface MinifiedEphemeris {

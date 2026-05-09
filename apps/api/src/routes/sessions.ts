@@ -10,7 +10,7 @@ import { logger } from '../utils/logger.js';
 import { encryptData, parseSensitiveField } from '../lib/encryption/index.js';
 import { randomUUID } from 'crypto';
 import { isSessionOwnedByContext, resolveSessionOwnershipContext } from '../lib/session-ownership.js';
-import { validateBody, SessionUpdateSchema, UuidParamSchema } from '../middleware/validation.js';
+import { validateBody, SessionUpdateSchema } from '../middleware/validation.js';
 const router = Router();
 
 // BUG-013 fix: Never expose raw error messages to clients

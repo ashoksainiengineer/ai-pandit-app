@@ -3,10 +3,8 @@
 // Includes: Chara Dasha, Chara Karakas, Jaimini Aspects
 
 import { EphemerisData, ZODIAC_SIGNS } from '@ai-pandit/shared';
-import { DAYS_PER_YEAR, addYears } from './utils/time-constants.js';
-// ═════════════════════════════════════════════════════════════════════════════
+import { addYears } from './utils/time-constants.js';
 // JAIMINI SYSTEM CONSTANTS
-// ═════════════════════════════════════════════════════════════════════════════
 
 
 // Chara Karaka (Variable Significator) order based on degree
@@ -23,9 +21,7 @@ const KARAKA_NAMES = [
 // Used planets for Jaimini (Rahu excluded in classical texts)
 const JAIMINI_PLANETS = ['sun', 'moon', 'mars', 'mercury', 'jupiter', 'venus', 'saturn'];
 
-// ═════════════════════════════════════════════════════════════════════════════
 // CHARA KARAKA (Variable Significators)
-// ═════════════════════════════════════════════════════════════════════════════
 
 export interface CharaKaraka {
     planet: string;
@@ -59,9 +55,7 @@ export function calculateCharaKarakas(ephemeris: EphemerisData): CharaKaraka[] {
     }));
 }
 
-// ═════════════════════════════════════════════════════════════════════════════
 // CHARA DASHA (Sign-Based Dasha)
-// ═════════════════════════════════════════════════════════════════════════════
 
 export interface CharaDashaPeriod {
     sign: string;
@@ -165,9 +159,7 @@ export function getCharaDashaForDate(
     return null;
 }
 
-// ═════════════════════════════════════════════════════════════════════════════
 // JAIMINI ASPECTS (Rasi Drishti - Sign-Based Aspects)
-// ═════════════════════════════════════════════════════════════════════════════
 
 export interface JaiminiAspect {
     fromSign: string;
@@ -255,9 +247,7 @@ export function calculateJaiminiAspects(ephemeris: EphemerisData): JaiminiAspect
     return aspects;
 }
 
-// ═════════════════════════════════════════════════════════════════════════════
 // RASI DASHA (Sign-Based Progression)
-// ═════════════════════════════════════════════════════════════════════════════
 
 export interface RasiDashaPeriod {
     sign: string;
@@ -300,9 +290,7 @@ export function calculateRasiDasha(
     return periods;
 }
 
-// ═════════════════════════════════════════════════════════════════════════════
 // TATWA DASHA (Elemental Dasha)
-// ═════════════════════════════════════════════════════════════════════════════
 
 export interface TatwaDashaPeriod {
     tatwa: string;
@@ -378,9 +366,7 @@ export function getTatwaForDate(
     return null;
 }
 
-// ═════════════════════════════════════════════════════════════════════════════
 // TITHI PRAVESHA (Solar Return / Annual Chart)  
-// ═════════════════════════════════════════════════════════════════════════════
 
 export interface TithiPraveshaData {
     year: number;
@@ -453,9 +439,7 @@ export function getTithiPraveshaForYear(
     return returns.find(r => r.year === year) || null;
 }
 
-// ═════════════════════════════════════════════════════════════════════════════
 // FORMATTING FOR AI K2 PROMPTS
-// ═════════════════════════════════════════════════════════════════════════════
 
 export function formatCharaKarakas(karakas: CharaKaraka[]): string {
     const lines = ['CHARA KARAKAS (Jaimini Significators):'];
@@ -503,13 +487,9 @@ export function formatJaiminiAspects(aspects: JaiminiAspect[]): string {
     return lines.join('\n');
 }
 
-// ═════════════════════════════════════════════════════════════════════════════
-// ═════════════════════════════════════════════════════════════════════════════
 
 
-// ═════════════════════════════════════════════════════════════════════════════
 // DASHA-EVENT CORRELATIONS FOR ALL SYSTEMS
-// ═════════════════════════════════════════════════════════════════════════════
 
 /**
  * Check if Chara Dasha sign supports an event
@@ -578,9 +558,7 @@ export function charaDashaSupportsEvent(
 }
 
 // All functions are exported inline (export function ...)
-// ═════════════════════════════════════════════════════════════════════════════
 // BHRIGU BINDU (THE DESTINY POINT - PHASE 4)
-// ═════════════════════════════════════════════════════════════════════════════
 
 /**
  * Calculates Bhrigu Bindu - The midpoint between Moon and Rahu.

@@ -10,13 +10,42 @@ export type { DatePrecision, CandidateScore };
 
 // Types internal to the backend calculation engine
 type CandidateTime = SharedCandidateTime;
-type KalachakraPeriod = unknown;
+export interface KalachakraPeriod {
+  sign: string;
+  signIndex: number;
+  startDate: Date;
+  endDate: Date;
+  durationYears: number;
+  lord: string;
+  kalachakraType: string;
+}
+
 type ShadbalaSummary = unknown;
 type NadiAmshaData = unknown;
 type D150EventAnalysis = unknown;
 type D9VerificationResult = unknown;
 type GandantaAnalysis = unknown;
-type PakshiAnalysis = unknown;
+
+export interface PakshiData {
+  name: string;
+  sanskritName: string;
+  element: string;
+  rulingHours: number[];
+  qualities: string[];
+  dominantActivities: string[];
+  weakActivities: string[];
+}
+
+export interface PakshiAnalysis {
+  rulingBird: PakshiData;
+  secondaryBird: PakshiData | null;
+  birdStrength: 'excellent' | 'good' | 'moderate' | 'weak';
+  birthTimeQuality: string;
+  activityStrengths: string[];
+  activityWeaknesses: string[];
+  personalityTraits: string[];
+  verificationNotes: string;
+}
 
 import { z } from 'zod';
 

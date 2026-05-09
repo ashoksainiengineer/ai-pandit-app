@@ -6,14 +6,13 @@
  */
 
 import {
-  calculateHouse,
   getDignity,
   calculateFunctionalNature,
   calculateAspects,
   calculateBaladiAvastha,
   getD60Deity,
   calculatePanchadhaSambandha,
-  calculateIshtaKashtaPhala,
+  calculateIshtaKashtaPhala
 } from '../vedic-astrology-engine.js';
 import { ZODIAC_SIGNS, PlanetData, EphemerisData, PlanetPosition } from '@ai-pandit/shared';
 import { capitalizeFirstLetter, decimalToDMS } from '../utils/index.js';

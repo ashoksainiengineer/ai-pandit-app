@@ -16,6 +16,7 @@ import { validateCandidateDataForAI } from '@ai-pandit/shared/schemas';
 import { logger } from '../../../utils/logger.js';
 import { formatCandidateVSL, EnhancedCandidate } from './vsl-formatter.js';
 import { buildDuplicateTimeSet, getCandidateReference } from '../candidate-reference.js';
+import { ValidationError } from '../../../errors/index.js';
 
 /**
  * Get event importance summary for AI
@@ -73,10 +74,10 @@ export function getBatchPrompt(
         : null;
       if (zodErrors) {
         logger.error(`[VALIDATION-GATE] Candidate ${c.time} failed Zod schema validation:`, JSON.stringify(zodErrors));
-        throw new Error(`Data Pipeline Contract Violation: Candidate ${c.time} failed Zod validation: ${JSON.stringify(zodErrors, null, 2)}`);
+        throw new ValidationError(`Data Pipeline Contract Violation: Candidate ${c.time} failed Zod validation`, { zodErrors });
       } else {
         logger.error(`[VALIDATION-GATE] Candidate ${c.time} failed validation:`, err);
-        throw new Error(`Data Pipeline Contract Violation: Candidate ${c.time} is missing required data for AI analysis.`);
+        throw new ValidationError(`Data Pipeline Contract Violation: Candidate ${c.time} is missing required data for AI analysis.`);
       }
     }
   });

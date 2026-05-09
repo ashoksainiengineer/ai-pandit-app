@@ -3,6 +3,7 @@
  * Type-safe pagination helpers with cursor and offset-based strategies
  */
 
+import { ValidationError } from '../errors/index.js';
 export interface PaginationParams {
   page?: number;
   limit?: number;
@@ -91,7 +92,7 @@ export function decodeCursor(cursor: string): string {
   try {
     return Buffer.from(cursor, 'base64').toString('ascii');
   } catch {
-    throw new Error('Invalid cursor format');
+    throw new ValidationError('Invalid cursor format');
   }
 }
 

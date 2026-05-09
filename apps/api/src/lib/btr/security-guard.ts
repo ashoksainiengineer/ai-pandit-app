@@ -3,6 +3,7 @@
  * Prevents Prompt Injection and Jailbreak attempts against the DeepSeek models.
  */
 
+import { ValidationError } from '../../errors/index.js';
 const SUSPICIOUS_PATTERNS = [
     // Jailbreak indicators
     /ignore previous/i,
@@ -36,7 +37,7 @@ export class SecurityGuard {
         for (const pattern of SUSPICIOUS_PATTERNS) {
             if (pattern.test(sanitized)) {
                 // Return a heavily redacted string or hard fail
-                throw new Error('SECURITY_VIOLATION: Malicious prompt injection pattern detected.');
+                throw new ValidationError('SECURITY_VIOLATION: Malicious prompt injection pattern detected.');
             }
         }
 

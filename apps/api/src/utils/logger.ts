@@ -32,9 +32,7 @@ function ensureLogDir(): void {
   }
 }
 
-// ═════════════════════════════════════════════════════════════════════════════
 // LOG LEVELS
-// ═════════════════════════════════════════════════════════════════════════════
 
 type LogLevel = 'trace' | 'debug' | 'info' | 'warn' | 'error' | 'fatal';
 
@@ -47,9 +45,7 @@ const LOG_LEVELS: Record<LogLevel, number> = {
   fatal: 60,
 };
 
-// ═════════════════════════════════════════════════════════════════════════════
 // LOGGER OPTIONS
-// ═════════════════════════════════════════════════════════════════════════════
 
 interface LoggerOptions {
   level?: LogLevel;
@@ -57,9 +53,7 @@ interface LoggerOptions {
   redactFields?: string[];
 }
 
-// ═════════════════════════════════════════════════════════════════════════════
 // SAFE STRINGIFY HELPER
-// ═════════════════════════════════════════════════════════════════════════════
 
 function safeStringify(obj: unknown): string {
   try {
@@ -82,9 +76,7 @@ function getCircularReplacer(): (key: string, value: unknown) => unknown {
   };
 }
 
-// ═════════════════════════════════════════════════════════════════════════════
 // REDACTION HELPER
-// ═════════════════════════════════════════════════════════════════════════════
 
 function redactSensitiveData(
   obj: Record<string, unknown>,
@@ -109,9 +101,7 @@ function redactSensitiveData(
   return redacted;
 }
 
-// ═════════════════════════════════════════════════════════════════════════════
 // BASE LOGGER CLASS
-// ═════════════════════════════════════════════════════════════════════════════
 
 class Logger {
   private level: LogLevel;

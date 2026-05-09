@@ -684,7 +684,6 @@ describe('Skyfield Ephemeris - Parity Tests', () => {
           expect(pkg.moonNakshatra).toBeDefined();
           expect(typeof pkg.moonNakshatra).toBe('string');
           // Valid nakshatras
-          const validNakshatras = ['Ashwini', 'Bharani', 'Krittika', 'Rohini', 'Mrigashira', 'Ardra', 'Punarvasu', 'Pushya', 'Ashlesha', 'Magha', 'Purva Phalguni', 'Uttara Phalguni', 'Hasta', 'Chitra', 'Swati', 'Vishakha', 'Anuradha', 'Jyeshtha', 'Mula', 'Purva Ashadha', 'Uttara Ashadha', 'Shravana', 'Dhanishta', 'Shatabhisha', 'Purva Bhadrapada', 'Uttara Bhadrapada', 'Revati'];
           // Just verify it's a non-empty string (nakshatra calculation is validated elsewhere)
           expect(pkg.moonNakshatra.length).toBeGreaterThan(0);
         }

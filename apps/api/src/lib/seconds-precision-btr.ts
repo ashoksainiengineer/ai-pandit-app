@@ -16,46 +16,31 @@
 
 import { calculateEphemeris, convertToUTC } from './ephemeris.js';
 
-import {
-    calculateVimshottariDasha,
-    getDashaForDate,
-    DashaPeriod,
-} from './vedic-astrology-engine.js';
+import { calculateVimshottariDasha, getDashaForDate } from './vedic-astrology-engine.js';
 import {
     generateDivisionalCharts,
     calculateBoundarySafety,
 } from './advanced-btr-methods.js';
+import { _callAIWithStream, _executeAIInParallel } from './ai-client.js';
 import {
-    callAI,
-    _callAIWithStream,
-    _executeAIInParallel,
-} from './ai-client.js';
-import {
-    CandidateTime,
-    _generateCandidateTimes,
-    _generateRefinementGrid,
-    _splitIntoBatches,
-    MAX_BATCH_SIZE,
-    SURVIVORS_PER_BATCH,
-    _getDynamicBatchSize,
-    _getDynamicSurvivors,
-    _injectSafetyNetCandidates,
+  _generateCandidateTimes,
+  _generateRefinementGrid,
+  _splitIntoBatches,
+  MAX_BATCH_SIZE,
+  SURVIVORS_PER_BATCH,
+  _getDynamicBatchSize,
+  _getDynamicSurvivors,
+  _injectSafetyNetCandidates
 } from './time-offset-manager.js';
 import { logger } from '../utils/logger.js';
 import { ProgressTracker, ANALYSIS_STEPS } from './progress-tracker.js';
 import { SecondsPrecisionInput, SecondsPrecisionResult } from '@ai-pandit/shared';
 import { throwIfCancelled, isCancellationError } from './cancellation-manager.js';
-import { emitCandidateScore, emitAIContext, emitCalculationLog, emitStageStats } from './session-events.js';
-import {
-    _enhanceCandidateWithPrecisionData,
-    _generatePrecisionAIPrompt,
-    CandidateWithPrecisionData,
-} from './btr-precision-integrator.js';
+import { emitStageStats } from './session-events.js';
+import { _enhanceCandidateWithPrecisionData, _generatePrecisionAIPrompt } from './btr-precision-integrator.js';
 import { _getMinifiedEphemeris } from './utils/index.js';
-// debug-logger may be excluded; fall back to no-ops
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-let logAnalysisContainerAction: any = () => {};
-let clearDebugLog: any = () => {};
+let logAnalysisContainerAction: (stage: number | string, message: string, data: Record<string, unknown>) => void = () => {};
+let clearDebugLog: () => void = () => {};
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore debug-logger may be excluded from build
 try { ({ logAnalysisContainerAction, clearDebugLog } = await import('../utils/debug-logger.js')); } catch {}
@@ -71,12 +56,7 @@ import {
     _extractBatchSurvivors,
     _extractFinalVerdict,
 } from './btr/extractors/index.js';
-import {
-    CandidateDataPackage,
-    StageResult,
-    TournamentRound,
-    FinalVerdict,
-} from '@ai-pandit/shared';
+import { StageResult } from '@ai-pandit/shared';
 import { buildCandidateDataPackage } from './btr/data-package-builder.js';
 
 // Import stage functions

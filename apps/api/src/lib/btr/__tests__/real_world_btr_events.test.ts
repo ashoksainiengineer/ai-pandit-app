@@ -61,6 +61,5 @@ describe('🌍 REAL-WORLD AUDIT: Virat Kohli Life Events', () => {
         expect(transitKeys.length).toBeGreaterThan(0);
 
         // Check structural integrity of transit payload, e.g. Marriage transit
-        const marriageTransit = payload.transitData!['2017-12-11'];
     });
 });

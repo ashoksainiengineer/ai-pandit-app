@@ -1,20 +1,52 @@
-# AI-Pandit 🌟
+# AI-Pandit
 
-> **⚠️ PROPRIETARY SOFTWARE — ALL RIGHTS RESERVED**  
-> This repository is publicly visible for transparency and portfolio purposes only.  
-> No license is granted to use, copy, modify, or distribute this code.  
+> **⚠️ PROPRIETARY SOFTWARE — ALL RIGHTS RESERVED**
+> This repository is publicly visible for transparency and portfolio purposes only.
+> No license is granted to use, copy, modify, or distribute this code.
 > See [LICENSE](LICENSE) for full terms.
 
-**AI-Powered Vedic Birth Time Rectification with Seconds-Level Precision**
+<p align="center">
+  <strong>AI-Powered Vedic Birth Time Rectification with Seconds-Level Precision</strong>
+</p>
 
-[![TypeScript](https://img.shields.io/badge/TypeScript-96.5%25-blue)](https://www.typescriptlang.org/)
-[![License](https://img.shields.io/badge/License-Proprietary-red.svg)](LICENSE)
-[![CI](https://img.shields.io/github/actions/workflow/status/ashoksainiengineer/ai-pandit-app/ci.yml?branch=main&label=CI)](https://github.com/ashoksainiengineer/ai-pandit-app/actions)
-[![Cloud Run](https://img.shields.io/badge/Google%20Cloud%20Run-Active-blue)](https://cloud.google.com/run)
-[![Next.js](https://img.shields.io/badge/Next.js-15-black)](https://nextjs.org/)
+<p align="center">
+  <a href="https://www.typescriptlang.org/"><img src="https://img.shields.io/badge/TypeScript-96.5%25-blue?logo=typescript" alt="TypeScript" /></a>
+  <a href="https://nextjs.org/"><img src="https://img.shields.io/badge/Next.js-15-black?logo=next.js" alt="Next.js" /></a>
+  <a href="https://github.com/ashoksainiengineer/ai-pandit-app/actions"><img src="https://img.shields.io/github/actions/workflow/status/ashoksainiengineer/ai-pandit-app/ci.yml?branch=main&label=CI" alt="CI" /></a>
+  <a href="https://cloud.google.com/run"><img src="https://img.shields.io/badge/Google%20Cloud%20Run-Active-blue?logo=google-cloud" alt="Cloud Run" /></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/License-Proprietary-red.svg" alt="License" /></a>
+</p>
+
 ---
 
-## Project Overview
+## Table of Contents
+
+- [Overview](#overview)
+- [Features](#features)
+- [Tech Stack](#tech-stack)
+- [Architecture](#architecture)
+  - [Data Flow](#data-flow)
+  - [BTR Pipeline Stages](#btr-pipeline-stages)
+- [Project Structure](#project-structure)
+- [Quick Start](#quick-start)
+  - [Prerequisites](#prerequisites)
+  - [Setup](#setup)
+- [Environment Variables](#environment-variables)
+- [Deployment](#deployment)
+  - [Frontend → Vercel](#frontend--vercel)
+  - [Backend → Google Cloud Run](#backend--google-cloud-run)
+  - [Production Bootstrap](#production-bootstrap)
+- [Testing](#testing)
+- [Security](#security)
+- [Getting Help](#getting-help)
+- [License](#license)
+- [Contact](#contact)
+- [Acknowledgments](#acknowledgments)
+- [Trademarks](#trademarks)
+
+---
+
+## Overview
 
 AI-Pandit is a full-stack Birth Time Rectification (BTR) platform that applies **6-stage tournament-based AI analysis** combined with classical Vedic astrology algorithms and NASA-precision astronomical data to determine accurate birth times down to the **second**.
 
@@ -189,7 +221,7 @@ ai-pandit/
 
 - Node.js ≥20.19.0, npm ≥10.8.0
 - Git
-- Python 3.10+ (for Skyfield ephemeeris service)
+- Python 3.10+ (for Skyfield ephemeris service)
 - A Neon Postgres database (free tier works)
 - An Upstash Redis instance (free tier works)
 - Clerk account (for auth keys)
@@ -238,8 +270,7 @@ Key variables from `.env.example`. All required unless marked optional.
 | `AI_API_KEY` | Fallback/generic AI API key |
 | `AI_BASE_URL` | AI provider base URL (e.g., `https://api.deepseek.com`) |
 | `AI_MODEL` | AI model name override |
-| `ENCRYPTION_SECRET` | AES-256-GCM encryption key (min 32 chars, 64+ recommended) |
-| `ENCRYPTION_SECRET` | AES-256-GCM encryption secret (≥32 characters) |
+| `ENCRYPTION_SECRET` | AES-256-GCM encryption secret (≥32 characters, 64+ recommended) |
 | `EPHEMERIS_SERVICE_URL` | Skyfield service URL (`http://localhost:8000`) |
 | `EPHEMERIS_PROVIDER` | `skyfield` (primary) or `algorithmic` (fallback) |
 | `FRONTEND_URL` | Deployed frontend URL (for CORS) |
@@ -350,6 +381,14 @@ npm run test:btr
 
 ---
 
+## Getting Help
+
+- **Documentation**: See the `docs/` directory for architecture, deployment, and testing guides.
+- **Issues**: If you encounter a bug or have a question, please open an issue on GitHub.
+- **Email**: Reach out directly at app.aipandit [at] gmail [dot] com.
+
+---
+
 ## License
 
 Proprietary. See [LICENSE](LICENSE) for full terms.
@@ -361,7 +400,7 @@ This repository is publicly visible for transparency and portfolio purposes. No 
 ## Contact
 
 **Author:** Ashok Saini  
-**Email:** ashok@sainilab.com  
+**Email:** app.aipandit [at] gmail [dot] com
 **Repository:** [github.com/ashoksainiengineer/ai-pandit-app](https://github.com/ashoksainiengineer/ai-pandit-app)
 
 ---

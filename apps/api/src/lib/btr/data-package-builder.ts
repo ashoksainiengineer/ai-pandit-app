@@ -37,7 +37,6 @@ import { buildVimshottariDasha, buildYoginiDasha, buildCharaDasha } from './dash
 import { enrichPlanets, extractIshtaKashtaPhala } from './planet-enricher.js';
 import { buildTransitData } from './transit-builder.js';
 import { calculateKalachakraDasha, _correlateKalachakraWithEvents } from '../kalachakra-dasha.js';
-import { calculateFullShadbala } from '../shadbala.js';
 import { calculateD150ForAllPlanets, analyzeD150ForEvents } from '../nadi-amsha.js';
 import { performSpouseVerification, _extractNativeD9Positions, _verifyD9WithSpouse, _calculateSpousePositions } from '../spouse-d9-verification.js';
 import { detectGandanta } from '../gandanta-detection.js';
@@ -115,8 +114,8 @@ export async function buildCandidateDataPackage(
   const context: Parameters<typeof enrichPlanets>[1] = {
     ascendantSign: ephemeris.ascendant.sign,
     ascendantLongitude: ephemeris.ascendant.longitude,
-    shadbala: (ephemeris.shadbala ?? {}) as NonNullable<EphemerisData['shadbala']>,
-    ashtakavarga: (ephemeris.ashtakavarga ?? {}) as Record<string, number[]>,
+    shadbala: ephemeris.shadbala!,
+    ashtakavarga: ephemeris.ashtakavarga! as Record<string, number[]>,
     houses: ephemeris.houses
   };
   const enrichedPlanets = enrichPlanets(ephemeris.planets, context);
@@ -197,7 +196,6 @@ export async function buildCandidateDataPackage(
 
   // Optional enrichment calculations with graceful error handling
   await safeEnrich(pkg, 'kalachakraDasha', () => calculateKalachakraDasha(moonLong, birthDate));
-  await safeEnrich(pkg, 'shadbalaSummary', () => calculateFullShadbala(ephemeris));
 
   await safeEnrich(pkg, 'nadiData', () => {
     const nadiData = calculateD150ForAllPlanets(ephemeris);

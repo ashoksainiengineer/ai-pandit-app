@@ -11,6 +11,7 @@ import { logger, createRequestLogger } from '../utils/logger.js';
 import { recordRequestSample } from '../lib/observability/slo-monitor.js';
 import { emitOtlpSpan, toSpanTimeRange } from '../lib/observability/otlp-exporter.js';
 
+import { ValidationError } from '../errors/index.js';
 // ═════════════════════════════════════════════════════════════════════════════
 // TYPES
 // ═════════════════════════════════════════════════════════════════════════════
@@ -142,7 +143,7 @@ export function requestContextMiddleware() {
   return (req: Request, res: Response, next: NextFunction): void => {
     // Ensure requestId middleware ran first
     if (!req.requestId) {
-      throw new Error('requestIdMiddleware must be installed before requestContextMiddleware');
+      throw new ValidationError('requestIdMiddleware must be installed before requestContextMiddleware');
     }
 
     // Attach user context if available
