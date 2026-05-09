@@ -84,3 +84,10 @@ export class AuthorizationError extends AppError {
     this.name = 'AuthorizationError';
   }
 }
+
+export class ProcessingError extends AppError {
+  constructor(message: string, options?: { cause?: Error }) {
+    super(message, { errorCode: 'PROCESSING_ERROR', statusCode: 503, ...options });
+    this.name = 'ProcessingError';
+  }
+}

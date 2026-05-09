@@ -4,7 +4,7 @@
 import { Router, Response } from 'express';
 import { db, executeWithRetry } from '@ai-pandit/db';
 import { sessions } from '@ai-pandit/db/schema';
-import { eq, desc, or } from 'drizzle-orm';
+import { eq, desc, or, and } from 'drizzle-orm';
 import { AuthenticatedRequest } from '../middleware/auth.js';
 import { logger } from '../utils/logger.js';
 import { encryptData, parseSensitiveField } from '../lib/encryption/index.js';
@@ -177,12 +177,6 @@ router.put('/:id', validateBody(SessionUpdateSchema), async (req: AuthenticatedR
         if (body.lifeEvents !== undefined) {
             updateData.lifeEvents = encryptData(JSON.stringify(body.lifeEvents), clerkId);
         }
-        if (body.lifeEvents !== undefined) {
-            updateData.lifeEvents = encryptData(JSON.stringify(body.lifeEvents), clerkId);
-        }
-        if (body.spouseData !== undefined) {
-            updateData.spouseData = encryptData(JSON.stringify(body.spouseData), clerkId);
-        }
         if (body.spouseData !== undefined) {
             updateData.spouseData = encryptData(JSON.stringify(body.spouseData), clerkId);
         }
@@ -190,11 +184,11 @@ router.put('/:id', validateBody(SessionUpdateSchema), async (req: AuthenticatedR
             updateData.offsetConfig = encryptData(JSON.stringify(body.offsetConfig), clerkId);
         }
 
-        // Update
+        // Update with ownership check (TOCTOU-safe: clerkId in WHERE)
         await executeWithRetry(() =>
             db.update(sessions)
                 .set(updateData)
-                .where(eq(sessions.id, sessionId))
+                .where(and(eq(sessions.id, sessionId), eq(sessions.clerkId, clerkId)))
         );
 
         res.json({ success: true, message: 'Session updated' });
@@ -233,7 +227,7 @@ router.delete('/:id', async (req: AuthenticatedRequest, res: Response) => {
         // Delete with ownership check
         const result = await executeWithRetry(() =>
             db.delete(sessions)
-                .where(eq(sessions.id, sessionId))
+                .where(and(eq(sessions.id, sessionId), eq(sessions.clerkId, clerkId)))
                 .returning({ id: sessions.id })
         );
 

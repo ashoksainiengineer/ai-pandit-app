@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { env } from '@/lib/config/env';
 
 type ProxyOptions = {
-  method?: 'GET' | 'POST';
+  method?: 'GET' | 'POST' | 'PUT' | 'DELETE';
   path: string;
   body?: unknown;
   searchParams?: URLSearchParams;

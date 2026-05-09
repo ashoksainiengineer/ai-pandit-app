@@ -11,6 +11,7 @@ import {
   failJob,
   db,
   executeWithRetry,
+  verifyDatabaseConnection,
 } from '@ai-pandit/db';
 import { sessions } from '@ai-pandit/db/schema';
 import { eq, and } from 'drizzle-orm';
@@ -418,6 +419,11 @@ void (async () => {
       recover: async () => recoverInterruptedJobs(),
       processJob: () => processJob(),
     });
+
+    // Verify database connectivity before starting the worker loop
+    console.log('[WORKER] Verifying database connection...');
+    await verifyDatabaseConnection();
+    console.log('[WORKER] Database connection verified successfully');
 
     await workerRuntime.initialize({ pollIntervalMs });
     workerStarted = true;

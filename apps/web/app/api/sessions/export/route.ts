@@ -86,8 +86,8 @@ export async function POST(req: NextRequest) {
       rectifiedTime: row.rectifiedTime ?? null,
       accuracy: row.accuracy ?? null,
       confidence: row.confidence ?? null,
-      analysisResult: includeResults ? parseSensitiveField(row.analysisResult as string | null | undefined, exportUserId, null) : undefined,
-      reasoningLogs: includeLogs ? parseSensitiveField(row.reasoningLogs as string | null | undefined, exportUserId, null) : undefined,
+      analysisResult: includeResults ? parseSensitiveField(row.analysisResult as string | null | undefined, exportUserId, undefined, null) : undefined,
+      reasoningLogs: includeLogs ? parseSensitiveField(row.reasoningLogs as string | null | undefined, exportUserId, undefined, null) : undefined,
     }));
 
     if (format === 'json') {

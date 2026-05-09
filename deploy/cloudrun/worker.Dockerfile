@@ -34,13 +34,17 @@ RUN chown -R node:node /app
 
 COPY --from=builder --chown=node:node /app/package.json /app/package-lock.json /app/turbo.json ./
 COPY --from=builder --chown=node:node /app/node_modules ./node_modules
-COPY --from=builder --chown=node:node /app/apps ./apps
-COPY --from=builder --chown=node:node /app/packages ./packages
+COPY --from=builder --chown=node:node /app/apps/worker ./apps/worker
+COPY --from=builder --chown=node:node /app/apps/api ./apps/api
+COPY --from=builder --chown=node:node /app/packages/shared ./packages/shared
+COPY --from=builder --chown=node:node /app/packages/db ./packages/db
+COPY --from=builder --chown=node:node /app/packages/worker-runtime ./packages/worker-runtime
 
 USER node
 ENV NODE_ENV=production
 ENV JOB_EXECUTION_MODE=external_worker
 ENV WORKER_POLL_INTERVAL_MS=2000
-ENV NODE_OPTIONS=--max-old-space-size=12288
+ENV NODE_OPTIONS=--max-old-space-size=1024
+ENV DB_POOL_MAX=3
 
 CMD ["node", "apps/worker/dist/apps/worker/src/worker.js"]
