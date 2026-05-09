@@ -6,12 +6,10 @@ import { db } from '@ai-pandit/db';
 import { sessions, users } from '@ai-pandit/db/schema';
 import { eq, desc } from 'drizzle-orm';
 import { auth, currentUser } from '@clerk/nextjs/server';
-import { parseSensitiveField, encrypt, initializeEncryption } from '@/lib/crypto';
+import { parseSensitiveField, encrypt, initializeEncryption, isEncrypted } from '@/lib/crypto';
 import { ensureUserRecord } from '@/lib/server/user-sync';
 import { getProtectedFieldsPresent } from '@/lib/server/session-write-guards';
-import { getFavoriteSetForSessions } from '@/lib/server/favorite-store';
 import { getBuildPhaseRouteResponse } from '@/lib/server/build-phase-route-guard';
-import { proxyBackendJson } from '@/lib/server/backend-proxy';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -61,29 +59,15 @@ export async function GET(_req: NextRequest) {
       .where(eq(sessions.userId, user.id))
       .orderBy(desc(sessions.createdAt));
 
-    // Load favorites (non-critical — don't fail the request)
-    let favoriteSet: Set<string> = new Set();
-    try {
-      favoriteSet = await getFavoriteSetForSessions(
-        clerkId,
-        userSessions.map((s) => s.id),
-      );
-    } catch {
-      // Favorites unavailable — continue without them
-    }
-
-    // Decrypt PII fields using the CORRECT key: user.id (UUID)
-    // clerkId is passed as fallback for API-encrypted data compatibility
+    // Only decrypt fields dashboard list actually needs
+    // isEncrypted check skips wasteful scryptSync (150ms each) for plain text
     const parsedSessions = userSessions.map((s) => ({
       ...s,
-      isFavorite: favoriteSet.has(s.id),
-      fullName: parseSensitiveField(s.fullName, user.id, clerkId),
-      dateOfBirth: parseSensitiveField(s.dateOfBirth, user.id, clerkId),
-      tentativeTime: parseSensitiveField(s.tentativeTime, user.id, clerkId),
-      birthPlace: parseSensitiveField(s.birthPlace, user.id, clerkId),
-      lifeEvents: parseSensitiveField(s.lifeEvents, user.id, clerkId, []),
-      spouseData: parseSensitiveField(s.spouseData, user.id, clerkId),
-      offsetConfig: parseSensitiveField(s.offsetConfig, user.id, clerkId),
+      isFavorite: false,
+      fullName: isEncrypted(s.fullName) ? (parseSensitiveField(s.fullName, user.id) as string) : (s.fullName || 'Unknown'),
+      dateOfBirth: isEncrypted(s.dateOfBirth) ? (parseSensitiveField(s.dateOfBirth, user.id) as string) : (s.dateOfBirth || ''),
+      tentativeTime: isEncrypted(s.tentativeTime) ? (parseSensitiveField(s.tentativeTime, user.id) as string) : (s.tentativeTime || ''),
+      birthPlace: isEncrypted(s.birthPlace) ? (parseSensitiveField(s.birthPlace, user.id) as string) : (s.birthPlace || ''),
     }));
 
     return NextResponse.json({ success: true, data: parsedSessions });
