@@ -4,7 +4,6 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { BirthData, LifeEvent, SpouseData, TimeOffsetConfig } from '@/lib/types';
 
-import { SecurityBadge } from './SecurityBadge';
 interface Step4ReviewProps {
   data: BirthData;
   events: LifeEvent[];
@@ -90,9 +89,6 @@ export default function Step4Review({
           Please verify all details before submitting for analysis
         </motion.p>
       </div>
-
-      {/* Security Badge — uses shared component for uniformity */}
-      <SecurityBadge />
 
       {/* Summary Stats */}
       <motion.div

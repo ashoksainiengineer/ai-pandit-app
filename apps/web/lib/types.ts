@@ -36,7 +36,7 @@ export interface SpouseData {
   timezone?: number | string;
 }
 
-export type OffsetPreset = 'seconds-6' | 'seconds-30' | '30min' | '1hour' | '2hours' | '4hours' | '6hours' | '12hours' | 'custom';
+export type OffsetPreset = '5min' | '15min' | '30min' | '1hour' | '2hours' | '4hours' | '6hours' | '12hours' | 'custom';
 
 export interface TimeOffsetConfig {
   preset?: OffsetPreset;

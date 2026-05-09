@@ -1,8 +1,9 @@
 import { OffsetPreset } from '@/lib/types';
 
 export const OFFSET_PRESETS: { value: OffsetPreset; label: string; minutes: number }[] = [
-    { value: 'seconds-6', label: '±6 sec', minutes: 0.1 },
-    { value: 'seconds-30', label: '±30 sec', minutes: 0.5 },
+    { value: '5min', label: '±5 min', minutes: 5 },
+    { value: '15min', label: '±15 min', minutes: 15 },
+    { value: '30min', label: '±30 min', minutes: 30 },
     { value: '1hour', label: '±1 hr', minutes: 60 },
     { value: '2hours', label: '±2 hrs', minutes: 120 },
     { value: '4hours', label: '±4 hrs', minutes: 240 },

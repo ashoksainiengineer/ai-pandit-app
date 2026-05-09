@@ -54,7 +54,7 @@ function AIThinkingPanel({ isActive, onComplete, cycleCount }: { isActive: boole
         if (i === AI_REASONING_LINES.length - 1) {
           setTimeout(onComplete, 1500);
         }
-      }, (i + 1) * 3000);
+      }, (i + 1) * 1200); // 1.2s per line = 8.4s total — fast & plausible
       timers.push(t);
     });
 

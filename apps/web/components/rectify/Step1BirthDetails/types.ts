@@ -1,4 +1,4 @@
-import { BirthData, TimeOffsetConfig, OffsetPreset, SpouseData } from '@/lib/types';
+import { BirthData, TimeOffsetConfig, SpouseData } from '@/lib/types';
 
 export interface Step1Props {
     data: BirthData;

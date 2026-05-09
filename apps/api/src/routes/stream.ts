@@ -373,7 +373,6 @@ router.get(['/', '/:sessionId'], authMiddleware, async (req: AuthenticatedReques
                     sendSequencedEvent(sseRes, sessionId, {
                         type: 'metadata',
                         data: {
-                            ...session,
                             jobId: job?.id,
                             jobStatus: job?.status,
                             fullName: parseSensitiveField(session.fullName, clerkId, session.userId),
@@ -384,6 +383,7 @@ router.get(['/', '/:sessionId'], authMiddleware, async (req: AuthenticatedReques
                             lifeEvents: parseSensitiveField(session.lifeEvents, clerkId, session.userId, []),
                             status: queueStatus.status,
                             aiModel: aiConfig.model,
+                            timezone: session.timezone,
                         }
                     } as unknown as SessionEvent);
                 }
@@ -424,7 +424,6 @@ router.get(['/', '/:sessionId'], authMiddleware, async (req: AuthenticatedReques
                     sendSequencedEvent(sseRes, sessionId, {
                         type: 'metadata',
                         data: {
-                            ...session,
                             jobId: job?.id,
                             jobStatus: job?.status,
                             fullName: parseSensitiveField(session.fullName, clerkId, session.userId),
@@ -435,6 +434,7 @@ router.get(['/', '/:sessionId'], authMiddleware, async (req: AuthenticatedReques
                             lifeEvents: parseSensitiveField(session.lifeEvents, clerkId, session.userId, []),
                             status: queueStatus.status,
                             aiModel: aiConfig.model,
+                            timezone: session.timezone,
                         }
                     } as unknown as SessionEvent);
                 }
