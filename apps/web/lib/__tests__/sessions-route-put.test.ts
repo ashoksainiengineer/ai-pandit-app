@@ -1,72 +1,29 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { NextResponse } from 'next/server';
 
-const {
-    mockFindFirst,
-    mockWhere,
-    mockSet,
-    mockUpdate,
-    mockDeleteWhere,
-    mockDeleteReturning,
-    mockDelete,
-    mockResolveSessionOwnershipContext,
-    mockBuildOwnedSessionWhereClause,
-} = vi.hoisted(() => {
-    const findFirst = vi.fn();
-    const where = vi.fn().mockResolvedValue(undefined);
-    const set = vi.fn(() => ({ where }));
-    const update = vi.fn(() => ({ set }));
-    const deleteReturning = vi.fn();
-    const deleteWhere = vi.fn(() => ({ returning: deleteReturning }));
-    const deleteFn = vi.fn(() => ({ where: deleteWhere }));
-    const resolveSessionOwnershipContext = vi.fn();
-    const buildOwnedSessionWhereClause = vi.fn(() => ({ owned: true }));
-    return {
-        mockFindFirst: findFirst,
-        mockWhere: where,
-        mockSet: set,
-        mockUpdate: update,
-        mockDeleteWhere: deleteWhere,
-        mockDeleteReturning: deleteReturning,
-        mockDelete: deleteFn,
-        mockResolveSessionOwnershipContext: resolveSessionOwnershipContext,
-        mockBuildOwnedSessionWhereClause: buildOwnedSessionWhereClause,
-    };
-});
-
+// ── Mock auth ──────────────────────────────────────────────────────────────
 vi.mock('@clerk/nextjs/server', () => ({
     auth: vi.fn(async () => ({ userId: 'clerk_test_user' })),
 }));
 
-vi.mock('@ai-pandit/db', () => ({
-    db: {
-        query: {
-            sessions: {
-                findFirst: mockFindFirst,
-            },
-        },
-        update: mockUpdate,
-        delete: mockDelete,
+// ── Mock environment ───────────────────────────────────────────────────────
+vi.mock('@/lib/config/env', () => ({
+    env: {
+        security: { encryptionSecret: 'test-secret-key-for-vitest-testing-32chars!' },
+        app: { backendUrl: 'http://localhost:9999', isDevelopment: true, nextPhase: 'phase-development-build' },
+        clerk: { webhookSecret: 'whsec_test', publishableKey: 'pk_test' },
+        api: { backendUrl: 'http://localhost:9999' },
     },
 }));
 
-vi.mock('@ai-pandit/db/schema', () => ({
-    sessions: {
-        id: 'id',
-        clerkId: 'clerkId',
-        status: 'status',
-    },
+// ── Mock backend proxy — return controlled responses per test ──────────────
+let mockProxyResponse: NextResponse;
+
+vi.mock('@/lib/server/backend-proxy', () => ({
+    proxyBackendJson: vi.fn(async () => mockProxyResponse),
 }));
 
-vi.mock('drizzle-orm', () => ({
-    and: vi.fn((...args: unknown[]) => args),
-    eq: vi.fn((...args: unknown[]) => args),
-}));
-
-vi.mock('@/lib/server/session-ownership', () => ({
-    resolveSessionOwnershipContext: mockResolveSessionOwnershipContext,
-    buildOwnedSessionWhereClause: mockBuildOwnedSessionWhereClause,
-}));
-
+// ── Mock crypto ────────────────────────────────────────────────────────────
 vi.mock('@/lib/crypto', () => ({
     initializeEncryption: vi.fn(),
     encrypt: vi.fn((value: string) => `enc:${value}`),
@@ -76,99 +33,60 @@ vi.mock('@/lib/crypto', () => ({
 
 import { PUT, DELETE } from '@/app/api/sessions/[id]/route';
 
-function makeRequest(body: Record<string, unknown>): Request {
+function makeRequest(body?: Record<string, unknown>): Request {
     return {
-        json: async () => body,
+        json: body ? async () => body : async () => ({}),
     } as unknown as Request;
 }
 
-describe('PUT /api/sessions/[id] - ownership and lifecycle guards', () => {
+describe('PUT /api/sessions/[id] — proxy to Express API', () => {
     beforeEach(() => {
         vi.clearAllMocks();
-        mockWhere.mockResolvedValue(undefined);
-        mockResolveSessionOwnershipContext.mockResolvedValue({
-            clerkId: 'clerk_test_user',
-            internalUserId: 'internal_user_id',
-        });
-        mockDeleteReturning.mockResolvedValue([{ id: 'sess_del' }]);
+        mockProxyResponse = NextResponse.json({ success: true, message: 'Session updated' }, { status: 200 });
     });
 
-    it('should reject backend-owned fields from frontend payload', async () => {
-        const req = makeRequest({
-            analysisResult: { forbidden: true },
-        });
-
+    it('should forward PUT request to backend proxy', async () => {
+        const req = makeRequest({ birthData: { fullName: 'Test' } });
         const res = await PUT(req as any, { params: Promise.resolve({ id: 'sess_1' }) });
         const json = await res.json();
 
-        expect(res.status).toBe(400);
-        expect(json.error).toContain('Protected fields are backend-owned');
-        expect(mockUpdate).not.toHaveBeenCalled();
+        expect(res.status).toBe(200);
+        expect(json.success).toBe(true);
     });
 
-    it('should block updates for processing sessions', async () => {
-        mockFindFirst.mockResolvedValueOnce({ id: 'sess_2', status: 'processing' });
-
-        const req = makeRequest({
-            birthData: { fullName: 'Test User' },
-        });
-
-        const res = await PUT(req as any, { params: Promise.resolve({ id: 'sess_2' }) });
-        const json = await res.json();
-
-        expect(res.status).toBe(409);
-        expect(json.error).toContain('locked');
-        expect(mockUpdate).not.toHaveBeenCalled();
-    });
-
-    it('should allow updates for draft session with non-protected fields', async () => {
-        mockFindFirst.mockResolvedValueOnce({ id: 'sess_3', status: 'draft' });
-
-        const req = makeRequest({
-            birthData: {
-                fullName: 'Jane Doe',
-                dateOfBirth: '1990-01-01',
-                tentativeTime: '10:30',
-                birthPlace: 'Delhi',
-                latitude: 28.6,
-                longitude: 77.2,
-                timezone: 5.5,
-                gender: 'female',
-            },
-            lifeEvents: [{ eventType: 'job' }],
-        });
-
-        const res = await PUT(req as any, { params: Promise.resolve({ id: 'sess_3' }) });
+    it('should forward DELETE request to backend proxy', async () => {
+        const req = makeRequest();
+        const res = await DELETE(req as any, { params: Promise.resolve({ id: 'sess_1' }) });
         const json = await res.json();
 
         expect(res.status).toBe(200);
         expect(json.success).toBe(true);
-        expect(mockUpdate).toHaveBeenCalled();
-        expect(mockSet).toHaveBeenCalledWith(expect.objectContaining({
-            fullName: 'enc:Jane Doe',
-            lifeEvents: 'enc:[{"eventType":"job"}]',
-        }));
     });
 
-    it('should return 404 when delete removes zero rows', async () => {
-        mockDeleteReturning.mockResolvedValueOnce([]);
+    it('should return 502 when backend proxy fails', async () => {
+        // Simulate proxy throwing an error
+        const { proxyBackendJson } = await import('@/lib/server/backend-proxy');
+        (proxyBackendJson as any).mockRejectedValueOnce(new Error('Backend unreachable'));
 
-        const req = makeRequest({});
-        const res = await DELETE(req as any, { params: Promise.resolve({ id: 'sess_missing' }) });
+        const req = makeRequest({ birthData: { fullName: 'Test' } });
+        const res = await PUT(req as any, { params: Promise.resolve({ id: 'sess_1' }) });
+        const json = await res.json();
+
+        expect(res.status).toBe(502);
+        expect(json.success).toBe(false);
+    });
+
+    it('should propagate backend error status codes', async () => {
+        mockProxyResponse = NextResponse.json(
+            { success: false, error: 'Session not found' },
+            { status: 404 }
+        );
+
+        const req = makeRequest({ birthData: { fullName: 'Test' } });
+        const res = await PUT(req as any, { params: Promise.resolve({ id: 'sess_nonexistent' }) });
         const json = await res.json();
 
         expect(res.status).toBe(404);
-        expect(json.error).toContain('Session not found');
-    });
-
-    it('should return success when delete removes an owned row', async () => {
-        const req = makeRequest({});
-        const res = await DELETE(req as any, { params: Promise.resolve({ id: 'sess_4' }) });
-        const json = await res.json();
-
-        expect(res.status).toBe(200);
-        expect(json.success).toBe(true);
-        expect(mockDelete).toHaveBeenCalled();
-        expect(mockDeleteWhere).toHaveBeenCalledWith({ owned: true });
+        expect(json.error).toBe('Session not found');
     });
 });
