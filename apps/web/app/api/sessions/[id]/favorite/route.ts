@@ -47,7 +47,8 @@ export async function POST(
         isFavorite: nextValue,
       },
     });
-  } catch (error: any) {
-    return NextResponse.json({ success: false, error: error.message || 'Failed to toggle favorite' }, { status: 500 });
+  } catch (error: unknown) {
+    logger.error('Favorite toggle failed', error instanceof Error ? error.message : String(error));
+    return NextResponse.json({ success: false, error: 'Failed to update favorite. Please try again.' }, { status: 500 });
   }
 }

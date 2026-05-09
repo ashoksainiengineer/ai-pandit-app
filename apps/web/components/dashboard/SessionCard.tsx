@@ -204,12 +204,16 @@ export const SessionCard = memo(function SessionCard({
     setIsCloning(true);
 
     try {
-      const data = await APIClient.post(`/api/sessions/${session.id}/clone`, {}, getToken);
+      const token = await getToken();
+      const res = await fetch(`/api/sessions/${session.id}/clone`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+      });
+      const data = await res.json();
 
       if (data.success && data.data?.id) {
         onDuplicate?.(data.data.id);
 
-        const token = await getToken();
         const headers: HeadersInit = {
           'Content-Type': 'application/json',
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -217,10 +221,9 @@ export const SessionCard = memo(function SessionCard({
 
         let isReady = false;
         for (let attempt = 0; attempt < 20; attempt += 1) {
-          let readinessRes: Response;
+          let readinessRes: Response | undefined;
           try {
             readinessRes = await fetch(`/api/sessions/${data.data.id}`, {
-              method: 'GET',
               headers,
               cache: 'no-store',
             });
@@ -229,15 +232,13 @@ export const SessionCard = memo(function SessionCard({
             continue;
           }
 
-          if (readinessRes.ok) {
-            const readinessData = await readinessRes.json();
-            if (readinessData?.success) {
-              isReady = true;
-              break;
+            if (readinessRes.ok) {
+              const readinessData = await readinessRes.json();
+              if (readinessData?.success) {
+                isReady = true;
+                break;
+              }
             }
-          } else if (readinessRes.status === 401 || readinessRes.status === 403) {
-            break;
-          }
 
           await new Promise((resolve) => setTimeout(resolve, 300));
         }

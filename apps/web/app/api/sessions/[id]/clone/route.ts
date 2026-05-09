@@ -95,8 +95,8 @@ export async function POST(
             data: { id: newSessionId }
         }, { status: 201 });
 
-    } catch (error: any) {
-        logger.error('Failed to clone session:', error);
-        return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    } catch (error: unknown) {
+        logger.error('Failed to clone session:', error instanceof Error ? error.message : String(error));
+        return NextResponse.json({ success: false, error: 'Failed to clone session. Please try again.' }, { status: 500 });
     }
 }

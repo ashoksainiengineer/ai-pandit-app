@@ -119,7 +119,8 @@ export async function POST(req: NextRequest) {
         note: 'Tag operation is acknowledged but not persisted yet',
       },
     });
-  } catch (error: any) {
-    return NextResponse.json({ success: false, error: error.message || 'Batch operation failed' }, { status: 500 });
+  } catch (error: unknown) {
+    logger.error('Batch operation failed:', error instanceof Error ? error.message : String(error));
+    return NextResponse.json({ success: false, error: 'Batch operation failed. Please try again.' }, { status: 500 });
   }
 }
