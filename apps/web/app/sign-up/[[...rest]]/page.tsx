@@ -7,9 +7,12 @@ import Link from 'next/link';
 export default function SignUpPage() {
     return (
         <main className="min-h-screen bg-[var(--prism-canvas)] flex items-center justify-center relative overflow-hidden">
-            {/* Logo */}
+            {/* Logo — matches Navbar */}
             <Link href="/" className="absolute top-8 left-1/2 -translate-x-1/2 flex items-center gap-3 group z-20">
-                <span className="font-medium text-2xl text-black">
+                <div className="w-8 h-8 bg-black rounded-lg flex items-center justify-center flex-shrink-0">
+                    <span className="text-white text-lg font-medium leading-none">ॐ</span>
+                </div>
+                <span className="text-xl font-medium text-black tracking-[-0.02em]">
                     AI Pandit
                 </span>
             </Link>

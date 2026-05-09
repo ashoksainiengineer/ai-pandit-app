@@ -40,29 +40,26 @@ const EPHEMERIS_PLANETS = [
    AI THINKING PANEL
    ═══════════════════════════════════════════════════════════ */
 
-function AIThinkingPanel({ isActive, onComplete }: { isActive: boolean; onComplete: () => void }) {
+function AIThinkingPanel({ isActive, onComplete, cycleCount }: { isActive: boolean; onComplete: () => void; cycleCount: number }) {
   const [visibleLines, setVisibleLines] = useState<number[]>([]);
-  const [cycle, setCycle] = useState(0);
 
   useEffect(() => {
     if (!isActive) return;
     setVisibleLines([]);
-    setCycle(c => c + 1);
 
     const timers: ReturnType<typeof setTimeout>[] = [];
     AI_REASONING_LINES.forEach((_, i) => {
       const t = setTimeout(() => {
         setVisibleLines(prev => [...prev, i]);
-        // Auto-complete after all lines shown
         if (i === AI_REASONING_LINES.length - 1) {
           setTimeout(onComplete, 1500);
         }
-      }, (i + 1) * 3000); // Faster: 3s per line = 21s total
+      }, (i + 1) * 3000);
       timers.push(t);
     });
 
     return () => timers.forEach(clearTimeout);
-  }, [isActive, cycle]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [isActive, cycleCount]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <div className="bg-white rounded-xl border border-black/5 shadow-sm overflow-hidden">
@@ -85,7 +82,7 @@ function AIThinkingPanel({ isActive, onComplete }: { isActive: boolean; onComple
         <AnimatePresence>
           {visibleLines.map((lineIndex) => (
             <motion.div
-              key={`${cycle}-${lineIndex}`}
+              key={`${cycleCount}-${lineIndex}`}
               initial={{ opacity: 0, x: -10 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.4, ease: 'easeOut' }}
@@ -270,6 +267,7 @@ export default function LivePipelineDemo() {
         key={`ai-${cycleCount}`}
         isActive={aiActive}
         onComplete={handleAIComplete}
+        cycleCount={cycleCount}
       />
 
       {/* Candidate Leaderboard (appears after AI completes) */}

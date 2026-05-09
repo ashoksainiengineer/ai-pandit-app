@@ -245,6 +245,35 @@ function Hero() {
             );
           })}
         </motion.div>
+
+        {/* Powered by — compact logo strip */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.6, delay: 1.1 }}
+          className="mt-12"
+        >
+          <p className="text-center text-[10px] font-medium text-black/15 uppercase tracking-widest mb-4">
+            Powered by
+          </p>
+          <div className="flex flex-wrap items-center justify-center gap-5">
+            {TECH_LOGOS.map((tech) => (
+              <div key={tech.name} className="flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-white/50 transition-colors group">
+                <img
+                  src={`https://cdn.jsdelivr.net/npm/simple-icons@latest/icons/${tech.icon}.svg`}
+                  alt={tech.name}
+                  className="h-5 w-auto flex-shrink-0 transition-all duration-300"
+                  style={{ filter: 'grayscale(100%) opacity(0.3)' }}
+                  onMouseEnter={(e) => { (e.target as HTMLImageElement).style.filter = 'grayscale(0%) opacity(1)'; }}
+                  onMouseLeave={(e) => { (e.target as HTMLImageElement).style.filter = 'grayscale(100%) opacity(0.3)'; }}
+                />
+                <span className="text-[11px] text-black/25 group-hover:text-black/60 transition-colors">
+                  {tech.name}
+                </span>
+              </div>
+            ))}
+          </div>
+      </motion.div>
       </motion.div>
 
       {/* Scroll Indicator — bouncing dot in rounded-full border container */}
@@ -383,56 +412,6 @@ const TECH_LOGOS = [
   { name: 'GCP', icon: 'googlecloud' },
 ];
 
-function TechStack() {
-  return (
-    <section className="py-24 relative bg-white">
-      <div className="max-w-4xl mx-auto px-6">
-        <motion.div {...fadeIn} className="text-center mb-14">
-          <p className="text-xs font-medium text-black/20 uppercase tracking-widest">
-            Powered by
-          </p>
-        </motion.div>
-
-        {/* Industry-standard logo grid: grayscale, uniform, hover→color */}
-        <div className="flex flex-wrap items-center justify-center gap-x-10 gap-y-7">
-          {TECH_LOGOS.map((tech, i) => (
-            <motion.div
-              key={tech.name}
-              initial={{ opacity: 0, y: 10 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.4, delay: i * 0.05 }}
-              className="group flex items-center gap-2.5"
-            >
-              <img
-                src={`https://cdn.jsdelivr.net/npm/simple-icons@latest/icons/${tech.icon}.svg`}
-                alt={tech.name}
-                className="h-6 w-auto flex-shrink-0 transition-all duration-300"
-                style={{ filter: 'grayscale(100%) opacity(0.2)' }}
-                onMouseEnter={(e) => {
-                  (e.target as HTMLImageElement).style.filter = 'grayscale(0%) opacity(1)';
-                }}
-                onMouseLeave={(e) => {
-                  (e.target as HTMLImageElement).style.filter = 'grayscale(100%) opacity(0.2)';
-                }}
-              />
-              <span className="text-[11px] text-black/15 group-hover:text-black/40 transition-colors hidden sm:inline">
-                {tech.name}
-              </span>
-            </motion.div>
-          ))}
-        </div>
-
-        <motion.p
-          {...fadeIn}
-          className="text-center mt-12 text-[11px] text-black/10"
-        >
-          and more open-source libraries
-        </motion.p>
-      </div>
-    </section>
-  );
-}
 
 /* ═══════════════════════════════════════════════════════════════════════════════
    COMPONENT — Privacy Section
@@ -518,7 +497,6 @@ export default function LandingPage() {
       <Navbar transparent />
       <Hero />
       <HowItWorks />
-      <TechStack />
       <Privacy />
       <Footer />
     </main>
