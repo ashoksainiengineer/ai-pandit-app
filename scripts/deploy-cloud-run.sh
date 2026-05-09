@@ -180,11 +180,8 @@ if [ -n "${SECRET_VARS}" ]; then
     --image="${IMAGE_URI}" \
     --platform=managed \
     --allow-unauthenticated \
-    --no-deploy-health-check \
-    --startup-cpu-boost \
     --memory="${MEMORY}" \
     --cpu="${CPU}" \
-    --concurrency="${CONCURRENCY}" \
     --min="${MIN_INSTANCES}" \
     --max-instances="${MAX_INSTANCES}" \
     "${CPU_THROTTLING_FLAG}" \
@@ -197,11 +194,8 @@ else
     --image="${IMAGE_URI}" \
     --platform=managed \
     --allow-unauthenticated \
-    --no-deploy-health-check \
-    --startup-cpu-boost \
     --memory="${MEMORY}" \
     --cpu="${CPU}" \
-    --concurrency="${CONCURRENCY}" \
     --min="${MIN_INSTANCES}" \
     --max-instances="${MAX_INSTANCES}" \
     "${CPU_THROTTLING_FLAG}" \
