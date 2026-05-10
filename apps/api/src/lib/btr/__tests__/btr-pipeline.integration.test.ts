@@ -22,7 +22,7 @@ async function runPipelineWithSession(input: SecondsPrecisionInput) {
 
   await db.insert(users).values({
     id: TEST_USER_ID,
-    clerkId: TEST_CLERK_ID,
+    externalId: TEST_CLERK_ID,
     email: 'btr-integration@example.com',
     fullName: 'BTR Integration Test',
     createdAt: now,
@@ -32,7 +32,7 @@ async function runPipelineWithSession(input: SecondsPrecisionInput) {
   await db.insert(sessions).values({
     id: input.sessionId,
     userId: TEST_USER_ID,
-    clerkId: TEST_CLERK_ID,
+    externalId: TEST_CLERK_ID,
     fullName: 'BTR Integration Test',
     dateOfBirth: input.dateOfBirth,
     tentativeTime: input.tentativeTime,

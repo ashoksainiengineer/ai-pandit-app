@@ -337,7 +337,7 @@ export const config = {
     logging: {
         level: 'info',
         format: 'json',
-        redactFields: ['apiKey', 'token', 'secret', 'password', 'authorization', 'clerkId'],
+        redactFields: ['apiKey', 'token', 'secret', 'password', 'authorization', 'externalId'],
         includeStackTrace: true,
         prettyPrint: false,
     },

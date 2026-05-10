@@ -14,7 +14,7 @@ app.use(express.json());
 // Mock Auth Middleware
 vi.mock('../../middleware/auth.js', () => ({
     authMiddleware: (req: any, res: any, next: any) => {
-        req.clerkId = 'real_user_789';
+        req.externalId = 'real_user_789';
         req.userId = 1;
         next();
     }

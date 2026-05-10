@@ -21,6 +21,26 @@ module.exports = {
           muted: 'rgba(0,0,0,0.08)', // subtle borders, dividers
         },
 
+        // BTR Rich Palette — Premium warm-coral design language
+        btr: {
+          accent: '#C65D3B',
+          'accent-deep': '#A4452D',
+          'accent-soft': 'rgba(198, 93, 59, 0.08)',
+          'accent-glow': 'rgba(198, 93, 59, 0.15)',
+          success: '#184131',
+          'success-soft': 'rgba(24, 65, 49, 0.08)',
+          'bg-warm': '#FAF8F5',
+          'surface-warm': '#FFFCF9',
+          'surface-cream': '#F5F2EC',
+          'border-soft': 'rgba(0, 0, 0, 0.06)',
+          'border-warm': 'rgba(0, 0, 0, 0.04)',
+          dark: '#1A1A1E',
+          'dark-soft': '#2C2C30',
+          'text-primary': '#1A1A1E',
+          'text-secondary': '#6B6560',
+          'text-muted': '#8A837D',
+        },
+
         // Primary — black CTAs, active states
         primary: {
           DEFAULT: '#000000',   // black

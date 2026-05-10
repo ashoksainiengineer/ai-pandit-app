@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@clerk/nextjs/server';
+import { getServerAuth } from '@/lib/server/auth';
 import { db } from '@ai-pandit/db';
 import { sessions } from '@ai-pandit/db/schema';
 import { and, eq } from 'drizzle-orm';
@@ -18,10 +18,11 @@ export async function POST(
   if (buildPhaseResponse) return buildPhaseResponse;
 
   try {
-    const { userId: clerkId } = await auth();
-    if (!clerkId) {
+    const sessionAuth = await getServerAuth();
+    if (!sessionAuth) {
       return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
     }
+    const externalId = sessionAuth.providerId;
 
     const { id: sessionId } = await params;
     if (!sessionId) {
@@ -29,7 +30,7 @@ export async function POST(
     }
 
     const existing = await db.query.sessions.findFirst({
-      where: and(eq(sessions.id, sessionId), eq(sessions.clerkId, clerkId)),
+      where: and(eq(sessions.id, sessionId), eq(sessions.externalId, externalId)),
       columns: { id: true },
     });
     if (!existing) {
@@ -38,8 +39,8 @@ export async function POST(
 
     const body = await req.json().catch(() => ({} as Record<string, unknown>));
     const nextValue = typeof body.isFavorite === 'boolean'
-      ? await setFavorite(clerkId, sessionId, body.isFavorite)
-      : await toggleFavorite(clerkId, sessionId);
+      ? await setFavorite(externalId, sessionId, body.isFavorite)
+      : await toggleFavorite(externalId, sessionId);
 
     return NextResponse.json({
       success: true,

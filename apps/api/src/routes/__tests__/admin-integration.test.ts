@@ -62,7 +62,7 @@ vi.mock('@ai-pandit/db', () => {
       query: {
         users: {
           findFirst: vi.fn(async () => ({
-            clerkId: 'test_clerk_id',
+            externalId: 'test_clerk_id',
             isActive: mockIsActive,
             role: mockUserRole,
           })),
@@ -83,7 +83,7 @@ vi.mock('@ai-pandit/db/jobs', () => ({
 
 vi.mock('@ai-pandit/db/schema', () => ({
   sessions: {
-    id: 'id', clerkId: 'clerkId', userId: 'userId', fullName: 'fullName',
+    id: 'id', externalId: 'externalId', userId: 'userId', fullName: 'fullName',
     dateOfBirth: 'dateOfBirth', tentativeTime: 'tentativeTime',
     birthPlace: 'birthPlace', status: 'status', createdAt: 'createdAt',
     updatedAt: 'updatedAt', completedAt: 'completedAt',
@@ -91,7 +91,7 @@ vi.mock('@ai-pandit/db/schema', () => ({
     accuracy: 'accuracy', confidence: 'confidence', rectifiedTime: 'rectifiedTime',
   },
   users: {
-    id: 'id', clerkId: 'clerkId', email: 'email', fullName: 'fullName',
+    id: 'id', externalId: 'externalId', email: 'email', fullName: 'fullName',
     isActive: 'isActive', role: 'role', lastLoginAt: 'lastLoginAt',
   },
   jobs: {
@@ -115,7 +115,7 @@ vi.mock('drizzle-orm', () => ({
 
 vi.mock('../../middleware/auth.js', () => ({
   authMiddleware: (req: any, _res: any, next: any) => {
-    req.clerkId = `test_clerk_${mockUserRole}`;
+    req.externalId = `test_clerk_${mockUserRole}`;
     next();
   },
   AuthenticatedRequest: {} as any,

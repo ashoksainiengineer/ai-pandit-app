@@ -76,7 +76,7 @@ vi.mock('../config/index.js', () => ({
 
 vi.mock('../middleware/auth.js', () => ({
     authMiddleware: vi.fn((req: any, _res: any, next: any) => {
-        req.clerkId = 'smoke_test_user';
+        req.externalId = 'smoke_test_user';
         next();
     }),
     clerk: {

@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { logger } from '@/lib/secure-logger';
-import { env } from '@/lib/config/env';
-import { auth } from '@clerk/nextjs/server';
-import { encrypt, parseSensitiveField, initializeEncryption, isEncrypted } from '@/lib/crypto';
+import { getServerAuth } from '@/lib/server/auth';
+import { getWebEncryption } from '@/lib/crypto';
 import {
   resolveSessionOwnershipContext,
 } from '@/lib/server/session-ownership';
@@ -14,7 +13,7 @@ import { getBuildPhaseRouteResponse } from '@/lib/server/build-phase-route-guard
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-initializeEncryption(env.security.encryptionSecret);
+const crypto = getWebEncryption();
 
 const INTERNAL_ERROR = 'An internal error occurred. Please try again.';
 
@@ -24,7 +23,7 @@ const INTERNAL_ERROR = 'An internal error occurred. Please try again.';
  * Express API is for the worker and external consumers.
  * This ensures:
  *   1. No single point of failure (proxy timeout)
- *   2. Correct encryption context (UUID key, not clerkId)
+ *   2. Correct encryption context (UUID key, not externalId)
  *   3. Consistent auth via Clerk cookie
  *   4. Lowest possible latency
  */
@@ -39,10 +38,11 @@ export async function GET(
   if (buildPhaseResponse) return buildPhaseResponse;
 
   try {
-    const { userId: clerkId } = await auth();
-    if (!clerkId) {
+    const sessionAuth = await getServerAuth();
+    if (!sessionAuth) {
       return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
     }
+    const externalId = sessionAuth.providerId;
 
     const { id } = await params;
     if (!id) {
@@ -50,19 +50,22 @@ export async function GET(
     }
 
 
-    const ctx = await resolveSessionOwnershipContext(clerkId);
+    const ctx = await resolveSessionOwnershipContext(externalId);
     const session = await db.query.sessions.findFirst({
       where: eq(sessions.id, id),
     });
 
-    if (!session || (session.clerkId !== ctx.clerkId && session.userId !== ctx.internalUserId)) {
+    if (!session || (session.externalId !== ctx.externalId && session.userId !== ctx.internalUserId)) {
       return NextResponse.json({ success: false, error: 'Session not found' }, { status: 404 });
     }
 
     // Decrypt fields using the correct key (internal userId)
-    const uid = ctx.internalUserId || clerkId;
+    const uid = ctx.internalUserId;
+    if (!uid) {
+      return NextResponse.json({ success: false, error: 'User identity not resolved' }, { status: 401 });
+    }
     const decrypt = (val: string | null) =>
-      isEncrypted(val) ? (parseSensitiveField(val, uid) as string) : val;
+      crypto.isEncrypted(val) ? (crypto.parseField(val, uid) as string) : val;
 
     return NextResponse.json({
       success: true,
@@ -72,9 +75,9 @@ export async function GET(
         dateOfBirth: decrypt(session.dateOfBirth),
         tentativeTime: decrypt(session.tentativeTime),
         birthPlace: decrypt(session.birthPlace),
-        lifeEvents: parseSensitiveField(session.lifeEvents, uid, undefined, []),
-        spouseData: parseSensitiveField(session.spouseData, uid),
-        offsetConfig: parseSensitiveField(session.offsetConfig, uid),
+        lifeEvents: crypto.parseField(session.lifeEvents, uid, []),
+        spouseData: crypto.parseField(session.spouseData, uid),
+        offsetConfig: crypto.parseField(session.offsetConfig, uid),
       },
     });
   } catch (error: unknown) {
@@ -93,10 +96,11 @@ export async function PUT(
   if (buildPhaseResponse) return buildPhaseResponse;
 
   try {
-    const { userId: clerkId } = await auth();
-    if (!clerkId) {
+    const sessionAuth = await getServerAuth();
+    if (!sessionAuth) {
       return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
     }
+    const externalId = sessionAuth.providerId;
 
     const { id } = await params;
     if (!id) {
@@ -113,13 +117,13 @@ export async function PUT(
     }
 
 
-    const ctx = await resolveSessionOwnershipContext(clerkId);
+    const ctx = await resolveSessionOwnershipContext(externalId);
     const existing = await db.query.sessions.findFirst({
       where: eq(sessions.id, id),
-      columns: { id: true, clerkId: true, userId: true, status: true },
+      columns: { id: true, externalId: true, userId: true, status: true },
     });
 
-    if (!existing || (existing.clerkId !== ctx.clerkId && existing.userId !== ctx.internalUserId)) {
+    if (!existing || (existing.externalId !== ctx.externalId && existing.userId !== ctx.internalUserId)) {
       return NextResponse.json({ success: false, error: 'Session not found' }, { status: 404 });
     }
 
@@ -132,17 +136,20 @@ export async function PUT(
       }, { status: 409 });
     }
 
-    const uid = ctx.internalUserId || clerkId;
+    const uid = ctx.internalUserId;
+    if (!uid) {
+      return NextResponse.json({ success: false, error: 'User identity not resolved' }, { status: 401 });
+    }
     const updateData: Record<string, unknown> = {
       updatedAt: new Date().toISOString(),
     };
 
     if (body.birthData) {
       const bd = body.birthData;
-      if (bd.fullName) updateData.fullName = encrypt(bd.fullName, uid);
-      if (bd.dateOfBirth) updateData.dateOfBirth = encrypt(bd.dateOfBirth, uid);
-      if (bd.tentativeTime) updateData.tentativeTime = encrypt(bd.tentativeTime, uid);
-      if (bd.birthPlace) updateData.birthPlace = encrypt(bd.birthPlace, uid);
+      if (bd.fullName) updateData.fullName = crypto.encrypt(bd.fullName as string, uid);
+      if (bd.dateOfBirth) updateData.dateOfBirth = crypto.encrypt(bd.dateOfBirth as string, uid);
+      if (bd.tentativeTime) updateData.tentativeTime = crypto.encrypt(bd.tentativeTime as string, uid);
+      if (bd.birthPlace) updateData.birthPlace = crypto.encrypt(bd.birthPlace as string, uid);
       if (bd.latitude !== undefined) updateData.latitude = bd.latitude;
       if (bd.longitude !== undefined) updateData.longitude = bd.longitude;
       if (bd.timezone !== undefined) updateData.timezone = String(bd.timezone);
@@ -150,13 +157,13 @@ export async function PUT(
     }
 
     if (body.lifeEvents !== undefined) {
-      updateData.lifeEvents = encrypt(JSON.stringify(body.lifeEvents), uid);
+      updateData.lifeEvents = crypto.encrypt(JSON.stringify(body.lifeEvents), uid);
     }
     if (body.spouseData !== undefined) {
-      updateData.spouseData = encrypt(JSON.stringify(body.spouseData), uid);
+      updateData.spouseData = crypto.encrypt(JSON.stringify(body.spouseData), uid);
     }
     if (body.offsetConfig !== undefined) {
-      updateData.offsetConfig = encrypt(JSON.stringify(body.offsetConfig), uid);
+      updateData.offsetConfig = crypto.encrypt(JSON.stringify(body.offsetConfig), uid);
     }
 
     await db.update(sessions).set(updateData).where(eq(sessions.id, id));
@@ -178,10 +185,11 @@ export async function DELETE(
   if (buildPhaseResponse) return buildPhaseResponse;
 
   try {
-    const { userId: clerkId } = await auth();
-    if (!clerkId) {
+    const sessionAuth = await getServerAuth();
+    if (!sessionAuth) {
       return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
     }
+    const externalId = sessionAuth.providerId;
 
     const { id } = await params;
     if (!id) {
@@ -189,13 +197,13 @@ export async function DELETE(
     }
 
 
-    const ctx = await resolveSessionOwnershipContext(clerkId);
+    const ctx = await resolveSessionOwnershipContext(externalId);
     const session = await db.query.sessions.findFirst({
       where: eq(sessions.id, id),
-      columns: { id: true, clerkId: true, userId: true },
+      columns: { id: true, externalId: true, userId: true },
     });
 
-    if (!session || (session.clerkId !== ctx.clerkId && session.userId !== ctx.internalUserId)) {
+    if (!session || (session.externalId !== ctx.externalId && session.userId !== ctx.internalUserId)) {
       return NextResponse.json({ success: false, error: 'Session not found' }, { status: 404 });
     }
 

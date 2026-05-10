@@ -177,7 +177,7 @@ export const env = {
   },
 
   security: {
-    encryptionSecret: process.env.ENCRYPTION_SECRET,
+    get encryptionSecret() { return process.env.ENCRYPTION_SECRET; },
   },
 
   features: {

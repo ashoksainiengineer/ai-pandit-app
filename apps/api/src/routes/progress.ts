@@ -5,7 +5,9 @@ import { AuthenticatedRequest, authMiddleware } from '../middleware/auth.js';
 import { db, executeWithRetry, getLatestJobForSession } from '@ai-pandit/db';
 import { sessions, type Session } from '@ai-pandit/db/schema';
 import { eq } from 'drizzle-orm';
-import { parseSensitiveField } from '../lib/encryption/index.js';
+import { getApiEncryption } from '../lib/encryption/index.js';
+const crypto = getApiEncryption();
+
 import { logger } from '../utils/logger.js';
 import { isSessionOwnedByContext, resolveSessionOwnershipContext } from '../lib/session-ownership.js';
 import { getPersistedSessionEvents } from '../lib/jobs/job-event-stream.js';
@@ -21,8 +23,8 @@ logger.info('Progress route initialized');
 router.get('/:sessionId', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
     try {
         const { sessionId } = req.params;
-        const clerkId = req.clerkId!;
-        await handleProgressRequest(sessionId, clerkId, res);
+        const externalId = req.externalId!;
+        await handleProgressRequest(sessionId, externalId, res);
     } catch (error) {
         logger.error('Progress fetch failed:', error);
         sendError(res, error);
@@ -35,8 +37,8 @@ router.get('/:sessionId', authMiddleware, async (req: AuthenticatedRequest, res:
 router.get('/', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
     try {
         const sessionId = req.query.sessionId as string;
-        const clerkId = req.clerkId!;
-        await handleProgressRequest(sessionId, clerkId, res);
+        const externalId = req.externalId!;
+        await handleProgressRequest(sessionId, externalId, res);
     } catch (error) {
         logger.error('Progress fetch failed:', error);
         sendError(res, error);
@@ -46,7 +48,7 @@ router.get('/', authMiddleware, async (req: AuthenticatedRequest, res: Response)
 /**
  * Handle progress request with ownership verification
  */
-async function handleProgressRequest(sessionId: string, clerkId: string, res: Response) {
+async function handleProgressRequest(sessionId: string, externalId: string, res: Response) {
     if (!sessionId) {
         sendError(res, new AppError(ErrorCodes.INVALID_INPUT, 'Session ID is required'));
         return;
@@ -55,11 +57,11 @@ async function handleProgressRequest(sessionId: string, clerkId: string, res: Re
     // Verify session ownership
     let internalUserId: string | undefined;
     try {
-        const ownershipContext = await resolveSessionOwnershipContext(clerkId);
+        const ownershipContext = await resolveSessionOwnershipContext(externalId);
         const sessionCheck = await executeWithRetry(() =>
             db.select({
                 id: sessions.id,
-                clerkId: sessions.clerkId,
+                externalId: sessions.externalId,
                 userId: sessions.userId,
             })
                 .from(sessions)
@@ -73,7 +75,7 @@ async function handleProgressRequest(sessionId: string, clerkId: string, res: Re
         }
 
         if (!isSessionOwnedByContext(sessionCheck[0], ownershipContext)) {
-            logger.warn(`[IDOR] Unauthorized progress access attempt: clerkId ${clerkId.slice(0, 12)}... tried to access session ${sessionId}`);
+            logger.warn(`[IDOR] Unauthorized progress access attempt: externalId ${externalId.slice(0, 12)}... tried to access session ${sessionId}`);
             sendError(res, new AppError(ErrorCodes.UNAUTHORIZED, 'Access denied'));
             return;
         }
@@ -126,7 +128,6 @@ async function handleProgressRequest(sessionId: string, clerkId: string, res: Re
     const persistedEvents = await getPersistedSessionEvents(sessionId);
     const terminalResult = extractTerminalResult(
         sessionSnapshot?.analysisResult,
-        clerkId,
         internalUserId!
     );
     const isCompleteStatus = queueStatus && ['complete', 'success', 'finished'].includes(queueStatus.status);
@@ -145,11 +146,11 @@ async function handleProgressRequest(sessionId: string, clerkId: string, res: Re
         confidence: isCompleteStatus && typeof terminalResult?.confidence === 'string' ? terminalResult.confidence : undefined,
         // Include session metadata for frontend "Blueprint" display
         metadata: {
-            fullName: parseSensitiveField(sessionSnapshot?.fullName, clerkId, internalUserId!),
-            dateOfBirth: parseSensitiveField(sessionSnapshot?.dateOfBirth, clerkId, internalUserId!),
-            tentativeTime: parseSensitiveField(sessionSnapshot?.tentativeTime, clerkId, internalUserId!),
-            birthPlace: parseSensitiveField(sessionSnapshot?.birthPlace, clerkId, internalUserId!),
-            offsetConfig: parseSensitiveField(sessionSnapshot?.offsetConfig, clerkId, internalUserId!),
+            fullName: crypto.parseField(sessionSnapshot?.fullName, internalUserId!),
+            dateOfBirth: crypto.parseField(sessionSnapshot?.dateOfBirth, internalUserId!),
+            tentativeTime: crypto.parseField(sessionSnapshot?.tentativeTime, internalUserId!),
+            birthPlace: crypto.parseField(sessionSnapshot?.birthPlace, internalUserId!),
+            offsetConfig: crypto.parseField(sessionSnapshot?.offsetConfig, internalUserId!),
             timezone: sessionSnapshot?.timezone,
             status: queueStatus?.status ?? 'pending',
             errorMessage: sessionSnapshot?.errorMessage || undefined,
@@ -169,7 +170,6 @@ async function handleProgressRequest(sessionId: string, clerkId: string, res: Re
 
 function extractTerminalResult(
     rawResult: unknown,
-    clerkId: string,
     internalUserId: string
 ): Record<string, unknown> | null {
     if (!rawResult) return null;
@@ -178,7 +178,7 @@ function extractTerminalResult(
     }
     if (typeof rawResult !== 'string') return null;
 
-    const decrypted = parseSensitiveField(rawResult, clerkId, internalUserId);
+    const decrypted = crypto.parseField(rawResult, internalUserId);
     if (!decrypted) return null;
 
     if (typeof decrypted === 'string') {

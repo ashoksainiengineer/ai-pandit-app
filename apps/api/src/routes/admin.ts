@@ -20,8 +20,8 @@ const ROLES = {
 } as const;
 
 async function assertAdminAccess(req: AuthenticatedRequest, res: Response): Promise<boolean> {
-  const clerkId = req.clerkId;
-  if (!clerkId) {
+  const externalId = req.externalId;
+  if (!externalId) {
     res.status(401).json({
       success: false,
       error: { code: 'UNAUTHORIZED', message: 'Authentication required' },
@@ -31,7 +31,7 @@ async function assertAdminAccess(req: AuthenticatedRequest, res: Response): Prom
 
   const user = await executeWithRetry(() =>
     db.query.users.findFirst({
-      where: eq(users.clerkId, clerkId),
+      where: eq(users.externalId, externalId),
     })
   );
 
@@ -359,7 +359,7 @@ router.get('/readings', async (req: AuthenticatedRequest, res: Response) => {
       .select({
         id: sessions.id,
         userId: sessions.userId,
-        clerkId: sessions.clerkId,
+        externalId: sessions.externalId,
         fullName: sessions.fullName,
         dateOfBirth: sessions.dateOfBirth,
         tentativeTime: sessions.tentativeTime,

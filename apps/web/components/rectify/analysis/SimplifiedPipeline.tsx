@@ -77,7 +77,7 @@ export const SimplifiedPipeline = memo(function SimplifiedPipeline({
                   flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 rounded-lg shrink-0
                   transition-all duration-300 group relative
                   ${state === 'completed' ? 'bg-[#184131] text-white hover:bg-[#184131]/90' : ''}
-                  ${state === 'active' ? 'bg-[#000000] text-white ring-2 ring-[#000000]/30 ring-offset-1' : ''}
+                  ${state === 'active' ? 'bg-[#1A1A1E] text-white ring-2 ring-[#1A1A1E]/30 ring-offset-1' : ''}
                   ${state === 'pending' ? 'bg-[var(--prism-canvas)] text-[#959595]' : ''}
                 `}
                 title={stage.name}
@@ -87,10 +87,10 @@ export const SimplifiedPipeline = memo(function SimplifiedPipeline({
                 {state === 'pending' && <Circle className="w-3 h-3 sm:w-4 sm:h-4" />}
 
                 {/* Industrial Tooltip */}
-                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 p-2 bg-[#000000] text-white text-[10px] rounded-lg opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 pointer-events-none transition-opacity z-50 shadow-xl">
+                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 p-2 bg-[#1A1A1E] text-white text-[10px] rounded-lg opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 pointer-events-none transition-opacity z-50 shadow-xl">
                   <div className="font-medium mb-1">{stage.name}</div>
                   <div className="text-white/70 leading-relaxed">{stage.description}</div>
-                  <div className="absolute top-full left-1/2 -translate-x-1/2 border-8 border-transparent border-t-[#000000]" />
+                  <div className="absolute top-full left-1/2 -translate-x-1/2 border-8 border-transparent border-t-[#1A1A1E]" />
                 </div>
               </motion.button>
 
@@ -140,7 +140,7 @@ export const SimplifiedPipeline = memo(function SimplifiedPipeline({
         <div className="flex items-center gap-2">
           <div className="h-1.5 w-20 sm:w-32 bg-[var(--prism-canvas)] rounded-full overflow-hidden">
             <motion.div
-              className="h-full bg-gradient-to-r from-[#000000] to-[#184131] rounded-full"
+              className="h-full bg-gradient-to-r from-[#1A1A1E] to-[#184131] rounded-full"
               initial={{ width: 0 }}
               animate={{ width: `${progressPercent}%` }}
               transition={{ duration: 0.5 }}

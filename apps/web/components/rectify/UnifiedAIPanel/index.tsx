@@ -112,8 +112,8 @@ export const UnifiedAIPanel = memo(function UnifiedAIPanel({
                                 }
                                 if (!phaseLabel) return null;
                                 return (
-                                    <span className={`text-[9px] px-1.5 py-0.5 rounded font-medium uppercase tracking-wider shrink-0 ${isCompleted ? 'bg-stone-200 text-stone-500' : 'bg-[#000000]/20 text-black'}`}>
-                                        🪐 {phaseLabel}
+                                    <span className={`text-[9px] px-1.5 py-0.5 rounded font-medium uppercase tracking-wider shrink-0 ${isCompleted ? 'bg-[#6B6560]/10 text-[#6B6560]' : 'bg-[#C65D3B]/10 text-[#C65D3B]'}`}>
+                                        {phaseLabel}
                                     </span>
                                 );
                             })()}

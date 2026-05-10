@@ -29,6 +29,13 @@
       "when": 1773259142388,
       "tag": "0003_lyrical_quicksilver",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1714762800000,
+      "tag": "0004_rename_clerk_id_to_external_id",
+      "breakpoints": true
     }
   ]
 }

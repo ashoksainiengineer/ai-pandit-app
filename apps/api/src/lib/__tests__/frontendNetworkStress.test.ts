@@ -21,8 +21,8 @@ vi.mock('@ai-pandit/db', () => ({
 
 // Mock Auth Middleware
 vi.mock('../../middleware/auth.js', () => ({
-    authMiddleware: (req: { clerkId?: string }, _res: unknown, next: () => void) => {
-        req.clerkId = 'stress_tester';
+    authMiddleware: (req: { externalId?: string }, _res: unknown, next: () => void) => {
+        req.externalId = 'stress_tester';
         next();
     }
 }));
@@ -41,7 +41,7 @@ describe('🌪️ HEAVY NETWORK STRESS AUDIT (SSE UI STREAMS)', () => {
 
         // Mock DB to authorize user and say session is pending
         // @ts-expect-error - mocked DB fluent chain with vi.fn
-        db.limit.mockResolvedValue([{ id: SESSION_ID, clerkId: 'stress_tester', status: 'pending' }]);
+        db.limit.mockResolvedValue([{ id: SESSION_ID, externalId: 'stress_tester', status: 'pending' }]);
     });
 
     afterEach(() => {
@@ -208,7 +208,7 @@ describe('🌪️ HEAVY NETWORK STRESS AUDIT (SSE UI STREAMS)', () => {
     it('Scenario C: Reconnection after Session is Fully Completed (Post-Completion terminal state)', async () => {
         // Mock DB: Simulate that the analysis finished while user was fully offline
         // @ts-expect-error - mocked DB fluent chain with vi.fn
-        db.limit.mockResolvedValue([{ id: SESSION_ID, clerkId: 'stress_tester', status: 'complete' }]);
+        db.limit.mockResolvedValue([{ id: SESSION_ID, externalId: 'stress_tester', status: 'complete' }]);
 
         const client = await connectToStream();
         await new Promise(r => setTimeout(r, 300));

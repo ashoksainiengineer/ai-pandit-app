@@ -7,7 +7,7 @@
 
 export interface TestUser {
   id: string;
-  clerkId: string;
+  externalId: string;
   email: string;
   fullName: string;
   role: string;
@@ -19,7 +19,7 @@ export interface TestUser {
 
 const DEFAULT_USER: TestUser = {
   id: 'test-user-001',
-  clerkId: 'test-clerk-001',
+  externalId: 'test-clerk-001',
   email: 'test@example.com',
   fullName: 'Test User',
   role: 'user',
@@ -51,7 +51,7 @@ export function createTestUsers(count: number, overrides?: (index: number) => Pa
   return Array.from({ length: count }, (_, i) =>
     createTestUser({
       id: `test-user-${String(i + 1).padStart(3, '0')}`,
-      clerkId: `test-clerk-${String(i + 1).padStart(3, '0')}`,
+      externalId: `test-clerk-${String(i + 1).padStart(3, '0')}`,
       email: `test${i + 1}@example.com`,
       ...overrides?.(i),
     }),

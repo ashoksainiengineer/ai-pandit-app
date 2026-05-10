@@ -154,6 +154,28 @@
     --app-shadow-md: 0 4px 24px rgba(0, 0, 0, 0.06);
     --app-shadow-lg: 0 8px 40px rgba(0, 0, 0, 0.08);
     --app-shadow-float: 0 12px 48px rgba(0, 0, 0, 0.10);
+
+    /* ═══════════════════════════════════════════════════════════════════════
+       BTR RICH PALETTE — Premium warm-coral design language
+       Replaces AI-slopy amber/stone palette with richer, warmer tones
+       ═══════════════════════════════════════════════════════════════════════ */
+    --btr-accent: #C65D3B;
+    --btr-accent-deep: #A4452D;
+    --btr-accent-soft: rgba(198, 93, 59, 0.08);
+    --btr-accent-glow: rgba(198, 93, 59, 0.15);
+    --btr-success: #184131;
+    --btr-success-soft: rgba(24, 65, 49, 0.08);
+    --btr-bg-warm: #FAF8F5;
+    --btr-surface-warm: #FFFCF9;
+    --btr-surface-cream: #F5F2EC;
+    --btr-border-soft: rgba(0, 0, 0, 0.06);
+    --btr-border-warm: rgba(0, 0, 0, 0.04);
+    --btr-dark: #1A1A1E;
+    --btr-dark-soft: #2C2C30;
+    --btr-text-primary: #1A1A1E;
+    --btr-text-secondary: #6B6560;
+    --btr-text-muted: #8A837D;
+    --btr-gradient-warm: linear-gradient(135deg, #C65D3B 0%, #D4745C 50%, #E8A87C 100%);
   }
 }
 
@@ -626,6 +648,32 @@
 
   .animate-gentle-float {
     animation: gentleFloat 4s ease-in-out infinite;
+  }
+
+  /* ── Cursor Blink (Terminal) ─────────────────────────────────────────── */
+  @keyframes cursorBlink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0; }
+  }
+
+  .animate-cursor-blink {
+    animation: cursorBlink 1s step-end infinite;
+  }
+
+  /* ── Scanline Overlay (Terminal) ──────────────────────────────────────── */
+  @keyframes scanline {
+    0% { transform: translateY(-100%); }
+    100% { transform: translateY(100%); }
+  }
+
+  /* ── Terminal Fade In (Line-by-line) ──────────────────────────────────── */
+  @keyframes terminalFadeIn {
+    from { opacity: 0; transform: translateX(-4px); }
+    to { opacity: 1; transform: translateX(0); }
+  }
+
+  .animate-terminal-fade-in {
+    animation: terminalFadeIn 0.15s ease-out forwards;
   }
 
   /* ── Marquee Left ───────────────────────────────────────────────────────── */

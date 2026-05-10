@@ -152,20 +152,8 @@ export function decrypt(
 }
 
 // ═════════════════════════════════════════════════════════════════════════════
-// SAFE WRAPPERS (null-returning instead of throwing)
+// SAFE DECRYPT WRAPPER (null-returning instead of throwing)
 // ═════════════════════════════════════════════════════════════════════════════
-
-export function safeEncrypt(
-  plaintext: string,
-  userId: string,
-  secret: string,
-): string | null {
-  try {
-    return encrypt(plaintext, userId, secret);
-  } catch {
-    return null;
-  }
-}
 
 export function safeDecrypt(
   encryptedString: string,
@@ -176,44 +164,6 @@ export function safeDecrypt(
     return decrypt(encryptedString, userId, secrets);
   } catch {
     return null;
-  }
-}
-
-export function safeDecryptWithFallback(
-  data: string | null | undefined,
-  primaryId: string,
-  secondaryId: string | undefined,
-  secrets: string | string[],
-): string | null {
-  if (!data) return null;
-  const primary = safeDecrypt(data, primaryId, secrets);
-  if (primary) return primary;
-  if (secondaryId) return safeDecrypt(data, secondaryId, secrets);
-  return null;
-}
-
-// ═════════════════════════════════════════════════════════════════════════════
-// OBJECT ENCRYPTION HELPERS
-// ═════════════════════════════════════════════════════════════════════════════
-
-export function encryptObject<T extends Record<string, unknown>>(
-  obj: T,
-  userId: string,
-  secret: string,
-): string {
-  return encrypt(JSON.stringify(obj), userId, secret);
-}
-
-export function decryptObject<T extends Record<string, unknown>>(
-  encryptedString: string,
-  userId: string,
-  secrets: string | string[],
-): T {
-  const plaintext = decrypt(encryptedString, userId, secrets);
-  try {
-    return JSON.parse(plaintext) as T;
-  } catch {
-    throw new ValidationError('Decrypted data is not valid JSON');
   }
 }
 

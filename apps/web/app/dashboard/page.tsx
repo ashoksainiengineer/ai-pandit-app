@@ -45,7 +45,7 @@ export default async function DashboardPage() {
     <Layout hideFooter>
       <div className="pt-8 pb-12 bg-[var(--prism-canvas)] min-h-screen">
         <Suspense fallback={<DashboardSkeleton />}>
-          <DashboardContent clerkId={user.id} userName={user.firstName || 'User'} />
+          <DashboardContent externalId={user.id} userName={user.firstName || 'User'} />
         </Suspense>
       </div>
     </Layout>

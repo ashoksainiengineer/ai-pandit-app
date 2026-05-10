@@ -57,7 +57,7 @@ vi.mock('@ai-pandit/db', () => ({
 
 vi.mock('@ai-pandit/db/schema', () => ({
   sessions: {
-    id: 'id', clerkId: 'clerkId', userId: 'userId', status: 'status',
+    id: 'id', externalId: 'externalId', userId: 'userId', status: 'status',
     errorMessage: 'errorMessage', analysisResult: 'analysisResult',
     progressData: 'progressData', reasoningLogs: 'reasoningLogs',
     accuracy: 'accuracy', confidence: 'confidence', rectifiedTime: 'rectifiedTime',
@@ -72,7 +72,7 @@ vi.mock('drizzle-orm', () => ({
 
 vi.mock('../../middleware/auth.js', () => ({
   authMiddleware: (req: any, _res: any, next: any) => {
-    req.clerkId = req.headers['x-test-clerk-id'] || 'test_clerk_id';
+    req.externalId = req.headers['x-test-clerk-id'] || 'test_clerk_id';
     next();
   },
   AuthenticatedRequest: {} as any,
@@ -135,13 +135,13 @@ function setupDefaultMocks() {
 
   // Ownership
   mockResolveOwnershipContextFn.mockResolvedValue({
-    clerkId: 'test_clerk_id',
+    externalId: 'test_clerk_id',
     internalUserId: 'test_user_id',
   });
   mockIsOwnedByContextFn.mockImplementation(
-    (session: { clerkId?: string; userId?: string } | null, ctx: { clerkId: string; internalUserId: string | null }) => {
+    (session: { externalId?: string; userId?: string } | null, ctx: { externalId: string; internalUserId: string | null }) => {
       if (!session) return false;
-      if (session.clerkId === ctx.clerkId) return true;
+      if (session.externalId === ctx.externalId) return true;
       if (ctx.internalUserId && session.userId === ctx.internalUserId) return true;
       return false;
     }
@@ -183,7 +183,7 @@ describe('Queue Integration', () => {
   describe('GET /api/queue (status poll)', () => {
     it('should return 200 with queue status for a valid session', async () => {
       mockSelectLimitFn.mockResolvedValue([
-        { id: 'session-001', clerkId: 'test_clerk_id', userId: 'test_user_id', status: 'queued' },
+        { id: 'session-001', externalId: 'test_clerk_id', userId: 'test_user_id', status: 'queued' },
       ]);
 
       const res = await request(app).get('/api/queue?sessionId=session-001');
@@ -218,7 +218,7 @@ describe('Queue Integration', () => {
 
     it('should return 403 when session does not belong to user', async () => {
       mockSelectLimitFn.mockResolvedValue([
-        { id: 'session-other', clerkId: 'other_clerk_id', userId: 'other_user_id' },
+        { id: 'session-other', externalId: 'other_clerk_id', userId: 'other_user_id' },
       ]);
 
       const res = await request(app).get('/api/queue?sessionId=session-other');
@@ -232,7 +232,7 @@ describe('Queue Integration', () => {
       mockSelectLimitFn.mockResolvedValue([
         {
           id: 'session-done',
-          clerkId: 'test_clerk_id',
+          externalId: 'test_clerk_id',
           userId: 'test_user_id',
           status: 'complete',
           analysisResult: JSON.stringify({ rectifiedTime: '12:34:56', accuracy: 95 }),
@@ -257,7 +257,7 @@ describe('Queue Integration', () => {
       mockSelectLimitFn.mockResolvedValue([
         {
           id: 'session-failed',
-          clerkId: 'test_clerk_id',
+          externalId: 'test_clerk_id',
           userId: 'test_user_id',
           status: 'failed',
           errorMessage: 'AI model timeout',
@@ -281,7 +281,7 @@ describe('Queue Integration', () => {
       // First call: verify session ownership
       mockSelectLimitFn
         .mockResolvedValueOnce([
-          { id: 'session-rq1', clerkId: 'test_clerk_id', userId: 'test_user_id', status: 'failed', errorMessage: 'timeout' },
+          { id: 'session-rq1', externalId: 'test_clerk_id', userId: 'test_user_id', status: 'failed', errorMessage: 'timeout' },
         ])
         // Second call: verify status was reset
         .mockResolvedValueOnce([
@@ -328,7 +328,7 @@ describe('Queue Integration', () => {
 
     it('should return 403 when session belongs to another user', async () => {
       mockSelectLimitFn.mockResolvedValue([
-        { id: 'session-other', clerkId: 'other_clerk_id', userId: 'other_user_id' },
+        { id: 'session-other', externalId: 'other_clerk_id', userId: 'other_user_id' },
       ]);
 
       const res = await request(app)
@@ -343,7 +343,7 @@ describe('Queue Integration', () => {
     it('should return 503 when queue add fails', async () => {
       mockSelectLimitFn
         .mockResolvedValueOnce([
-          { id: 'session-rq2', clerkId: 'test_clerk_id', userId: 'test_user_id', status: 'failed', errorMessage: 'oom' },
+          { id: 'session-rq2', externalId: 'test_clerk_id', userId: 'test_user_id', status: 'failed', errorMessage: 'oom' },
         ])
         .mockResolvedValueOnce([
           { status: 'pending', errorMessage: null },
@@ -369,7 +369,7 @@ describe('Queue Integration', () => {
     it('should requeue via legacy path parameter bridge', async () => {
       mockSelectLimitFn
         .mockResolvedValueOnce([
-          { id: 'session-legacy', clerkId: 'test_clerk_id', userId: 'test_user_id', status: 'failed', errorMessage: 'crash' },
+          { id: 'session-legacy', externalId: 'test_clerk_id', userId: 'test_user_id', status: 'failed', errorMessage: 'crash' },
         ])
         .mockResolvedValueOnce([
           { status: 'pending', errorMessage: null },

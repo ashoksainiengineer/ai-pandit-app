@@ -68,7 +68,7 @@ export const users = pgTable(
   'users',
   {
     id: text('id').primaryKey(),
-    clerkId: text('clerkId').notNull().unique(),
+    externalId: text('externalId').notNull().unique(),
     email: text('email').notNull(),
     fullName: text('fullName'),
     isActive: boolean('isActive').default(true).notNull(),
@@ -79,7 +79,7 @@ export const users = pgTable(
     updatedAt: timestampColumn('updatedAt').defaultNow().notNull(),
   },
   (table) => ({
-    clerkIdIdx: index('users_clerkId_idx').on(table.clerkId),
+    externalIdIdx: index('users_externalId_idx').on(table.externalId),
     emailIdx: index('users_email_idx').on(table.email),
     isActiveIdx: index('users_isActive_idx').on(table.isActive),
     roleIdx: index('users_role_idx').on(table.role),
@@ -92,7 +92,7 @@ export const sessions = pgTable(
   {
     id: text('id').primaryKey(),
     userId: text('userId').notNull().references(() => users.id, { onDelete: 'cascade' }),
-    clerkId: text('clerkId').notNull(),
+    externalId: text('externalId').notNull(),
     fullName: text('fullName').notNull(),
     dateOfBirth: text('dateOfBirth').notNull(),
     tentativeTime: text('tentativeTime').notNull(),
@@ -141,7 +141,9 @@ export const sessionFavorites = pgTable(
   'session_favorites',
   {
     id: text('id').primaryKey(),
-    clerkId: text('clerkId').notNull(),
+    userId: text('userId')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
     sessionId: text('sessionId')
       .notNull()
       .references(() => sessions.id, { onDelete: 'cascade' }),
@@ -149,10 +151,10 @@ export const sessionFavorites = pgTable(
     updatedAt: timestampColumn('updatedAt').defaultNow().notNull(),
   },
   (table) => ({
-    clerkIdIdx: index('session_favorites_clerkId_idx').on(table.clerkId),
+    userIdIdx: index('session_favorites_userId_idx').on(table.userId),
     sessionIdIdx: index('session_favorites_sessionId_idx').on(table.sessionId),
-    clerkSessionUnique: uniqueIndex('session_favorites_clerk_session_unique').on(
-      table.clerkId,
+    userSessionUnique: uniqueIndex('session_favorites_user_session_unique').on(
+      table.userId,
       table.sessionId
     ),
   })

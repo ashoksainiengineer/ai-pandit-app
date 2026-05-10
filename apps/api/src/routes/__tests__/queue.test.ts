@@ -43,7 +43,7 @@ vi.mock('@ai-pandit/db', () => ({
 }));
 
 vi.mock('@ai-pandit/db/schema', () => ({
-    sessions: { id: 'id', clerkId: 'clerkId', userId: 'userId', status: 'status' },
+    sessions: { id: 'id', externalId: 'externalId', userId: 'userId', status: 'status' },
     users: {},
 }));
 
@@ -52,8 +52,8 @@ vi.mock('drizzle-orm', () => ({
 }));
 
 vi.mock('../../middleware/auth.js', () => ({
-    authMiddleware: vi.fn((req: { clerkId?: string; sessionId?: string }, _res: unknown, next: () => void) => {
-        req.clerkId = 'test_clerk_id';
+    authMiddleware: vi.fn((req: { externalId?: string; sessionId?: string }, _res: unknown, next: () => void) => {
+        req.externalId = 'test_clerk_id';
         req.sessionId = 'test_session_id';
         next();
     }),
@@ -116,12 +116,12 @@ describe('Queue Route', () => {
         app = createApp();
 
         mockResolveSessionOwnershipContext.mockResolvedValue({
-            clerkId: 'test_clerk_id',
+            externalId: 'test_clerk_id',
             internalUserId: 'internal_user_id_123',
         });
         mockIsSessionOwnedByContext.mockImplementation((session, context) => {
             if (!session) return false;
-            if (session.clerkId && session.clerkId === context.clerkId) return true;
+            if (session.externalId && session.externalId === context.externalId) return true;
             if (context.internalUserId && session.userId === context.internalUserId) return true;
             return false;
         });
@@ -151,7 +151,7 @@ describe('Queue Route', () => {
                 idempotentReplay: false,
             });
             dbMock.limit.mockResolvedValueOnce([
-                { id: 'session-123', clerkId: 'test_clerk_id', userId: 'internal_user_id_123', status: 'pending' },
+                { id: 'session-123', externalId: 'test_clerk_id', userId: 'internal_user_id_123', status: 'pending' },
             ]);
 
             const res = await request(app).post('/api/queue').send(validSubmitBody);
@@ -224,7 +224,7 @@ describe('Queue Route', () => {
 
         it('returns queue status for owned sessions', async () => {
             dbMock.limit.mockResolvedValueOnce([
-                { id: 'session-123', clerkId: 'test_clerk_id', userId: 'internal_user_id_123', status: 'queued' },
+                { id: 'session-123', externalId: 'test_clerk_id', userId: 'internal_user_id_123', status: 'queued' },
             ]);
 
             const res = await request(app).get('/api/queue?sessionId=session-123');
@@ -255,7 +255,7 @@ describe('Queue Route', () => {
 
         it('cancels owned sessions', async () => {
             dbMock.limit.mockResolvedValueOnce([
-                { id: 'session-123', clerkId: 'test_clerk_id', userId: 'internal_user_id_123' },
+                { id: 'session-123', externalId: 'test_clerk_id', userId: 'internal_user_id_123' },
             ]);
 
             const res = await request(app).post('/api/queue/cancel').send({ sessionId: 'session-123' });
@@ -285,7 +285,7 @@ describe('Queue Route', () => {
         it('requeues a failed legacy session owned by internal user', async () => {
             dbMock.limit
                 .mockResolvedValueOnce([
-                    { id: 'legacy-session', clerkId: 'legacy_clerk', userId: 'internal_user_id_123', status: 'failed', errorMessage: 'boom' },
+                    { id: 'legacy-session', externalId: 'legacy_clerk', userId: 'internal_user_id_123', status: 'failed', errorMessage: 'boom' },
                 ])
                 .mockResolvedValueOnce([
                     { status: 'pending', errorMessage: null },

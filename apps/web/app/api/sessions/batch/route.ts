@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@clerk/nextjs/server';
+import { getServerAuth } from '@/lib/server/auth';
 import { db } from '@ai-pandit/db';
 import { sessions } from '@ai-pandit/db/schema';
 import { and, eq, inArray } from 'drizzle-orm';
@@ -23,10 +23,11 @@ export async function POST(req: NextRequest) {
   if (buildPhaseResponse) return buildPhaseResponse;
 
   try {
-    const { userId: clerkId } = await auth();
-    if (!clerkId) {
+    const sessionAuth = await getServerAuth();
+    if (!sessionAuth) {
       return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
     }
+    const externalId = sessionAuth.providerId;
 
     const body = (await req.json()) as BatchRequestBody;
     if (!body || !Array.isArray(body.sessionIds) || body.sessionIds.length === 0) {
@@ -47,7 +48,7 @@ export async function POST(req: NextRequest) {
     const ownedRows = await db.select({ id: sessions.id })
       .from(sessions)
       .where(and(
-        eq(sessions.clerkId, clerkId),
+        eq(sessions.externalId, externalId),
         inArray(sessions.id, uniqueIds),
       ));
     const ownedIds = new Set(ownedRows.map((row) => row.id));
@@ -60,7 +61,7 @@ export async function POST(req: NextRequest) {
     if (body.type === 'delete') {
       await db.delete(sessions)
         .where(and(
-          eq(sessions.clerkId, clerkId),
+          eq(sessions.externalId, externalId),
           inArray(sessions.id, validIds),
         ));
       return NextResponse.json({
@@ -80,8 +81,8 @@ export async function POST(req: NextRequest) {
       const favoriteStates = [];
       for (const id of validIds) {
         const favoriteValue = explicitFavorite === undefined
-          ? await toggleFavorite(clerkId, id)
-          : await setFavorite(clerkId, id, explicitFavorite);
+          ? await toggleFavorite(externalId, id)
+          : await setFavorite(externalId, id, explicitFavorite);
         favoriteStates.push({
           id,
           isFavorite: favoriteValue,

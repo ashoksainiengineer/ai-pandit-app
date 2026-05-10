@@ -1,4 +1,4 @@
-import crypto from 'node:crypto';
+import nodeCrypto from 'node:crypto';
 import { db, executeWithRetry } from '@ai-pandit/db';
 import { idempotencyKeys, jobs, sessions, users } from '@ai-pandit/db/schema';
 import { and, count, eq } from 'drizzle-orm';
@@ -16,7 +16,9 @@ import {
 } from '../../errors/index.js';
 import { addToQueue, cancelSession, startQueueProcessor } from '../queue-manager.js';
 import { validateOffsetConfig } from '../time-offset-manager.js';
-import { encryptData } from '../encryption/index.js';
+import { getApiEncryption } from '../encryption/index.js';
+const crypto = getApiEncryption();
+
 import { syncUser } from '../user-sync.js';
 import { isSessionOwnedByContext, type SessionOwnershipContext } from '../session-ownership.js';
 import type { AuthenticatedRequest } from '../../middleware/auth.js';
@@ -33,7 +35,7 @@ interface CreateJobRequestBody extends Record<string, unknown> {
 }
 
 export interface CreateJobOptions {
-  clerkId: string;
+  externalId: string;
   ownershipContext: SessionOwnershipContext;
   body: CreateJobRequestBody;
   idempotencyKey?: string;
@@ -53,7 +55,7 @@ function nowIso(): string {
 }
 
 function getRequestHash(payload: unknown): string {
-  return crypto.createHash('sha256').update(JSON.stringify(payload)).digest('hex');
+  return nodeCrypto.createHash('sha256').update(JSON.stringify(payload)).digest('hex');
 }
 
 function isUniqueViolation(error: unknown): boolean {
@@ -166,7 +168,7 @@ async function ensureConsentIfReferenced(
     db
       .select({
         id: sessions.id,
-        clerkId: sessions.clerkId,
+        externalId: sessions.externalId,
         userId: sessions.userId,
         aiConsentGiven: sessions.aiConsentGiven,
       })
@@ -333,7 +335,7 @@ export async function createQueuedBirthRectificationJob(
 
   await ensureConsentIfReferenced(existingSessionId, consentConfirmed, options.ownershipContext);
 
-  const internalUserId = await syncUser(options.clerkId);
+  const internalUserId = await syncUser(options.externalId);
   await enforceQueueCapacity(internalUserId);
   const requestHash = getRequestHash(validationResult);
 
@@ -374,28 +376,28 @@ export async function createQueuedBirthRectificationJob(
     }
   }
 
-  const sessionId = crypto.randomUUID();
-  const jobId = crypto.randomUUID();
+  const sessionId = nodeCrypto.randomUUID();
+  const jobId = nodeCrypto.randomUUID();
   const timestamp = nowIso();
-  const encryptedFullName = encryptData(validationResult.birthData.fullName, options.clerkId);
-  const encryptedLifeEvents = encryptData(JSON.stringify(validationResult.lifeEvents), options.clerkId);
+  const encryptedFullName = crypto.encrypt(validationResult.birthData.fullName, internalUserId);
+  const encryptedLifeEvents = crypto.encrypt(JSON.stringify(validationResult.lifeEvents), internalUserId);
 
   try {
     await db.transaction(async (tx) => {
       await tx.insert(sessions).values({
         id: sessionId,
         userId: internalUserId,
-        clerkId: options.clerkId,
+        externalId: options.externalId,
         fullName: encryptedFullName,
-        dateOfBirth: encryptData(validationResult.birthData.dateOfBirth, options.clerkId),
-        tentativeTime: encryptData(validationResult.birthData.tentativeTime, options.clerkId),
-        birthPlace: encryptData(validationResult.birthData.birthPlace, options.clerkId),
+        dateOfBirth: crypto.encrypt(validationResult.birthData.dateOfBirth, internalUserId),
+        tentativeTime: crypto.encrypt(validationResult.birthData.tentativeTime, internalUserId),
+        birthPlace: crypto.encrypt(validationResult.birthData.birthPlace, internalUserId),
         latitude: validationResult.birthData.latitude,
         longitude: validationResult.birthData.longitude,
         timezone: validationResult.birthData.timezone.toString(),
         gender: validationResult.birthData.gender ?? 'other',
         lifeEvents: encryptedLifeEvents,
-        offsetConfig: encryptData(JSON.stringify(validationResult.offsetConfig), options.clerkId),
+        offsetConfig: crypto.encrypt(JSON.stringify(validationResult.offsetConfig), internalUserId),
         status: 'pending',
         createdAt: timestamp,
         updatedAt: timestamp,
@@ -418,7 +420,7 @@ export async function createQueuedBirthRectificationJob(
 
       if (options.idempotencyKey) {
         await tx.insert(idempotencyKeys).values({
-          id: crypto.randomUUID(),
+          id: nodeCrypto.randomUUID(),
           userId: internalUserId,
           key: options.idempotencyKey,
           requestHash,
@@ -528,7 +530,7 @@ export async function getJobDetailById(
         job: jobs,
         sessionStatus: sessions.status,
         sessionResult: sessions.analysisResult,
-        sessionClerkId: sessions.clerkId,
+        sessionExternalId: sessions.externalId,
         sessionUserId: sessions.userId,
       })
       .from(jobs)
@@ -544,7 +546,7 @@ export async function getJobDetailById(
   if (
     !isSessionOwnedByContext(
       {
-        clerkId: jobRow.sessionClerkId,
+        externalId: jobRow.sessionExternalId,
         userId: jobRow.sessionUserId,
       },
       ownershipContext

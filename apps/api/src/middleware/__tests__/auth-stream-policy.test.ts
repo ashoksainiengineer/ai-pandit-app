@@ -68,7 +68,7 @@ describe('Auth Middleware - Stream Policy (Production)', () => {
 
     it('should accept valid stream ticket without verifyToken', async () => {
         vi.mocked(consumeStreamTicket).mockReturnValue({
-            clerkId: 'clerk_ticket_user',
+            externalId: 'clerk_ticket_user',
             sessionId: 'session_ticket_1',
         });
 
@@ -81,7 +81,7 @@ describe('Auth Middleware - Stream Policy (Production)', () => {
         await authMiddleware(req, res, next);
 
         expect(next).toHaveBeenCalled();
-        expect(req.clerkId).toBe('clerk_ticket_user');
+        expect(req.externalId).toBe('clerk_ticket_user');
         expect(req.sessionId).toBe('session_ticket_1');
         expect(verifyToken).not.toHaveBeenCalled();
     });

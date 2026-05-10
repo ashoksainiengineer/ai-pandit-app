@@ -59,7 +59,7 @@ vi.mock('@ai-pandit/db', () => ({
 
 vi.mock('@ai-pandit/db/schema', () => ({
   sessions: {
-    id: 'id', clerkId: 'clerkId', userId: 'userId', fullName: 'fullName',
+    id: 'id', externalId: 'externalId', userId: 'userId', fullName: 'fullName',
     dateOfBirth: 'dateOfBirth', tentativeTime: 'tentativeTime', birthPlace: 'birthPlace',
     latitude: 'latitude', longitude: 'longitude', timezone: 'timezone', gender: 'gender',
     status: 'status', offsetConfig: 'offsetConfig', lifeEvents: 'lifeEvents',
@@ -69,12 +69,12 @@ vi.mock('@ai-pandit/db/schema', () => ({
     aiConsentGiven: 'aiConsentGiven', aiConsentGivenAt: 'aiConsentGivenAt',
     isEncrypted: 'isEncrypted', createdAt: 'createdAt', updatedAt: 'updatedAt',
   },
-  users: { id: 'id', clerkId: 'clerkId' },
+  users: { id: 'id', externalId: 'externalId' },
 }));
 
 vi.mock('../../middleware/auth.js', () => ({
   authMiddleware: (req: any, _res: any, next: any) => {
-    req.clerkId = req.headers['x-test-clerk-id'] || 'test_clerk_id';
+    req.externalId = req.headers['x-test-clerk-id'] || 'test_clerk_id';
     next();
   },
   AuthenticatedRequest: {} as any,
@@ -86,9 +86,12 @@ vi.mock('../../lib/session-ownership.js', () => ({
 }));
 
 vi.mock('../../lib/encryption/index.js', () => ({
-  encryptData: mockEncryptDataFn,
-  parseSensitiveField: mockParseSensitiveFieldFn,
-  isEncrypted: vi.fn(() => false),
+  getApiEncryption: vi.fn(() => ({
+    encrypt: mockEncryptDataFn,
+    decrypt: vi.fn(),
+    parseField: mockParseSensitiveFieldFn,
+    isEncrypted: vi.fn(() => false),
+  })),
 }));
 
 vi.mock('../../lib/logger.js', () => ({
@@ -112,7 +115,7 @@ function createApp() {
 
 const mockSession = {
   id: 'test-session-001',
-  clerkId: 'test_clerk_id',
+  externalId: 'test_clerk_id',
   userId: 'test_user_id',
   fullName: 'Test User',
   dateOfBirth: '1990-01-01',
@@ -153,19 +156,19 @@ function setupDefaultMocks() {
   // FindFirst (for get/delete/clone)
   mockQuerySessionsFindFirst.mockResolvedValue({
     id: 'test-session-001',
-    clerkId: 'test_clerk_id',
+    externalId: 'test_clerk_id',
     userId: 'test_user_id',
   });
 
   // Users lookup (for ownership context)
   mockQueryUsersFindFirst.mockResolvedValue({
     id: 'test_user_id',
-    clerkId: 'test_clerk_id',
+    externalId: 'test_clerk_id',
   });
 
   // Ownership
   mockOwnershipContextFn.mockResolvedValue({
-    clerkId: 'test_clerk_id',
+    externalId: 'test_clerk_id',
     internalUserId: 'test_user_id',
   });
   mockOwnershipCheckFn.mockReturnValue(true);
@@ -206,7 +209,7 @@ describe('Sessions Routes', () => {
   describe('POST /sessions', () => {
     it('should create a new rectification session', async () => {
       // Use clone endpoint (POST /:id/clone) — the sessions router's "create" path
-      setFindFirst({ ...mockSession, clerkId: 'test_clerk_id', userId: 'test_user_id' });
+      setFindFirst({ ...mockSession, externalId: 'test_clerk_id', userId: 'test_user_id' });
 
       const app = createApp();
       const res = await request(app)
@@ -232,7 +235,7 @@ describe('Sessions Routes', () => {
     });
 
     it('should encrypt sensitive birth data', async () => {
-      setFindFirst({ ...mockSession, clerkId: 'test_clerk_id', userId: 'test_user_id' });
+      setFindFirst({ ...mockSession, externalId: 'test_clerk_id', userId: 'test_user_id' });
 
       const app = createApp();
       const res = await request(app)
@@ -254,7 +257,7 @@ describe('Sessions Routes', () => {
     });
 
     it('should create clone with a unique ID different from original', async () => {
-      setFindFirst({ ...mockSession, clerkId: 'test_clerk_id', userId: 'test_user_id' });
+      setFindFirst({ ...mockSession, externalId: 'test_clerk_id', userId: 'test_user_id' });
 
       const app = createApp();
       const res = await request(app)
@@ -275,7 +278,7 @@ describe('Sessions Routes', () => {
 
   describe('GET /sessions/:id', () => {
     it('should return session by ID', async () => {
-      setFindFirst({ ...mockSession, clerkId: 'test_clerk_id', userId: 'test_user_id' });
+      setFindFirst({ ...mockSession, externalId: 'test_clerk_id', userId: 'test_user_id' });
 
       const app = createApp();
       const res = await request(app).get('/api/sessions/test-session-001');
@@ -298,7 +301,7 @@ describe('Sessions Routes', () => {
 
     it('should verify session ownership', async () => {
       mockOwnershipCheckFn.mockReturnValue(false);
-      setFindFirst({ ...mockSession, clerkId: 'other_clerk_id', userId: 'other_user_id' });
+      setFindFirst({ ...mockSession, externalId: 'other_clerk_id', userId: 'other_user_id' });
 
       const app = createApp();
       const res = await request(app).get('/api/sessions/test-session-001');
@@ -360,7 +363,7 @@ describe('Sessions Routes', () => {
       // findFirst returns the session owned by test user
       setFindFirst({
         id: 'test-session-001',
-        clerkId: 'test_clerk_id',
+        externalId: 'test_clerk_id',
         userId: 'test_user_id',
       });
       // Delete returns non-empty result
@@ -380,7 +383,7 @@ describe('Sessions Routes', () => {
       mockOwnershipCheckFn.mockReturnValue(false);
       setFindFirst({
         id: 'test-session-001',
-        clerkId: 'other_clerk_id',
+        externalId: 'other_clerk_id',
         userId: 'other_user_id',
       });
 
@@ -394,7 +397,7 @@ describe('Sessions Routes', () => {
     it('should return 200 with success message on successful deletion', async () => {
       setFindFirst({
         id: 'test-session-001',
-        clerkId: 'test_clerk_id',
+        externalId: 'test_clerk_id',
         userId: 'test_user_id',
       });
       mockDeleteFn.mockReturnValue({
@@ -418,7 +421,7 @@ describe('Sessions Routes', () => {
     it('should update session metadata', async () => {
       setFindFirst({
         id: 'test-session-001',
-        clerkId: 'test_clerk_id',
+        externalId: 'test_clerk_id',
         userId: 'test_user_id',
       });
       mockSetWhereFn.mockResolvedValue(undefined);
@@ -438,7 +441,7 @@ describe('Sessions Routes', () => {
     it('should not allow updating immutable fields', async () => {
       setFindFirst({
         id: 'test-session-001',
-        clerkId: 'test_clerk_id',
+        externalId: 'test_clerk_id',
         userId: 'test_user_id',
       });
 
@@ -454,7 +457,7 @@ describe('Sessions Routes', () => {
     it('should encrypt updated birthData and offsetConfig fields', async () => {
       setFindFirst({
         id: 'test-session-001',
-        clerkId: 'test_clerk_id',
+        externalId: 'test_clerk_id',
         userId: 'test_user_id',
       });
       mockEncryptDataFn.mockClear();
@@ -471,9 +474,9 @@ describe('Sessions Routes', () => {
       expect(res.body.success).toBe(true);
       expect(res.body.message).toContain('updated');
       // Verify encryption was called for each sensitive field
-      expect(mockEncryptDataFn).toHaveBeenCalledWith('Sensitive Name', 'test_clerk_id');
-      expect(mockEncryptDataFn).toHaveBeenCalledWith('Private Location', 'test_clerk_id');
-      expect(mockEncryptDataFn).toHaveBeenCalledWith('{"preset":"1hour"}', 'test_clerk_id');
+      expect(mockEncryptDataFn).toHaveBeenCalledWith('Sensitive Name', 'test_user_id');
+      expect(mockEncryptDataFn).toHaveBeenCalledWith('Private Location', 'test_user_id');
+      expect(mockEncryptDataFn).toHaveBeenCalledWith('{"preset":"1hour"}', 'test_user_id');
     });
   });
 });

@@ -31,10 +31,10 @@ router.post('/', validateBody(QueueSubmitSchema), async (req: AuthenticatedReque
     const startTime = Date.now();
 
     try {
-        const clerkId = req.clerkId!;
-        const ownershipContext = await resolveSessionOwnershipContext(clerkId);
+        const externalId = req.externalId!;
+        const ownershipContext = await resolveSessionOwnershipContext(externalId);
         const result = await createQueuedBirthRectificationJob({
-            clerkId,
+            externalId,
             ownershipContext,
             body: req.body as Record<string, unknown>,
             idempotencyKey: getJobIdempotencyKey(req),
@@ -42,7 +42,7 @@ router.post('/', validateBody(QueueSubmitSchema), async (req: AuthenticatedReque
 
         const totalProcessingTime = Date.now() - startTime;
         logger.info('Birth time rectification request queued', {
-            clerkId,
+            externalId,
             sessionId: result.job.sessionId,
             jobId: result.job.id,
             processingTimeMs: totalProcessingTime,

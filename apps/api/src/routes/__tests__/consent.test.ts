@@ -23,7 +23,7 @@ vi.mock('@ai-pandit/db', () => ({
 vi.mock('@ai-pandit/db/schema', () => ({
     sessions: {
         id: 'id',
-        clerkId: 'clerkId',
+        externalId: 'externalId',
         aiConsentGiven: 'aiConsentGiven',
         aiConsentGivenAt: 'aiConsentGivenAt',
     },
@@ -33,7 +33,7 @@ vi.mock('@ai-pandit/db/schema', () => ({
 // Mock auth middleware to always pass
 vi.mock('../../middleware/auth.js', () => ({
     authMiddleware: (req: any, _res: any, next: any) => {
-        req.clerkId = req.headers['x-test-clerk-id'] || 'test_clerk_id';
+        req.externalId = req.headers['x-test-clerk-id'] || 'test_clerk_id';
         next();
     },
     AuthenticatedRequest: {},
@@ -63,7 +63,7 @@ describe('Consent Routes - POST /api/consent', () => {
         // Default: session found and belongs to user
         mockFrom.mockReturnValue({ where: mockWhere });
         mockWhere.mockReturnValue({ limit: mockLimit });
-        mockLimit.mockResolvedValue([{ clerkId: 'test_clerk_id' }]);
+        mockLimit.mockResolvedValue([{ externalId: 'test_clerk_id' }]);
         mockSet.mockReturnValue({ where: vi.fn().mockResolvedValue(undefined) });
     });
 
@@ -98,7 +98,7 @@ describe('Consent Routes - POST /api/consent', () => {
     });
 
     it('should return 403 when session belongs to another user', async () => {
-        mockLimit.mockResolvedValue([{ clerkId: 'different_user' }]);
+        mockLimit.mockResolvedValue([{ externalId: 'different_user' }]);
 
         const app = createApp();
         const res = await request(app)
@@ -141,7 +141,7 @@ describe('Consent Routes - GET /api/consent/:sessionId', () => {
         mockLimit.mockResolvedValue([{
             aiConsentGiven: true,
             aiConsentGivenAt: '2024-01-01T12:00:00Z',
-            clerkId: 'test_clerk_id',
+            externalId: 'test_clerk_id',
         }]);
 
         const app = createApp();
@@ -164,7 +164,7 @@ describe('Consent Routes - GET /api/consent/:sessionId', () => {
     it('should return 403 when session belongs to another user', async () => {
         mockLimit.mockResolvedValue([{
             aiConsentGiven: true,
-            clerkId: 'other_user',
+            externalId: 'other_user',
         }]);
 
         const app = createApp();

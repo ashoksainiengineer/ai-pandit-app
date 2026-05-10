@@ -10,7 +10,7 @@ describe('Real Database Integration Tests', () => {
   const testTimestamp = Date.now();
 
   const testUser = {
-    clerkId: `test_clerk_${testTimestamp}`,
+    externalId: `test_clerk_${testTimestamp}`,
     email: `test_${testTimestamp}@example.com`,
     fullName: 'Test User'
   };
@@ -19,11 +19,11 @@ describe('Real Database Integration Tests', () => {
   let authToken: string;
 
   beforeAll(async () => {
-    await db.delete(sessions).where(eq(sessions.clerkId, testUser.clerkId));
-    await db.delete(users).where(eq(users.clerkId, testUser.clerkId));
+    await db.delete(sessions).where(eq(sessions.externalId, testUser.externalId));
+    await db.delete(users).where(eq(users.externalId, testUser.externalId));
     
     const [user] = await db.insert(users).values({
-      clerkId: testUser.clerkId,
+      externalId: testUser.externalId,
       email: testUser.email,
       fullName: testUser.fullName,
       createdAt: new Date(),
@@ -54,7 +54,7 @@ describe('Real Database Integration Tests', () => {
 
     it('should perform CRUD operations on users table', async () => {
       const [newUser] = await db.insert(users).values({
-        clerkId: `temp_${testTimestamp}`,
+        externalId: `temp_${testTimestamp}`,
         email: `temp_${testTimestamp}@test.com`,
         fullName: 'Temp User',
       } as any).returning();
@@ -230,7 +230,7 @@ describe('Real Database Integration Tests', () => {
       await db.insert(sessions).values([
         {
           userId: testUserId,
-          clerkId: testUser.clerkId,
+          externalId: testUser.externalId,
           fullName: 'encrypted:session1',
           dateOfBirth: 'encrypted:1990-01-01',
           tentativeTime: 'encrypted:12:00',
@@ -245,7 +245,7 @@ describe('Real Database Integration Tests', () => {
         },
         {
           userId: testUserId,
-          clerkId: testUser.clerkId,
+          externalId: testUser.externalId,
           fullName: 'encrypted:session2',
           dateOfBirth: 'encrypted:1995-05-15',
           tentativeTime: 'encrypted:06:30',

@@ -349,36 +349,36 @@ function buildInputs(options: CliOptions): SecondsPrecisionInput[] {
   }));
 }
 
-async function ensureProfilingUser(): Promise<{ userId: string; clerkId: string }> {
-  const clerkId = 'clerk_profile_resource_bot';
-  const existing = await db.select({ id: users.id }).from(users).where(eq(users.clerkId, clerkId)).limit(1);
+async function ensureProfilingUser(): Promise<{ userId: string; externalId: string }> {
+  const externalId = 'clerk_profile_resource_bot';
+  const existing = await db.select({ id: users.id }).from(users).where(eq(users.externalId, externalId)).limit(1);
 
   if (existing.length > 0) {
-    return { userId: existing[0].id, clerkId };
+    return { userId: existing[0].id, externalId };
   }
 
   const userId = crypto.randomUUID();
   const now = new Date().toISOString();
   await db.insert(users).values({
     id: userId,
-    clerkId,
+    externalId,
     email: 'profile-bot@local.test',
     createdAt: now,
     updatedAt: now,
   });
 
-  return { userId, clerkId };
+  return { userId, externalId };
 }
 
 async function insertSessionRows(inputs: SecondsPrecisionInput[]): Promise<void> {
-  const { userId, clerkId } = await ensureProfilingUser();
+  const { userId, externalId } = await ensureProfilingUser();
   const now = new Date().toISOString();
 
   for (const input of inputs) {
     await db.insert(sessions).values({
       id: input.sessionId,
       userId,
-      clerkId,
+      externalId,
       fullName: 'Profiling Session',
       dateOfBirth: input.dateOfBirth,
       tentativeTime: input.tentativeTime,

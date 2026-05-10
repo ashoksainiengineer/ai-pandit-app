@@ -13,15 +13,15 @@ const {
 }));
 
 vi.mock('../../middleware/auth.js', () => ({
-  authMiddleware: (req: { clerkId?: string }, _res: unknown, next: () => void) => {
-    req.clerkId = 'clerk_test_123';
+  authMiddleware: (req: { externalId?: string }, _res: unknown, next: () => void) => {
+    req.externalId = 'clerk_test_123';
     next();
   },
 }));
 
 vi.mock('../../lib/session-ownership.js', () => ({
   resolveSessionOwnershipContext: vi.fn(async () => ({
-    clerkId: 'clerk_test_123',
+    externalId: 'clerk_test_123',
     internalUserId: 'user_123',
   })),
 }));

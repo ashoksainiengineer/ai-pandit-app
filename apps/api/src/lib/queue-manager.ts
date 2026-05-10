@@ -15,7 +15,9 @@ import {
 } from 'drizzle-orm';
 import { logger } from '../utils/logger.js';
 import { NotFoundError, ProcessingError, ValidationError } from '../errors/index.js';
-import { safeDecryptWithFallback, parseSensitiveField } from './encryption/index.js';
+import { getApiEncryption } from './encryption/index.js';
+const crypto = getApiEncryption();
+
 import {
   createAbortController,
   abortSession as abortSessionController,
@@ -911,10 +913,10 @@ function decryptSessionFields(
     throw new ValidationError('lifeEvents data is missing - cannot process without life events');
   }
 
-  const lifeEvents = decryptJsonField(s.lifeEvents, s.clerkId, s.userId, true);
+  const lifeEvents = decryptJsonField(s.lifeEvents, s.userId, true);
 
-  const dateOfBirth = parseSensitiveField(s.dateOfBirth, s.clerkId, s.userId, '') as string;
-  const tentativeTime = parseSensitiveField(s.tentativeTime, s.clerkId, s.userId, '') as string;
+  const dateOfBirth = crypto.parseField(s.dateOfBirth, s.userId, '') as string;
+  const tentativeTime = crypto.parseField(s.tentativeTime, s.userId, '') as string;
 
   logger.info('[Time Format]', {
     sessionId,
@@ -924,7 +926,7 @@ function decryptSessionFields(
   });
 
   const spouseData = s.spouseData
-    ? parseSensitiveField(s.spouseData, s.clerkId, s.userId)
+    ? crypto.parseField(s.spouseData, s.userId)
     : undefined;
 
   return { lifeEvents, dateOfBirth, tentativeTime, spouseData };
@@ -932,11 +934,10 @@ function decryptSessionFields(
 
 function decryptJsonField(
   encrypted: string,
-  clerkId: string,
   userId: string,
   required: boolean
 ): unknown {
-  const decrypted = safeDecryptWithFallback(encrypted, clerkId, userId);
+  const decrypted = crypto.decrypt(encrypted, userId);
   if (decrypted) {
     try {
       return JSON.parse(decrypted);
@@ -958,14 +959,13 @@ function decryptJsonField(
 
 function _decryptOptionalJsonField<T>(
   encrypted: string | null,
-  clerkId: string,
   userId: string,
   sessionId: string,
   fieldName: string
 ): T | undefined {
   if (!encrypted) return undefined;
 
-  const decrypted = safeDecryptWithFallback(encrypted, clerkId, userId);
+  const decrypted = crypto.decrypt(encrypted, userId);
   if (decrypted) {
     try {
       return JSON.parse(decrypted) as T;
@@ -992,7 +992,7 @@ function buildBtrInput(
     dashaSystem: 'Vimshottari',
   });
 
-  const rawOffset = parseSensitiveField(s.offsetConfig, s.clerkId, s.userId) as Record<string, unknown> | null;
+  const rawOffset = crypto.parseField(s.offsetConfig, s.userId) as Record<string, unknown> | null;
   const offsetConfig = rawOffset && (rawOffset.preset || rawOffset.customMinutes)
     ? rawOffset
     : { preset: '1hour' };

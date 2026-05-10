@@ -14,7 +14,7 @@ describe('Edge Case & Error Handling Tests', () => {
 
   beforeAll(async () => {
     const [user] = await db.insert(users).values({
-      clerkId: `edge_test_${testTimestamp}`,
+      externalId: `edge_test_${testTimestamp}`,
       email: `edge_test_${testTimestamp}@test.com`,
       fullName: 'Edge Case Test User',
     } as any).returning();

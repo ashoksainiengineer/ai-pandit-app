@@ -1,36 +1,31 @@
 import { Request, Response, NextFunction } from 'express';
-import { createClerkClient, verifyToken } from '@clerk/backend';
+import { clerkAuthProvider } from '../lib/auth/clerk-provider.js';
 import { config } from '../config/index.js';
 import { logger } from '../utils/logger.js';
 import { consumeStreamTicket } from '../lib/stream-ticket-manager.js';
+import { getClerkAdminClient } from '../lib/auth/clerk-provider.js';
 import { UnauthorizedError } from '../errors/index.js';
 
+/** @deprecated Use clerkAuthProvider or getClerkAdminClient instead */
+export const getClerk = getClerkAdminClient;
 
-let _clerk: ReturnType<typeof createClerkClient> | null = null;
-
-export function getClerk() {
-  if (!_clerk) {
-    _clerk = createClerkClient({ secretKey: config.security.clerkSecretKey });
-  }
-  return _clerk;
-}
 
 
 export interface AuthenticatedRequest extends Request {
     userId?: string;     // Internal DB UUID
-    clerkId?: string;    // External Clerk User ID
+    externalId?: string;    // External Auth Provider User ID
     sessionId?: string;
 }
 
 /**
- * Extract clerkId with null-guard for defense-in-depth (BUG-014).
- * Throws UnauthorizedError if clerkId is missing (shouldn't happen behind authMiddleware).
+ * Extract externalId with null-guard for defense-in-depth (BUG-014).
+ * Throws UnauthorizedError if externalId is missing (shouldn't happen behind authMiddleware).
  */
-export function requireClerkId(req: AuthenticatedRequest): string {
-    if (!req.clerkId) {
-        throw new UnauthorizedError('Authentication required: clerkId missing from request');
+export function requireExternalId(req: AuthenticatedRequest): string {
+    if (!req.externalId) {
+        throw new UnauthorizedError('Authentication required: externalId missing from request');
     }
-    return req.clerkId;
+    return req.externalId;
 }
 
 /**
@@ -86,7 +81,7 @@ export async function authMiddleware(
         if (config.app.isDevelopment) {
           const testBypass = req.headers['x-test-bypass-auth'] as string | undefined;
           if (testBypass === 'super-secret-test-key') {
-            req.clerkId = 'TEST_SCRIPT';
+            req.externalId = 'TEST_SCRIPT';
             next();
             return;
           }
@@ -135,11 +130,11 @@ export async function authMiddleware(
         if (!authHeader && isStreamRequest && streamTicket) {
             const ticketPayload = consumeStreamTicket(streamTicket);
             if (ticketPayload) {
-                req.clerkId = ticketPayload.clerkId;
+                req.externalId = ticketPayload.externalId;
                 req.sessionId = ticketPayload.sessionId;
                 logger.debug('🔑 [Auth] Stream ticket accepted', {
                     sessionId: ticketPayload.sessionId,
-                    clerkIdPrefix: ticketPayload.clerkId.slice(0, 12),
+                    externalIdPrefix: ticketPayload.externalId.slice(0, 12),
                 });
                 return next();
             }
@@ -169,40 +164,35 @@ export async function authMiddleware(
             return;
         }
 
-        // Verify Clerk session token
+        // Verify token via auth provider (abstracted from specific provider)
         try {
-            const session = await verifyToken(token, {
-                secretKey: config.security.clerkSecretKey,
-                clockSkewInMs: 900000, // 15 minutes leeway for clock skew
-            });
+            const result = await clerkAuthProvider.verifyToken(token);
 
-            if (session && session.sub) {
-                req.clerkId = session.sub;
-                req.sessionId = session.sid;
-                // Note: userId (internal DB ID) is left for routes to populate or self-heal
-                // as middleware shouldn't block on DB lookup per request if not mandatory.
+            if (result.identity) {
+                req.externalId = result.identity.providerId;  // provider-specific ID
+                req.userId = result.identity.userId;        // internal UUID
+                req.sessionId = result.identity.sessionId;  // provider session
                 logger.debug('🔑 [Auth] Token verified successfully', {
-                    sessionId: session.sid,
-                    clerkId: session.sub
+                    providerId: result.identity.providerId,
+                    userId: result.identity.userId,
                 });
                 next();
             } else {
-                logger.warn('🔒 [Auth] Token verification failed: Invalid or expired session (no sub)', {
-                    path: req.originalUrl
+                logger.warn('🔒 [Auth] Token verification failed', {
+                    path: req.originalUrl,
+                    error: result.error,
                 });
-                sendAuthError(res, isStreamRequest, 'Invalid or expired session', 'INVALID_SESSION');
+                sendAuthError(res, isStreamRequest, result.error || 'Invalid or expired session', 'INVALID_SESSION');
             }
-        } catch (clerkError: unknown) {
-            const errorStr = clerkError instanceof Error
-                ? clerkError.message
-                : typeof clerkError === 'object'
-                    ? JSON.stringify(clerkError, Object.getOwnPropertyNames(clerkError))
-                    : String(clerkError);
+        } catch (error: unknown) {
+            const errorStr = error instanceof Error
+                ? error.message
+                : String(error);
 
-            logger.error('🔒 [Auth] Token verification failed', {
+            logger.error('🔒 [Auth] Token verification exception', {
                 error: errorStr,
                 rawPrefix: token.substring(0, 10),
-                path: req.originalUrl
+                path: req.originalUrl,
             });
             sendAuthError(res, isStreamRequest, 'Authentication failed', 'AUTH_FAILED');
         }

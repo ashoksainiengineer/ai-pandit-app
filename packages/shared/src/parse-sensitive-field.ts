@@ -1,40 +1,43 @@
 /**
  * ============================================================================
- *  Unified parseSensitiveField — Single Source of Truth
+ *  Unified parseSensitiveField — Single Source of Truth (No Fallback)
  * ============================================================================
  *
  * Handles BOTH encrypted (v4) and plain JSON/string sensitive fields.
- * Used by Web BFF AND Express API with the exact same logic.
+ * Used by Web BFF AND Express API AND Worker with the exact same logic.
  *
- * Decryption strategy:
- *   1. Try primaryId (userId/UUID) first
- *   2. Fall back to secondaryId (clerkId) for backward compatibility
- *   3. If neither works, return the raw data or defaultValue
+ * DESIGN PRINCIPLE:
+ *   Encryption key = userId (UUID) ONLY. No clerkId, no providerId, no fallback.
+ *   All three services use the same userId for encryption and decryption.
+ *   There is only ONE key identity. Fallback patterns are a source of bugs
+ *   and complexity — eliminated in this version.
  *
- * Why this matters:
- *   Before this consolidation, Web BFF used only userId (UUID), Express API
- *   used clerkId first then userId. This mismatch caused sessions to be
- *   unreadable cross-boundary → 500 errors on dashboard.
+ * If decryption fails with the given userId, the data is treated as plaintext
+ * or returned as defaultValue. The caller decides error handling.
  */
 
 import {
   isEncrypted,
-  safeDecryptWithFallback,
+  safeDecrypt,
 } from './encryption.js';
 
 /**
  * Parse a sensitive field that may be encrypted (v4), plain JSON, or a raw string.
  *
+ * DESIGN (v2 — NO fallback):
+ *   - Encryption key = userId (UUID) ONLY
+ *   - If encrypted, decrypt with userId. If that fails, return raw data/defaultValue.
+ *   - If plain JSON, parse it.
+ *   - If raw string, return as-is.
+ *
  * @param data          - The field value (may be encrypted, JSON, plain string, or null/undefined).
- * @param primaryId     - Primary user ID for decryption (use internal UUID).
- * @param secondaryId   - Fallback user ID (use clerkId for backward compat with API-encrypted data).
+ * @param userId        - User UUID for encryption/decryption. The ONLY key identity.
  * @param secrets       - Master encryption secret(s) for decryption.
- * @param defaultValue  - Value to return if `data` is null/undefined.
+ * @param defaultValue  - Value to return if `data` is null/undefined or decryption fails.
  */
 export function parseSensitiveField<T = unknown>(
   data: string | null | undefined,
-  primaryId: string,
-  secondaryId: string | undefined,
+  userId: string,
   secrets: string | string[],
   defaultValue: T | null = null,
 ): T | string | null {
@@ -42,8 +45,8 @@ export function parseSensitiveField<T = unknown>(
 
   // ── Try decryption first (v4 encrypted fields) ──────────────────────────
   if (isEncrypted(data)) {
-    const decrypted = safeDecryptWithFallback(data, primaryId, secondaryId, secrets);
-    if (decrypted) {
+    const decrypted = safeDecrypt(data, userId, secrets);
+    if (decrypted !== null) {
       try {
         return JSON.parse(decrypted) as T;
       } catch {
@@ -51,8 +54,8 @@ export function parseSensitiveField<T = unknown>(
         return decrypted as T;
       }
     }
-    // Decryption failed — fall through to raw handling
-    return (defaultValue ?? data) as T;
+    // Decryption failed — return defaultValue
+    return defaultValue;
   }
 
   // ── Plain JSON or string (unencrypted) ─────────────────────────────────
@@ -61,7 +64,7 @@ export function parseSensitiveField<T = unknown>(
     if (typeof parsed === 'object' && parsed !== null) return parsed as T;
     return data as T;
   } catch {
-    return (data || defaultValue) as T;
+    return data !== '' ? data : (defaultValue as T);
   }
 }
 
@@ -70,11 +73,10 @@ export function parseSensitiveField<T = unknown>(
  */
 export function parseSensitiveObject<T extends Record<string, unknown>>(
   data: string | null | undefined,
-  primaryId: string,
-  secondaryId: string | undefined,
+  userId: string,
   secrets: string | string[],
 ): T {
-  const result = parseSensitiveField<T>(data, primaryId, secondaryId, secrets);
+  const result = parseSensitiveField<T>(data, userId, secrets);
   if (result && typeof result === 'object') return result as T;
   throw new Error('Sensitive field is not a valid object');
 }

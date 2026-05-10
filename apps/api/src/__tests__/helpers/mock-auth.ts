@@ -14,20 +14,20 @@ import type { Request, Response, NextFunction } from 'express';
 // ═════════════════════════════════════════════════════════════════════════════
 
 interface MockAuthOptions {
-  clerkId?: string;
+  externalId?: string;
   userId?: string;
   sessionId?: string;
 }
 
 /**
- * Default mock auth middleware — sets req.clerkId and calls next().
+ * Default mock auth middleware — sets req.externalId and calls next().
  * Does NOT verify tokens or call Clerk APIs.
  *
  * Usage:
  *   vi.mock('../../middleware/auth.js', () => mockClerkAuth());
  */
 export function mockClerkAuth(options: MockAuthOptions = {}) {
-  const defaultClerkId = options.clerkId ?? 'test_clerk_id';
+  const defaultClerkId = options.externalId ?? 'test_clerk_id';
   const defaultUserId = options.userId ?? 'test_user_id';
   const defaultSessionId = options.sessionId ?? 'test_session_id';
 
@@ -35,7 +35,7 @@ export function mockClerkAuth(options: MockAuthOptions = {}) {
     authMiddleware: (req: Request, _res: Response, next: NextFunction) => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const headers = (req.headers as Record<string, string>) || {};
-      (req as any).clerkId = headers['x-test-clerk-id'] || defaultClerkId;
+      (req as any).externalId = headers['x-test-clerk-id'] || defaultClerkId;
       (req as any).userId = headers['x-test-user-id'] || defaultUserId;
       (req as any).sessionId = headers['x-test-session-id'] || defaultSessionId;
       next();
@@ -97,14 +97,14 @@ export function mockRateLimit() {
  * Injects mock auth context without needing vi.mock hoisting.
  */
 export function createMockAuthMiddleware(options: MockAuthOptions = {}) {
-  const clerkId = options.clerkId ?? 'test_clerk_id';
+  const externalId = options.externalId ?? 'test_clerk_id';
   const userId = options.userId ?? 'test_user_id';
   const sessionId = options.sessionId ?? 'test_session_id';
 
   return (req: Request, _res: Response, next: NextFunction): void => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const headers = (req.headers as Record<string, string>) || {};
-    (req as any).clerkId = headers['x-test-clerk-id'] || clerkId;
+    (req as any).externalId = headers['x-test-clerk-id'] || externalId;
     (req as any).userId = headers['x-test-user-id'] || userId;
     (req as any).sessionId = headers['x-test-session-id'] || sessionId;
     next();

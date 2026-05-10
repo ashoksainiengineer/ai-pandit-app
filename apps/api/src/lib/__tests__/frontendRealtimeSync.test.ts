@@ -27,7 +27,7 @@ describe('📡 FRONTEND REAL-TIME SYNC AUDIT (SSE)', () => {
         const executeWithRetryMock = executeWithRetry as unknown as {
             mockResolvedValue: (value: unknown) => void;
         };
-        executeWithRetryMock.mockResolvedValue([{ id: SESSION_ID, clerkId: 'test_user_123', userId: 'user_internal' }]);
+        executeWithRetryMock.mockResolvedValue([{ id: SESSION_ID, externalId: 'test_user_123', userId: 'user_internal' }]);
     });
 
     afterEach(() => {

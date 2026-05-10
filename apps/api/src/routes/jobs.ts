@@ -41,14 +41,14 @@ function mapEventRecord(event: {
 
 router.post('/', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const clerkId = req.clerkId;
-    if (!clerkId) {
+    const externalId = req.externalId;
+    if (!externalId) {
       throw new UnauthorizedError();
     }
 
-    const ownershipContext = await resolveSessionOwnershipContext(clerkId);
+    const ownershipContext = await resolveSessionOwnershipContext(externalId);
     const result = await createQueuedBirthRectificationJob({
-      clerkId,
+      externalId,
       ownershipContext,
       body: req.body as Record<string, unknown>,
       idempotencyKey: getJobIdempotencyKey(req),
@@ -66,12 +66,12 @@ router.post('/', authMiddleware, async (req: AuthenticatedRequest, res: Response
 
 router.get('/:jobId', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const clerkId = req.clerkId;
-    if (!clerkId) {
+    const externalId = req.externalId;
+    if (!externalId) {
       throw new UnauthorizedError();
     }
 
-    const ownershipContext = await resolveSessionOwnershipContext(clerkId);
+    const ownershipContext = await resolveSessionOwnershipContext(externalId);
     const job = await getJobDetailById(req.params.jobId, ownershipContext);
     sendSuccess(res, job);
   } catch (error) {
@@ -81,12 +81,12 @@ router.get('/:jobId', authMiddleware, async (req: AuthenticatedRequest, res: Res
 
 router.get('/:jobId/events', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const clerkId = req.clerkId;
-    if (!clerkId) {
+    const externalId = req.externalId;
+    if (!externalId) {
       throw new UnauthorizedError();
     }
 
-    const ownershipContext = await resolveSessionOwnershipContext(clerkId);
+    const ownershipContext = await resolveSessionOwnershipContext(externalId);
     const job = await getJobDetailById(req.params.jobId, ownershipContext);
     const sinceParam = Array.isArray(req.query.since) ? req.query.since[0] : req.query.since;
     const since = typeof sinceParam === 'string' ? Number.parseInt(sinceParam, 10) : 0;
@@ -107,12 +107,12 @@ router.get('/:jobId/events', authMiddleware, async (req: AuthenticatedRequest, r
 
 router.get('/:jobId/sync', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const clerkId = req.clerkId;
-    if (!clerkId) {
+    const externalId = req.externalId;
+    if (!externalId) {
       throw new UnauthorizedError();
     }
 
-    const ownershipContext = await resolveSessionOwnershipContext(clerkId);
+    const ownershipContext = await resolveSessionOwnershipContext(externalId);
     const job = await getJobDetailById(req.params.jobId, ownershipContext);
     const sinceParam = Array.isArray(req.query.since) ? req.query.since[0] : req.query.since;
     const since = typeof sinceParam === 'string' ? Number.parseInt(sinceParam, 10) : 0;
@@ -134,12 +134,12 @@ router.get('/:jobId/sync', authMiddleware, async (req: AuthenticatedRequest, res
 
 router.post('/:jobId/cancel', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const clerkId = req.clerkId;
-    if (!clerkId) {
+    const externalId = req.externalId;
+    if (!externalId) {
       throw new UnauthorizedError();
     }
 
-    const ownershipContext = await resolveSessionOwnershipContext(clerkId);
+    const ownershipContext = await resolveSessionOwnershipContext(externalId);
     const result = await cancelJobById(req.params.jobId, ownershipContext);
     sendSuccess(res, result);
   } catch (error) {

@@ -28,17 +28,22 @@ vi.mock('@ai-pandit/db', () => ({
 
 vi.mock('../../middleware/auth.js', () => ({
     authMiddleware: (req: any, _res: any, next: any) => {
-        req.clerkId = 'test_user_1';
+        req.externalId = 'test_user_1';
         next();
     },
 }));
 
+const { mockEncrypt } = vi.hoisted(() => ({
+    mockEncrypt: vi.fn((data: string) => `ENCRYPTED_${data}`),
+}));
+
 vi.mock('../../lib/encryption/index.js', () => ({
-    encryptData: vi.fn((data: string) => `ENCRYPTED_${data}`),
-    safeDecrypt: vi.fn((data: string) => data.replace('ENCRYPTED_', '')),
-    safeDecryptWithFallback: vi.fn((data: string) => data.replace('ENCRYPTED_', '')),
-    parseSensitiveField: vi.fn((field: any) => field || ''),
-    isEncrypted: vi.fn((data: string) => data?.startsWith('ENCRYPTED_')),
+    getApiEncryption: vi.fn(() => ({
+        encrypt: mockEncrypt,
+        decrypt: vi.fn((data: string) => data.replace('ENCRYPTED_', '')),
+        parseField: vi.fn((field: any) => field || ''),
+        isEncrypted: vi.fn((data: string) => data?.startsWith('ENCRYPTED_')),
+    })),
 }));
 
 vi.mock('../../lib/logger.js', () => ({
@@ -47,8 +52,8 @@ vi.mock('../../lib/logger.js', () => ({
 
 vi.mock('../../lib/session-ownership.js', () => ({
   isSessionOwnedByContext: vi.fn(() => true),
-  resolveSessionOwnershipContext: vi.fn(async (clerkId: string) => ({
-    clerkId,
+  resolveSessionOwnershipContext: vi.fn(async (externalId: string) => ({
+    externalId,
     internalUserId: null,
   })),
 }));
@@ -58,7 +63,6 @@ vi.mock('../../middleware/validation.js', () => ({
   SessionUpdateSchema: {},
 }));
 import sessionsRouter from '../sessions.js';
-import * as encryption from '../../lib/encryption/index.js';
 
 function createApp() {
     const app = express();
@@ -76,7 +80,7 @@ describe('Chapter 4: API Fortress (Security & Encryption)', () => {
     });
 
     describe('Horizontal Privilege Escalation Protection', () => {
-        it('should strictly reject session access if clerkId mismatch', async () => {
+        it('should strictly reject session access if externalId mismatch', async () => {
             // Mock findFirst implementation
             (db.query.sessions.findFirst as any).mockImplementation((args: any) => {
                 // Return session only if it's session-1
@@ -88,8 +92,8 @@ describe('Chapter 4: API Fortress (Security & Encryption)', () => {
             expect(res.status).toBe(404);
         });
 
-        it('should strictly reject session deletion if clerkId mismatch', async () => {
-            // Mock delete returning nothing (because WHERE clause includes clerkId)
+        it('should strictly reject session deletion if externalId mismatch', async () => {
+            // Mock delete returning nothing (because WHERE clause includes externalId)
             (db as any).returning.mockResolvedValueOnce([]);
 
             const res = await request(app).delete('/api/sessions/other-session');
@@ -102,7 +106,7 @@ describe('Chapter 4: API Fortress (Security & Encryption)', () => {
             // Mock existing session for this specific test
             (db.query.sessions.findFirst as any).mockResolvedValueOnce({
                 id: 'session-1',
-                clerkId: 'test_user_1'
+                externalId: 'test_user_1'
             });
 
             const updateBody = {
@@ -116,8 +120,7 @@ describe('Chapter 4: API Fortress (Security & Encryption)', () => {
 
             await request(app).put('/api/sessions/session-1').send(updateBody);
 
-            // Check if encryptData was called for PII fields
-            const encryptCalls = vi.mocked(encryption.encryptData).mock.calls;
+            const encryptCalls = mockEncrypt.mock.calls;
             const encryptedValues = encryptCalls.map(call => call[0]);
 
             expect(encryptedValues).toContain('John Doe');
@@ -132,7 +135,7 @@ describe('Chapter 4: API Fortress (Security & Encryption)', () => {
             // Mock existing session
             (db.query.sessions.findFirst as any).mockResolvedValueOnce({
                 id: 'session-1',
-                clerkId: 'test_user_1'
+                externalId: 'test_user_1'
             });
 
             const updateBody = {
@@ -141,7 +144,7 @@ describe('Chapter 4: API Fortress (Security & Encryption)', () => {
 
             await request(app).put('/api/sessions/session-1').send(updateBody);
 
-            const encryptCalls = vi.mocked(encryption.encryptData).mock.calls;
+            const encryptCalls = mockEncrypt.mock.calls;
             const lifeEventCall = encryptCalls.find(call => call[0].includes('Marriage'));
 
             expect(lifeEventCall).toBeDefined();

@@ -31,7 +31,7 @@ declare global {
       logger: ReturnType<typeof createRequestLogger>;
       traceContext?: TraceContext;
       userId?: string;
-      clerkId?: string;
+      externalId?: string;
       auth?: { userId?: string };
     }
   }

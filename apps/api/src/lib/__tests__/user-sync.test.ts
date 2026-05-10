@@ -51,14 +51,14 @@ describe('User Sync - Unit Tests', () => {
             const result = await syncUser('clerk_123');
             expect(result).toBe('existing-uuid');
             expect(syncUserShared).toHaveBeenCalledWith('clerk_123', expect.objectContaining({
-                getClerkUser: expect.any(Function),
+                getProviderUser: expect.any(Function),
                 log: expect.any(Function),
             }));
         });
 
         it('should call Clerk API via getClerkUser when needed', async () => {
-            vi.mocked(syncUserShared).mockImplementationOnce(async (_clerkId, opts: any) => {
-                const user = await opts.getClerkUser('clerk_456');
+            vi.mocked(syncUserShared).mockImplementationOnce(async (_externalId, opts: any) => {
+                const user = await opts.getProviderUser('clerk_456');
                 expect(user.emailAddresses[0].emailAddress).toBe('test@example.com');
                 return 'new-user-uuid';
             });
@@ -70,8 +70,8 @@ describe('User Sync - Unit Tests', () => {
 
         it('should throw when Clerk API fails', async () => {
             _mockGetUser.mockRejectedValueOnce(new Error('Clerk unavailable'));
-            vi.mocked(syncUserShared).mockImplementationOnce(async (_clerkId, opts: any) => {
-                await opts.getClerkUser('clerk_789');
+            vi.mocked(syncUserShared).mockImplementationOnce(async (_externalId, opts: any) => {
+                await opts.getProviderUser('clerk_789');
                 return 'should-not-reach';
             });
 

@@ -63,10 +63,10 @@ vi.mock('@ai-pandit/db', () => ({
 
 vi.mock('@ai-pandit/db/schema', () => ({
   sessions: {
-    id: 'id', clerkId: 'clerkId', userId: 'userId', status: 'status',
+    id: 'id', externalId: 'externalId', userId: 'userId', status: 'status',
     createdAt: 'createdAt',
   },
-  users: { id: 'id', clerkId: 'clerkId' },
+  users: { id: 'id', externalId: 'externalId' },
   jobs: {
     id: 'id', status: 'status', sessionId: 'sessionId', retryCount: 'retryCount',
   },
@@ -80,7 +80,7 @@ vi.mock('@ai-pandit/db/jobs', () => ({
 
 vi.mock('../../middleware/auth.js', () => ({
   authMiddleware: (req: any, _res: any, next: any) => {
-    req.clerkId = req.headers['x-test-clerk-id'] || 'test_clerk_id';
+    req.externalId = req.headers['x-test-clerk-id'] || 'test_clerk_id';
     next();
   },
   AuthenticatedRequest: {} as any,
@@ -92,8 +92,8 @@ vi.mock('../../middleware/validation.js', () => ({
 }));
 
 vi.mock('../../lib/session-ownership.js', () => ({
-  resolveSessionOwnershipContext: vi.fn(async (clerkId: string) => ({
-    clerkId,
+  resolveSessionOwnershipContext: vi.fn(async (externalId: string) => ({
+    externalId,
     internalUserId: 'test_user_id',
   })),
   isSessionOwnedByContext: vi.fn(() => true),

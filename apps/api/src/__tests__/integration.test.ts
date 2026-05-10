@@ -8,7 +8,7 @@ import { eq } from 'drizzle-orm';
 describe('API Integration Tests', () => {
   const app = createApp();
   const testUser = {
-    clerkId: 'test_clerk_id_' + Date.now(),
+    externalId: 'test_clerk_id_' + Date.now(),
     email: 'test@example.com',
     fullName: 'Test User'
   };
@@ -16,13 +16,13 @@ describe('API Integration Tests', () => {
 
   beforeAll(async () => {
     // Clean up test data
-    await db.delete(sessions).where(eq(sessions.clerkId, testUser.clerkId));
-    await db.delete(users).where(eq(users.clerkId, testUser.clerkId));
+    await db.delete(sessions).where(eq(sessions.externalId, testUser.externalId));
+    await db.delete(users).where(eq(users.externalId, testUser.externalId));
     
     // Create test user
     const [user] = await db.insert(users).values({
       id: `test-user-${Date.now()}`,
-      clerkId: testUser.clerkId,
+      externalId: testUser.externalId,
       email: testUser.email,
       fullName: testUser.fullName,
     } as any).returning();
@@ -32,8 +32,8 @@ describe('API Integration Tests', () => {
 
   afterAll(async () => {
     // Clean up
-    await db.delete(sessions).where(eq(sessions.clerkId, testUser.clerkId));
-    await db.delete(users).where(eq(users.clerkId, testUser.clerkId));
+    await db.delete(sessions).where(eq(sessions.externalId, testUser.externalId));
+    await db.delete(users).where(eq(users.externalId, testUser.externalId));
     await pool.end();
   });
 

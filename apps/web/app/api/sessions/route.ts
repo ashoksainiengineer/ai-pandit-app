@@ -5,8 +5,8 @@ import { randomUUID } from 'crypto';
 import { db } from '@ai-pandit/db';
 import { sessions, users } from '@ai-pandit/db/schema';
 import { eq, desc } from 'drizzle-orm';
-import { auth, currentUser } from '@clerk/nextjs/server';
-import { parseSensitiveField, encrypt, initializeEncryption, isEncrypted } from '@/lib/crypto';
+import { getServerAuth, getServerCurrentUser } from '@/lib/server/auth';
+import { createEncryption } from '@ai-pandit/shared';
 import { ensureUserRecord } from '@/lib/server/user-sync';
 import { getProtectedFieldsPresent } from '@/lib/server/session-write-guards';
 import { getBuildPhaseRouteResponse } from '@/lib/server/build-phase-route-guard';
@@ -14,7 +14,7 @@ import { getBuildPhaseRouteResponse } from '@/lib/server/build-phase-route-guard
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-initializeEncryption(env.security.encryptionSecret);
+const crypto = createEncryption(env.security.encryptionSecret ?? '');
 
 const INTERNAL_ERROR = 'An internal error occurred. Please try again.';
 
@@ -24,7 +24,7 @@ const INTERNAL_ERROR = 'An internal error occurred. Please try again.';
  * Dashboard is our most critical page. Users spend the most time here.
  * We query DB directly with proper encryption context because:
  *   1. Proxy to Express API adds latency + failure point
- *   2. Express API uses clerkId as primary decrypt key — but data was
+ *   2. Express API uses externalId as primary decrypt key — but data was
  *      encrypted with UUID by the Web BFF, causing fallback decryption
  *   3. Direct DB ensures encrypted text NEVER appears on dashboard
  */
@@ -35,8 +35,8 @@ export async function GET(_req: NextRequest) {
   const requestId = randomUUID().slice(0, 8);
 
   try {
-    const { userId: clerkId } = await auth();
-    if (!clerkId) {
+    const sessionAuth = await getServerAuth();
+    if (!sessionAuth) {
       return NextResponse.json(
         { success: false, error: 'Session expired. Please sign in again.' },
         { status: 401 },
@@ -45,7 +45,7 @@ export async function GET(_req: NextRequest) {
 
     // Resolve internal user
     const user = await db.query.users.findFirst({
-      where: eq(users.clerkId, clerkId),
+      where: eq(users.externalId, sessionAuth.providerId),
     });
 
     if (!user) {
@@ -64,7 +64,7 @@ export async function GET(_req: NextRequest) {
     try {
       const { getFavoriteSetForSessions } = await import('@/lib/server/favorite-store');
       favoriteSet = await getFavoriteSetForSessions(
-        clerkId,
+        sessionAuth.providerId,
         userSessions.map((s) => s.id),
       );
     } catch { /* favorites unavailable */ }
@@ -73,10 +73,10 @@ export async function GET(_req: NextRequest) {
     const parsedSessions = userSessions.map((s) => ({
       ...s,
       isFavorite: favoriteSet.has(s.id),
-      fullName: isEncrypted(s.fullName) ? (parseSensitiveField(s.fullName, user.id) as string) : (s.fullName || 'Unknown'),
-      dateOfBirth: isEncrypted(s.dateOfBirth) ? (parseSensitiveField(s.dateOfBirth, user.id) as string) : (s.dateOfBirth || ''),
-      tentativeTime: isEncrypted(s.tentativeTime) ? (parseSensitiveField(s.tentativeTime, user.id) as string) : (s.tentativeTime || ''),
-      birthPlace: isEncrypted(s.birthPlace) ? (parseSensitiveField(s.birthPlace, user.id) as string) : (s.birthPlace || ''),
+      fullName: crypto.isEncrypted(s.fullName) ? (crypto.parseField(s.fullName, user.id) as string) : (s.fullName || 'Unknown'),
+      dateOfBirth: crypto.isEncrypted(s.dateOfBirth) ? (crypto.parseField(s.dateOfBirth, user.id) as string) : (s.dateOfBirth || ''),
+      tentativeTime: crypto.isEncrypted(s.tentativeTime) ? (crypto.parseField(s.tentativeTime, user.id) as string) : (s.tentativeTime || ''),
+      birthPlace: crypto.isEncrypted(s.birthPlace) ? (crypto.parseField(s.birthPlace, user.id) as string) : (s.birthPlace || ''),
     }));
 
     return NextResponse.json({ success: true, data: parsedSessions });
@@ -110,15 +110,15 @@ export async function POST(req: NextRequest) {
   if (buildPhaseResponse) return buildPhaseResponse;
 
   try {
-    const clerkUser = await currentUser();
-    if (!clerkUser) {
+    const profile = await getServerCurrentUser();
+    if (!profile) {
       return NextResponse.json(
         { success: false, error: 'Unauthorized' },
         { status: 401 },
       );
     }
 
-    const clerkId = clerkUser.id;
+    const providerId = profile.providerId;
     const body = await req.json();
     const protectedFields = getProtectedFieldsPresent(
       body as Record<string, unknown>,
@@ -140,11 +140,9 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const email = clerkUser.emailAddresses[0]?.emailAddress || '';
-    const fullName =
-      `${clerkUser.firstName || ''} ${clerkUser.lastName || ''}`.trim() ||
-      'User';
-    const user = await ensureUserRecord({ clerkId, email, fullName });
+    const email = profile.email || '';
+    const fullName = profile.fullName || `${profile.firstName || ''} ${profile.lastName || ''}`.trim() || 'User';
+    const user = await ensureUserRecord({ externalId: providerId, email, fullName });
 
     const newSessionId = randomUUID();
     const bd = body.birthData;
@@ -152,23 +150,23 @@ export async function POST(req: NextRequest) {
     const newSession = {
       id: newSessionId,
       userId: user.id,
-      clerkId: clerkId,
-      fullName: encrypt(bd.fullName || 'Unknown', user.id),
-      dateOfBirth: encrypt(bd.dateOfBirth || '', user.id),
-      tentativeTime: encrypt(bd.tentativeTime || '', user.id),
-      birthPlace: encrypt(bd.birthPlace || '', user.id),
+      externalId: providerId,
+      fullName: crypto.encrypt(bd.fullName || 'Unknown', user.id),
+      dateOfBirth: crypto.encrypt(bd.dateOfBirth || '', user.id),
+      tentativeTime: crypto.encrypt(bd.tentativeTime || '', user.id),
+      birthPlace: crypto.encrypt(bd.birthPlace || '', user.id),
       latitude: bd.latitude || 0,
       longitude: bd.longitude || 0,
       timezone: String(bd.timezone ?? 5.5),
       gender: bd.gender || 'male',
       lifeEvents: body.lifeEvents
-        ? encrypt(JSON.stringify(body.lifeEvents), user.id)
-        : encrypt('[]', user.id),
+        ? crypto.encrypt(JSON.stringify(body.lifeEvents), user.id)
+        : crypto.encrypt('[]', user.id),
       spouseData: body.spouseData
-        ? encrypt(JSON.stringify(body.spouseData), user.id)
+        ? crypto.encrypt(JSON.stringify(body.spouseData), user.id)
         : null,
       offsetConfig: body.offsetConfig
-        ? encrypt(JSON.stringify(body.offsetConfig), user.id)
+        ? crypto.encrypt(JSON.stringify(body.offsetConfig), user.id)
         : null,
       status: 'draft' as const,
       isEncrypted: true,

@@ -1,4 +1,4 @@
-import { auth } from '@clerk/nextjs/server';
+import { getServerAuth } from '@/lib/server/auth';
 import { NextRequest, NextResponse } from 'next/server';
 import { env } from '@/lib/config/env';
 
@@ -10,16 +10,15 @@ type ProxyOptions = {
 };
 
 export async function proxyBackendJson(req: NextRequest, options: ProxyOptions): Promise<NextResponse> {
-  const { getToken, userId } = await auth();
-  if (!userId) {
+  const sessionAuth = await getServerAuth();
+  if (!sessionAuth) {
     return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
   }
 
-  const token = await getToken();
+  const token = await sessionAuth.getToken();
   if (!token) {
     return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
   }
-
   const backendUrl = new URL(`${env.api.backendUrl}${options.path}`);
   if (options.searchParams) {
     backendUrl.search = options.searchParams.toString();

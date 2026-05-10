@@ -38,7 +38,7 @@ async function main(): Promise<void> {
   await db.insert(sessions).values({
     id: clonedSessionId,
     userId: template.userId,
-    clerkId: template.clerkId,
+    externalId: template.externalId,
     fullName: template.fullName,
     dateOfBirth: template.dateOfBirth,
     tentativeTime: template.tentativeTime,

@@ -73,22 +73,22 @@ export async function POST(req: Request) {
             const now = new Date().toISOString();
             await db.insert(users).values({
                 id: crypto.randomUUID(),
-                clerkId: id,
+                externalId: id,
                 email: email || '',
                 fullName: fullName || null,
                 createdAt: now,
                 updatedAt: now,
             }).onConflictDoUpdate({
-                target: users.clerkId,
+                target: users.externalId,
                 set: {
                     email: email || '',
                     fullName: fullName || null,
                     updatedAt: now,
                 }
             });
-            logger.info('User upserted via webhook', { clerkId: id });
+            logger.info('User upserted via webhook', { externalId: id });
         } catch (error) {
-            logger.error('Webhook DB error', { error, clerkId: id });
+            logger.error('Webhook DB error', { error, externalId: id });
             return new Response('Database error', { status: 500 });
         }
     }
@@ -98,10 +98,10 @@ export async function POST(req: Request) {
         if (id) {
             try {
                 // BUG-FIX: Wrap delete in try/catch to prevent unhandled errors
-                await db.delete(users).where(eq(users.clerkId, id));
-                logger.info('User deleted via webhook', { clerkId: id });
+                await db.delete(users).where(eq(users.externalId, id));
+                logger.info('User deleted via webhook', { externalId: id });
             } catch (error) {
-                logger.error('Webhook user delete error', { error, clerkId: id });
+                logger.error('Webhook user delete error', { error, externalId: id });
                 return new Response('Database error during user deletion', { status: 500 });
             }
         }

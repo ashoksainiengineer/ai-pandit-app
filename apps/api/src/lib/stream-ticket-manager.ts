@@ -15,7 +15,7 @@
  *   2. Backend route (routes/stream.ts):
  *      The POST /ticket/:sessionId endpoint — guarded by authMiddleware +
  *      session-ownership verification — calls createStreamTicket() to mint
- *      a UUID ticket bound to (clerkId, sessionId) with a 2-minute TTL.
+ *      a UUID ticket bound to (externalId, sessionId) with a 2-minute TTL.
  *
  *   3. Frontend opens EventSource (use-stream-progress.ts):
  *      Connects to GET /api/stream/:sessionId?ticket=<ticket> — no
@@ -27,7 +27,7 @@
  *      the connection. The ticket is consumed immediately (single-use).
  *
  *   5. SSE handler (routes/stream.ts):
- *      Receives req.clerkId and req.sessionId set by the auth middleware,
+ *      Receives req.externalId and req.sessionId set by the auth middleware,
  *      then performs its own session-ownership verification before opening
  *      the SSE stream.
  *
@@ -48,7 +48,7 @@ import crypto from 'node:crypto';
 import { logger } from '../utils/logger.js';
 
 interface StreamTicketRecord {
-  clerkId: string;
+  externalId: string;
   sessionId: string;
   expiresAtMs: number;
 }
@@ -71,19 +71,19 @@ function cleanupExpiredTickets(nowMs: number): void {
  * caller has been authenticated via Clerk Bearer token and session
  * ownership has been verified.
  *
- * @param clerkId  - The authenticated user's Clerk ID.
+ * @param externalId  - The authenticated user's external ID.
  * @param sessionId - The BTR session ID the caller wants to stream.
  * @param ttlMs    - Ticket time-to-live in milliseconds (default: 2 minutes).
  * @returns A UUID ticket string to be passed as ?ticket=<value> to the SSE endpoint.
  */
-export function createStreamTicket(clerkId: string, sessionId: string, ttlMs: number = DEFAULT_TTL_MS): string {
+export function createStreamTicket(externalId: string, sessionId: string, ttlMs: number = DEFAULT_TTL_MS): string {
   ensureCleanupTimer();
   const nowMs = Date.now();
   cleanupExpiredTickets(nowMs);
 
   const ticket = crypto.randomUUID();
   tickets.set(ticket, {
-    clerkId,
+    externalId,
     sessionId,
     expiresAtMs: nowMs + ttlMs,
   });
@@ -101,10 +101,10 @@ export function createStreamTicket(clerkId: string, sessionId: string, ttlMs: nu
  * to prevent replay attacks.
  *
  * @param ticket - The UUID ticket string from the ?ticket query parameter.
- * @returns The { clerkId, sessionId } payload if valid and unexpired,
+ * @returns The { externalId, sessionId } payload if valid and unexpired,
  *          or null if the ticket is invalid, expired, or already consumed.
  */
-export function consumeStreamTicket(ticket: string): { clerkId: string; sessionId: string } | null {
+export function consumeStreamTicket(ticket: string): { externalId: string; sessionId: string } | null {
   const nowMs = Date.now();
   const record = tickets.get(ticket);
   if (!record) return null;
@@ -116,7 +116,7 @@ export function consumeStreamTicket(ticket: string): { clerkId: string; sessionI
   }
 
   return {
-    clerkId: record.clerkId,
+    externalId: record.externalId,
     sessionId: record.sessionId,
   };
 }

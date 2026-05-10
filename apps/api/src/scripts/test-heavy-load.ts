@@ -25,7 +25,7 @@ async function runHeavyLoadTest() {
     await db.insert(sessions).values({
         id: newSessionId,
         userId: template.userId,
-        clerkId: template.clerkId,
+        externalId: template.externalId,
         status: 'local-test',
         fullName: template.fullName,
         dateOfBirth: template.dateOfBirth,

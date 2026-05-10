@@ -6,11 +6,11 @@ import { and, eq, inArray } from 'drizzle-orm';
 const fallbackFavorites = new Map<string, Set<string>>();
 let ensureTablePromise: Promise<void> | null = null;
 
-function getFallbackSet(clerkId: string): Set<string> {
-  let set = fallbackFavorites.get(clerkId);
+function getFallbackSet(externalId: string): Set<string> {
+  let set = fallbackFavorites.get(externalId);
   if (!set) {
     set = new Set<string>();
-    fallbackFavorites.set(clerkId, set);
+    fallbackFavorites.set(externalId, set);
   }
   return set;
 }
@@ -50,12 +50,12 @@ async function ensureFavoritesTable(): Promise<void> {
   return ensureTablePromise;
 }
 
-export async function isFavorite(clerkId: string, sessionId: string): Promise<boolean> {
+export async function isFavorite(externalId: string, sessionId: string): Promise<boolean> {
   try {
     await ensureFavoritesTable();
     const row = await db.query.sessionFavorites.findFirst({
       where: and(
-        eq(sessionFavorites.clerkId, clerkId),
+        eq(sessionFavorites.userId, externalId),
         eq(sessionFavorites.sessionId, sessionId),
       ),
       columns: { id: true },
@@ -63,59 +63,59 @@ export async function isFavorite(clerkId: string, sessionId: string): Promise<bo
     return !!row;
   } catch (error) {
     if (!isMissingTableError(error)) throw error;
-    return getFallbackSet(clerkId).has(sessionId);
+    return getFallbackSet(externalId).has(sessionId);
   }
 }
 
-export async function getFavoriteSetForSessions(clerkId: string, sessionIds: string[]): Promise<Set<string>> {
+export async function getFavoriteSetForSessions(externalId: string, sessionIds: string[]): Promise<Set<string>> {
   if (sessionIds.length === 0) return new Set<string>();
   try {
     await ensureFavoritesTable();
     const rows = await db.select({ sessionId: sessionFavorites.sessionId })
       .from(sessionFavorites)
       .where(and(
-        eq(sessionFavorites.clerkId, clerkId),
+        eq(sessionFavorites.userId, externalId),
         inArray(sessionFavorites.sessionId, sessionIds),
       ));
     return new Set(rows.map((row) => row.sessionId));
   } catch (error) {
     if (!isMissingTableError(error)) throw error;
-    const fallback = getFallbackSet(clerkId);
+    const fallback = getFallbackSet(externalId);
     return new Set(sessionIds.filter((id) => fallback.has(id)));
   }
 }
 
-export async function setFavorite(clerkId: string, sessionId: string, value: boolean): Promise<boolean> {
+export async function setFavorite(externalId: string, sessionId: string, value: boolean): Promise<boolean> {
   try {
     await ensureFavoritesTable();
     if (value) {
       await db.insert(sessionFavorites).values({
         id: crypto.randomUUID(),
-        clerkId,
+        userId: externalId,
         sessionId,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       }).onConflictDoNothing({
-        target: [sessionFavorites.clerkId, sessionFavorites.sessionId],
+        target: [sessionFavorites.userId, sessionFavorites.sessionId],
       });
       return true;
     }
 
     await db.delete(sessionFavorites).where(and(
-      eq(sessionFavorites.clerkId, clerkId),
+      eq(sessionFavorites.userId, externalId),
       eq(sessionFavorites.sessionId, sessionId),
     ));
     return false;
   } catch (error) {
     if (!isMissingTableError(error)) throw error;
-    const set = getFallbackSet(clerkId);
+    const set = getFallbackSet(externalId);
     if (value) set.add(sessionId);
     else set.delete(sessionId);
     return value;
   }
 }
 
-export async function toggleFavorite(clerkId: string, sessionId: string): Promise<boolean> {
-  const current = await isFavorite(clerkId, sessionId);
-  return setFavorite(clerkId, sessionId, !current);
+export async function toggleFavorite(externalId: string, sessionId: string): Promise<boolean> {
+  const current = await isFavorite(externalId, sessionId);
+  return setFavorite(externalId, sessionId, !current);
 }

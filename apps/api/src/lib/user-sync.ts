@@ -5,9 +5,9 @@ import { syncUser as syncUserShared } from '@ai-pandit/db';
 import { logger } from '../utils/logger.js';
 import { getClerk } from '../middleware/auth.js';
 
-export async function syncUser(clerkId: string): Promise<string> {
-  return syncUserShared(clerkId, {
-    getClerkUser: async (id) => {
+export async function syncUser(externalId: string): Promise<string> {
+  return syncUserShared(externalId, {
+    getProviderUser: async (id) => {
       const user = await getClerk().users.getUser(id);
       return {
         emailAddresses: user.emailAddresses,
@@ -27,6 +27,6 @@ export async function syncUser(clerkId: string): Promise<string> {
         logger[level]?.(`${prefix} ${message}`, meta);
       }
     },
-    testBypass: clerkId === 'TEST_SCRIPT',
+    testBypass: externalId === 'TEST_SCRIPT',
   });
 }

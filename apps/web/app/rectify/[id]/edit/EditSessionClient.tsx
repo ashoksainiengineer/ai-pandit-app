@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef } from 'react';
 import Link from 'next/link';
-import { useParams, useRouter, useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@clerk/nextjs';
 import { BirthData, LifeEvent, SpouseData } from '@/lib/types';
 import { env } from '@/lib/config';
@@ -16,7 +16,8 @@ import Step4Review from '@/components/rectify/Step4Review';
 import Layout from '@/components/Layout';
 
 import { SecurityBadge } from '@/components/rectify/SecurityBadge';
-import AnalysisErrorBoundary from '@/components/rectify/AnalysisErrorBoundary';
+import { StepIndicator } from '@/components/rectify/StepIndicator';
+import RectifySubmitBar from '@/components/rectify/RectifySubmitBar';
 import { useWarmup } from '@/hooks/use-warmup';
 interface EditSessionClientProps {
     sessionId: string;
@@ -272,25 +273,25 @@ export function EditSessionClient({ sessionId, initialData }: EditSessionClientP
 
     return (
         <Layout hideFooter>
-            <main className="min-h-screen bg-[var(--prism-canvas)] text-black pt-16">
-                <nav className="sticky top-0 z-50 bg-[var(--prism-canvas)]/90 backdrop-blur-xl border-b border-[rgba(0,0,0,0.08)]">
+            <main className="min-h-screen bg-[#FAF8F5] text-[#1A1A1E] pt-16">
+                <nav className="sticky top-0 z-50 bg-[#FAF8F5]/90 backdrop-blur-xl border-b border-[rgba(0,0,0,0.06)]">
                     <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
                         <Link href="/" className="flex items-center gap-3 group">
-                            <span className="font-medium text-xl text-black tracking-tight">AI Pandit</span>
+                            <span className="font-medium text-xl text-[#1A1A1E] tracking-tight">AI Pandit</span>
                         </Link>
                         <div className="flex items-center gap-6">
                             <Link
                                 href="/dashboard"
-                                className="text-sm font-medium text-[#636363] hover:text-black transition-colors"
+                                className="text-sm font-medium text-[#6B6560] hover:text-[#1A1A1E] transition-colors"
                             >
                                 Dashboard
                             </Link>
                             <div className="flex items-center gap-2 text-sm">
-                                {savingStatus === 'saving' && <span className="text-black animate-pulse">Saving...</span>}
-                                {savingStatus === 'saved' && <span className="text-[#184131]">Saved ✓</span>}
+                                {savingStatus === 'saving' && <span className="text-[#1A1A1E] animate-pulse">Saving...</span>}
+                                {savingStatus === 'saved' && <span className="text-[#184131]">Saved</span>}
                                 {savingStatus === 'error' && <span className="text-[#D64545]">Save Failed</span>}
-                                <span className="text-black font-medium opacity-50">|</span>
-                                <span className="text-black font-medium">✏️ Editing Session</span>
+                                <span className="text-[#1A1A1E] font-medium opacity-50">|</span>
+                                <span className="text-[#1A1A1E] font-medium">Editing Session</span>
                             </div>
                         </div>
                     </div>
@@ -299,50 +300,18 @@ export function EditSessionClient({ sessionId, initialData }: EditSessionClientP
                 <div className="max-w-4xl mx-auto px-6 py-12">
                     {/* Edit header */}
                     <div className="mb-6 text-center">
-                        <h1 className="text-3xl font-medium text-black mb-2">✏️ Edit &amp; Re-analyze</h1>
-                        <p className="text-[#636363]">Update your details and run a new analysis</p>
+                        <h1 className="text-3xl font-medium text-[#1A1A1E] mb-2">Edit &amp; Re-analyze</h1>
+                        <p className="text-[#6B6560]">Update your details and run a new analysis</p>
                     </div>
 
                     <SecurityBadge />
 
                     {/* Progress stepper */}
-                    <div className="mb-10">
-                        <div className="flex items-center justify-between mb-4 relative">
-                            <div className="absolute top-1/2 left-0 w-full h-1 bg-[rgba(0,0,0,0.08)] -z-10 rounded-full" />
-                            <div
-                                className="absolute top-1/2 left-0 h-1 bg-[#000000] -z-10 rounded-full transition-all duration-500"
-                                style={{ width: `${((step - 1) / 2) * 100}%` }}
-                            />
-
-                            {[1, 2, 3].map((s) => (
-                                <button
-                                    key={s}
-                                    onClick={() => { if (s <= maxUnlockedStep) updateStep(s); }}
-                                    className="flex flex-col items-center bg-[var(--prism-canvas)] px-2 outline-none focus:outline-none"
-                                >
-                                    <div
-                                        className={`w-10 h-10 rounded-full flex items-center justify-center font-medium text-sm transition-all border-2 ${s < step
-                                            ? 'bg-[#184131] border-[#184131] text-white'
-                                            : s === step
-                                                ? 'bg-white border-[#000000] text-black shadow-[0_0_15px_rgba(0,0,0,0.1)]'
-                                                : 'bg-[var(--prism-canvas)] border-[#EBE2D6] text-[#959595]'
-                                            }`}
-                                    >
-                                        {s < step ? '✓' : s}
-                                    </div>
-                                    <span className={`text-xs mt-2 font-medium ${s === step ? 'text-black' : 'text-[#636363]'}`}>
-                                        {s === 1 ? 'Birth Details' : s === 2 ? 'Life Events' : 'Review'}
-                                    </span>
-                                </button>
-                            ))}
-                        </div>
-                    </div>
-
-                    {error && (
-                        <div className="mb-6 p-4 bg-[#EF4444]/10 border border-[#EF4444]/30 rounded-xl text-[#D64545]">
-                            ⚠️ {error}
-                        </div>
-                    )}
+                    <StepIndicator
+                        step={step}
+                        totalSteps={3}
+                        labels={['Birth Details', 'Life Events', 'Review']}
+                    />
 
                     <div className="min-h-[400px]">
                         {step === 1 && birthData && (
@@ -376,25 +345,15 @@ export function EditSessionClient({ sessionId, initialData }: EditSessionClientP
                     </div>
 
                     {step < 3 && (
-                        <div className="flex justify-between mt-12 pt-6 border-t border-[rgba(0,0,0,0.08)]">
-                            <button
-                                onClick={goToPreviousStep}
-                                disabled={step === 1}
-                                className={`px-6 py-3 rounded-xl font-medium transition-colors ${step === 1
-                                    ? 'opacity-0 cursor-default'
-                                    : 'border-2 border-[#000000]/50 text-black hover:bg-[#000000]/10'
-                                    }`}
-                            >
-                                ← Back
-                            </button>
-
-                            <button
-                                onClick={advanceToNextStep}
-                                className="px-8 py-3 bg-black text-white rounded-xl font-medium hover:shadow-[0_0_15px_rgba(184,134,11,0.4)] transition-all"
-                            >
-                                Next Step →
-                            </button>
-                        </div>
+                        <RectifySubmitBar
+                            step={step}
+                            totalSteps={3}
+                            isSubmitting={isSubmitting}
+                            error={error}
+                            onBack={goToPreviousStep}
+                            onNext={advanceToNextStep}
+                            onSubmit={submitEditedSession}
+                        />
                     )}
                 </div>
             </main>

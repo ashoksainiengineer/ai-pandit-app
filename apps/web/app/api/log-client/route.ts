@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { logger } from '@/lib/secure-logger';
-import { auth } from '@clerk/nextjs/server';
+import { getServerAuth } from '@/lib/server/auth';
 import { getBuildPhaseRouteResponse } from '@/lib/server/build-phase-route-guard';
 
 /**
@@ -17,10 +17,10 @@ export async function POST(req: NextRequest) {
     if (buildPhaseResponse) return buildPhaseResponse;
 
     try {
-        const { userId } = await auth();
+        const sessionAuth = await getServerAuth();
 
         // Require authentication for client logging (BUG-023: prevent log flooding)
-        if (!userId) {
+        if (!sessionAuth) {
             return NextResponse.json({ success: false, error: 'Authentication required' }, { status: 401 });
         }
         // BUG-FIX NOTE: No body size limit — add Content-Length check in production
@@ -28,7 +28,7 @@ export async function POST(req: NextRequest) {
 
         const logEntry = {
             ...body,
-            userId: userId || 'anonymous',
+            userId: sessionAuth.providerId,
             source: 'browser-client',
             receivedAt: new Date().toISOString(),
         };

@@ -21,7 +21,7 @@ vi.mock('@ai-pandit/db', () => ({
 vi.mock('@ai-pandit/db/schema', () => ({
     sessions: {
         id: 'id',
-        clerkId: 'clerkId',
+        externalId: 'externalId',
     },
 }));
 
@@ -31,7 +31,7 @@ vi.mock('drizzle-orm', () => ({
 }));
 
 vi.mock('@/lib/server/favorite-store', () => ({
-    setFavorite: vi.fn((_clerkId: string, _sessionId: string, value: boolean) => value),
+    setFavorite: vi.fn((_externalId: string, _sessionId: string, value: boolean) => value),
     toggleFavorite: vi.fn(() => true),
 }));
 

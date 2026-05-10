@@ -6,7 +6,7 @@ import { db } from '@ai-pandit/db';
 // Mock auth middleware for route testing
 vi.mock('../../middleware/auth.js', () => ({
     authMiddleware: (req: any, res: any, next: any) => {
-        req.clerkId = 'user_abc';
+        req.externalId = 'user_abc';
         req.sessionId = 'clerk_sess_123';
         next();
     },
@@ -16,12 +16,12 @@ vi.mock('../../middleware/auth.js', () => ({
 }));
 
 vi.mock('../../lib/session-ownership.js', () => ({
-    resolveSessionOwnershipContext: vi.fn(async (clerkId: string) => ({
-        clerkId,
+    resolveSessionOwnershipContext: vi.fn(async (externalId: string) => ({
+        externalId,
         internalUserId: 'db-user-id',
     })),
-    isSessionOwnedByContext: vi.fn((session: { clerkId?: string | null; userId?: string | null }, context: { clerkId: string; internalUserId: string | null }) => {
-        if (session?.clerkId === context.clerkId) return true;
+    isSessionOwnedByContext: vi.fn((session: { externalId?: string | null; userId?: string | null }, context: { externalId: string; internalUserId: string | null }) => {
+        if (session?.externalId === context.externalId) return true;
         if (!context.internalUserId) return false;
         return session?.userId === context.internalUserId;
     }),
@@ -60,7 +60,7 @@ describe('SessionIntegrity: Cloning & Duplication', () => {
     it('should clone session data while preserving encrypted fields as-is', async () => {
         const originalSession = {
             id: 'old-session-id',
-            clerkId: 'user_abc',
+            externalId: 'user_abc',
             userId: 'db-user-id',
             fullName: 'ENCRYPTED_NAME_BLOB',
             dateOfBirth: 'ENCRYPTED_DOB_BLOB',
@@ -101,7 +101,7 @@ describe('SessionIntegrity: Cloning & Duplication', () => {
     it('should correctly reset progress and error fields on clone', async () => {
         (db.query.sessions.findFirst as any).mockResolvedValue({
             id: 'failed-session',
-            clerkId: 'user_abc',
+            externalId: 'user_abc',
             status: 'failed',
             errorMessage: 'Old error',
             progressData: '{"last": "step"}',

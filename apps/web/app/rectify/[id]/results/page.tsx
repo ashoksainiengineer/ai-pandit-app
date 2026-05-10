@@ -8,17 +8,15 @@ import { ResultsDashboardClient } from './ResultsDashboardClient';
 import Layout from '@/components/Layout';
 import Link from 'next/link';
 import { Breadcrumbs, predefinedBreadcrumbs } from '@/components/ui/Breadcrumbs';
-import { env } from '@/lib/config/env';
+import { getWebEncryption } from '@/lib/crypto';
 import { logger } from '@/lib/secure-logger';
-import { initializeEncryption, parseSensitiveField } from '@/lib/crypto';
 import '@/app/globals.css';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
-// Initialize encryption for server-side decryption
-initializeEncryption(env.security.encryptionSecret);
 
+const crypto = getWebEncryption();
 const getSessionResults = cache(async (sessionId: string, userId: string): Promise<any> => {
     try {
         // 1. Primary Query
@@ -34,17 +32,17 @@ const getSessionResults = cache(async (sessionId: string, userId: string): Promi
             }
         }
 
-        if (!session || session.clerkId !== userId) {
+        if (!session || session.externalId !== userId) {
             return null;
         }
 
         // 3. Robust Data Reconstruction
         const sessionUserId = session.userId;
         const birthData = {
-            fullName: parseSensitiveField(session.fullName, sessionUserId, undefined, 'Unencryptable Session'),
-            dateOfBirth: parseSensitiveField(session.dateOfBirth, sessionUserId, undefined, 'Not set'),
-            tentativeTime: parseSensitiveField(session.tentativeTime, sessionUserId, undefined, 'Not set'),
-            birthPlace: parseSensitiveField(session.birthPlace, sessionUserId, undefined, 'Unknown'),
+            fullName: crypto.parseField(session.fullName, sessionUserId, 'Unencryptable Session'),
+            dateOfBirth: crypto.parseField(session.dateOfBirth, sessionUserId, 'Not set'),
+            tentativeTime: crypto.parseField(session.tentativeTime, sessionUserId, 'Not set'),
+            birthPlace: crypto.parseField(session.birthPlace, sessionUserId, 'Unknown'),
             latitude: session.latitude,
             longitude: session.longitude,
             timezone: session.timezone,
@@ -52,8 +50,8 @@ const getSessionResults = cache(async (sessionId: string, userId: string): Promi
         };
 
         // Use parseSensitiveField for complex JSON structures
-        const analysisResult = parseSensitiveField<Record<string, unknown>>(session.analysisResult as string | null, sessionUserId, undefined, {});
-        const reasoningLogs = parseSensitiveField<Record<string, unknown>[]>(session.reasoningLogs as string | null, sessionUserId, undefined, []);
+        const analysisResult = crypto.parseField<Record<string, unknown>>(session.analysisResult as string | null, sessionUserId, {});
+        const reasoningLogs = crypto.parseField<Record<string, unknown>[]>(session.reasoningLogs as string | null, sessionUserId, []);
         return {
             ...session,
             birthData,

@@ -107,11 +107,11 @@ export const AnalysisStatusBanner = memo(function AnalysisStatusBanner({
               if (!phaseLabel) return null;
               return (
                 <span className="text-[9px] px-2 py-0.5 rounded-full bg-[#184131]/10 text-[#184131] font-medium border border-[#184131]/20">
-                  🪐 {phaseLabel}
+                  {phaseLabel}
                 </span>
               );
             })()}
-            <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#000000]/20 text-black font-medium">
+            <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#1A1A1E]/10 text-[#1A1A1E] font-medium">
               Step {stageProgress.current} of {stageProgress.total}
             </span>
           </div>
@@ -125,7 +125,7 @@ export const AnalysisStatusBanner = memo(function AnalysisStatusBanner({
     <motion.div
       initial={{ opacity: 0, y: -10 }}
       animate={{ opacity: 1, y: 0 }}
-      className={`bg-gradient-to-r ${isComplete ? 'from-[#184131]/10 to-transparent border-[#184131]/20' : 'from-[#000000]/10 via-[#000000]/5 to-transparent border-[#000000]/20'} border rounded-xl p-4 sm:p-5`}
+      className={`bg-gradient-to-r ${isComplete ? 'from-[#184131]/10 to-transparent border-[#184131]/20' : 'from-[#C65D3B]/[0.06] via-[#C65D3B]/[0.03] to-transparent border-[#C65D3B]/20'} border rounded-xl p-4 sm:p-5`}
     >
       <div className="flex flex-col sm:flex-row sm:items-center gap-4">
         {statusContent}

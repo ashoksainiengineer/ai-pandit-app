@@ -139,8 +139,12 @@ vi.mock('../progress-tracker.js', () => ({
 }));
 
 vi.mock('../encryption/index.js', () => ({
-    safeDecryptWithFallback: vi.fn(),
-    parseSensitiveField: vi.fn((value) => value),
+    getApiEncryption: vi.fn(() => ({
+        encrypt: vi.fn((val: string) => val),
+        decrypt: vi.fn((val: string) => val),
+        parseField: vi.fn((value: unknown) => value),
+        isEncrypted: vi.fn(() => false),
+    })),
 }));
 
 vi.mock('../../config/index.js', () => ({

@@ -1,14 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@clerk/nextjs/server';
+import { getServerAuth, getServerCurrentUser } from '@/lib/server/auth';
 import { logger } from '@/lib/secure-logger';
 import { db } from '@ai-pandit/db';
 import { sessions, users } from '@ai-pandit/db/schema';
 import { eq } from 'drizzle-orm';
-import { encrypt, encryptObject, initializeEncryption } from '@/lib/crypto';
+import { getWebEncryption } from '@/lib/crypto';
 import { parsePaginationParams, createPaginationMeta } from '@/lib/pagination';
 import { logAuditEvent, getRequestMetadata } from '@/lib/server/audit';
-import { env } from '@/lib/config/env';
-import { currentUser } from '@clerk/nextjs/server';
 import { ensureUserRecord } from '@/lib/server/user-sync';
 import { canFrontendMutateSession, getProtectedFieldsPresent } from '@/lib/server/session-write-guards';
 import { getBuildPhaseRouteResponse } from '@/lib/server/build-phase-route-guard';
@@ -16,8 +14,7 @@ import { getBuildPhaseRouteResponse } from '@/lib/server/build-phase-route-guard
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-// Initialize encryption
-initializeEncryption(env.security.encryptionSecret);
+const crypto = getWebEncryption();
 
 // ═════════════════════════════════════════════════════════════════════════════
 // DRAFT API - Save form data without starting analysis
@@ -30,10 +27,11 @@ export async function POST(request: NextRequest) {
     const { ipAddress, userAgent } = getRequestMetadata(request);
 
     try {
-        const { userId: clerkId } = await auth();
-        if (!clerkId) {
+        const sessionAuth = await getServerAuth();
+        if (!sessionAuth) {
             return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
         }
+        const externalId = sessionAuth.providerId;
 
         const body = await request.json();
         const protectedFields = getProtectedFieldsPresent(body as Record<string, unknown>);
@@ -52,24 +50,24 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        const clerkUser = await currentUser();
-        const email = clerkUser?.emailAddresses[0]?.emailAddress || '';
-        const fullName = `${clerkUser?.firstName || ''} ${clerkUser?.lastName || ''}`.trim() || null;
-        const user = await ensureUserRecord({ clerkId, email, fullName });
+        const clerkUser = await getServerCurrentUser();
+        const email = clerkUser?.email ?? '';
+        const fullName = clerkUser?.fullName;
+        const user = await ensureUserRecord({ externalId, email, fullName });
         const internalUserId = user.id;
 
         const now = new Date().toISOString();
 
-        const encryptedFullName = encrypt(birthData.fullName, internalUserId);
-        const encryptedLifeEvents = lifeEvents && lifeEvents.length > 0 ? encryptObject(lifeEvents, internalUserId) : '';
-        const encryptedSpouseData = spouseData ? encryptObject(spouseData, internalUserId) : null;
+        const encryptedFullName = crypto.encrypt(birthData.fullName, internalUserId);
+        const encryptedLifeEvents = lifeEvents && lifeEvents.length > 0 ? crypto.encrypt(JSON.stringify(lifeEvents), internalUserId) : '';
+        const encryptedSpouseData = spouseData ? crypto.encrypt(JSON.stringify(spouseData), internalUserId) : null;
 
         // BUG-FIX: Encrypt PII fields (dateOfBirth, tentativeTime, birthPlace) like sessions route does
         const draftData = {
             fullName: encryptedFullName,
-            dateOfBirth: encrypt(birthData.dateOfBirth || '', internalUserId),
-            tentativeTime: encrypt(birthData.tentativeTime || '', internalUserId),
-            birthPlace: encrypt(birthData.birthPlace || '', internalUserId),
+            dateOfBirth: crypto.encrypt(birthData.dateOfBirth || '', internalUserId),
+            tentativeTime: crypto.encrypt(birthData.tentativeTime || '', internalUserId),
+            birthPlace: crypto.encrypt(birthData.birthPlace || '', internalUserId),
             latitude: birthData.latitude || 0,
             longitude: birthData.longitude || 0,
             timezone: birthData.timezone?.toString() || '5.5',
@@ -81,12 +79,12 @@ export async function POST(request: NextRequest) {
         };
 
         if (sessionId) {
-            const existing = await db.select({ clerkId: sessions.clerkId, status: sessions.status }).from(sessions).where(eq(sessions.id, sessionId)).limit(1);
+            const existing = await db.select({ externalId: sessions.externalId, status: sessions.status }).from(sessions).where(eq(sessions.id, sessionId)).limit(1);
             if (existing.length === 0) {
                 // BUG-FIX: Return 404 in all environments — prevent TypeError crash
                 return NextResponse.json({ success: false, error: 'Session not found' }, { status: 404 });
             }
-            if (existing[0].clerkId !== clerkId) return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 403 });
+            if (existing[0].externalId !== externalId) return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 403 });
             if (!canFrontendMutateSession(existing[0].status)) {
                 return NextResponse.json(
                     { success: false, error: `Session is locked for draft edits in status: ${existing[0].status}` },
@@ -95,7 +93,7 @@ export async function POST(request: NextRequest) {
             }
 
             await db.update(sessions).set(draftData).where(eq(sessions.id, sessionId));
-            await logAuditEvent({ userId: clerkId, action: 'DRAFT_UPDATED', resourceType: 'SESSION', resourceId: sessionId, ipAddress, userAgent });
+            await logAuditEvent({ userId: externalId, action: 'DRAFT_UPDATED', resourceType: 'SESSION', resourceId: sessionId, ipAddress, userAgent });
 
             return NextResponse.json({ success: true, message: 'Draft updated', sessionId });
         }
@@ -108,22 +106,22 @@ export async function POST(request: NextRequest) {
 
             if (matchingDraft) {
                 await db.update(sessions).set(draftData).where(eq(sessions.id, matchingDraft.id));
-                await logAuditEvent({ userId: clerkId, action: 'DRAFT_UPDATED', resourceType: 'SESSION', resourceId: matchingDraft.id, ipAddress, userAgent, details: { reason: 'Matching birth date' } });
+                await logAuditEvent({ userId: externalId, action: 'DRAFT_UPDATED', resourceType: 'SESSION', resourceId: matchingDraft.id, ipAddress, userAgent, details: { reason: 'Matching birth date' } });
                 return NextResponse.json({ success: true, message: 'Draft updated (same birth date)', sessionId: matchingDraft.id });
             }
         }
 
-        const newSessionId = crypto.randomUUID();
+        const newSessionId = globalThis.crypto.randomUUID();
         await db.insert(sessions).values({
             ...draftData,
             id: newSessionId,
             userId: internalUserId,
-            clerkId: clerkId,
+            externalId: externalId,
             status: 'draft',
             createdAt: now,
         });
 
-        await logAuditEvent({ userId: clerkId, action: 'DRAFT_CREATED', resourceType: 'SESSION', resourceId: newSessionId, ipAddress, userAgent });
+        await logAuditEvent({ userId: externalId, action: 'DRAFT_CREATED', resourceType: 'SESSION', resourceId: newSessionId, ipAddress, userAgent });
 
         return NextResponse.json({ success: true, message: 'Draft saved to cloud', sessionId: newSessionId });
 
@@ -140,15 +138,16 @@ export async function GET(request: NextRequest) {
     if (buildPhaseResponse) return buildPhaseResponse;
 
     try {
-        const { userId: clerkId } = await auth();
-        if (!clerkId) {
+        const sessionAuth = await getServerAuth();
+        if (!sessionAuth) {
             return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
         }
+        const externalId = sessionAuth.providerId;
 
         // Parse pagination parameters
         const { page, limit } = parsePaginationParams(request.nextUrl.searchParams);
 
-        const user = await db.query.users.findFirst({ where: eq(users.clerkId, clerkId) });
+        const user = await db.query.users.findFirst({ where: eq(users.externalId, externalId) });
 
         if (!user) {
             return NextResponse.json({

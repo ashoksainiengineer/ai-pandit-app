@@ -1,23 +1,24 @@
 /**
  * 🔱 EXHAUSTIVE FRONTEND CRYPTO MODULE TESTS
  * Tests v4 AES-256-GCM encryption with scrypt KDF and user isolation.
+ * Uses the clean getWebEncryption() barrel — no initializeEncryption(), no fallbacks.
  */
-import { describe, it, expect, beforeAll } from 'vitest';
-import {
-    encrypt,
-    decrypt,
-    encryptObject,
-    decryptObject,
-    isEncrypted,
-    parseSensitiveField,
-    initializeEncryption,
-} from '../crypto.js';
+import { describe, it, expect, beforeAll, vi } from 'vitest';
+
+// Hoisted env setup — runs BEFORE module resolution (fixes vitest setupFiles ordering)
+vi.hoisted(() => {
+  process.env.ENCRYPTION_SECRET = 'test-secret-key-for-vitest-testing-32chars!';
+});
+
+import { getWebEncryption, createEncryption } from '../crypto.js';
+import type { EncryptionInstance } from '../crypto.js';
+
 const TEST_USER_ID = 'test-user-id-123';
 
-// Ensure encryption secret is loaded
-beforeAll(() => {
-    initializeEncryption('test-secret-key-for-vitest-testing-32chars!');
-});
+// Lazy crypto — vitest setupFiles run before tests but after module eval,
+// so we create the instance inside beforeAll
+let crypto: EncryptionInstance;
+beforeAll(() => { crypto = getWebEncryption(); });
 
 // ═══════════════════════════════════════════════════════════════════════════
 // ROUNDTRIP
@@ -26,54 +27,54 @@ beforeAll(() => {
 describe('Frontend Crypto - Roundtrip', () => {
     it('should encrypt and decrypt simple text', () => {
         const plaintext = 'Hello, World!';
-        const encrypted = encrypt(plaintext, TEST_USER_ID);
-        const decrypted = decrypt(encrypted, TEST_USER_ID);
+        const encrypted = crypto.encrypt(plaintext, TEST_USER_ID);
+        const decrypted = crypto.decrypt(encrypted, TEST_USER_ID);
         expect(decrypted).toBe(plaintext);
     });
 
     it('should encrypt and decrypt Unicode/Hindi', () => {
         const plaintext = 'नमस्ते दुनिया 🌍';
-        const encrypted = encrypt(plaintext, TEST_USER_ID);
-        const decrypted = decrypt(encrypted, TEST_USER_ID);
+        const encrypted = crypto.encrypt(plaintext, TEST_USER_ID);
+        const decrypted = crypto.decrypt(encrypted, TEST_USER_ID);
         expect(decrypted).toBe(plaintext);
     });
 
     it('should encrypt and decrypt empty string', () => {
-        const encrypted = encrypt('', TEST_USER_ID);
-        const decrypted = decrypt(encrypted, TEST_USER_ID);
+        const encrypted = crypto.encrypt('', TEST_USER_ID);
+        const decrypted = crypto.decrypt(encrypted, TEST_USER_ID);
         expect(decrypted).toBe('');
     });
 
     it('should encrypt and decrypt long text (10KB)', () => {
         const plaintext = 'A'.repeat(10000);
-        const encrypted = encrypt(plaintext, TEST_USER_ID);
-        const decrypted = decrypt(encrypted, TEST_USER_ID);
+        const encrypted = crypto.encrypt(plaintext, TEST_USER_ID);
+        const decrypted = crypto.decrypt(encrypted, TEST_USER_ID);
         expect(decrypted).toBe(plaintext);
         expect(decrypted.length).toBe(10000);
     });
 
     it('should produce v4 versioned format', () => {
-        const encrypted = encrypt('test', TEST_USER_ID);
+        const encrypted = crypto.encrypt('test', TEST_USER_ID);
         expect(encrypted.startsWith('v4:')).toBe(true);
         const parts = encrypted.split(':');
         expect(parts.length).toBe(5); // v4:salt:iv:authTag:ciphertext
     });
 
     it('should produce unique ciphertext for same plaintext (unique IVs/salts)', () => {
-        const enc1 = encrypt('same', TEST_USER_ID);
-        const enc2 = encrypt('same', TEST_USER_ID);
+        const enc1 = crypto.encrypt('same', TEST_USER_ID);
+        const enc2 = crypto.encrypt('same', TEST_USER_ID);
         expect(enc1).not.toBe(enc2);
     });
 
     it('should handle JSON strings', () => {
         const json = JSON.stringify({ name: 'Test', events: [1, 2, 3] });
-        const decrypted = decrypt(encrypt(json, TEST_USER_ID), TEST_USER_ID);
+        const decrypted = crypto.decrypt(crypto.encrypt(json, TEST_USER_ID), TEST_USER_ID);
         expect(JSON.parse(decrypted)).toEqual(JSON.parse(json));
     });
 
     it('should handle special characters', () => {
         const special = "O'Brien & Co. <special> \"quotes\" $€¥₹";
-        const decrypted = decrypt(encrypt(special, TEST_USER_ID), TEST_USER_ID);
+        const decrypted = crypto.decrypt(crypto.encrypt(special, TEST_USER_ID), TEST_USER_ID);
         expect(decrypted).toBe(special);
     });
 });
@@ -84,48 +85,49 @@ describe('Frontend Crypto - Roundtrip', () => {
 
 describe('Frontend Crypto - Decryption Errors', () => {
     it('should throw on non-v4 format', () => {
-        expect(() => decrypt('v1:some:old:format', TEST_USER_ID)).toThrow();
+        expect(() => crypto.decrypt('v1:some:old:format', TEST_USER_ID)).toThrow();
     });
 
     it('should throw on corrupted v4 ciphertext', () => {
-        const encrypted = encrypt('test', TEST_USER_ID);
+        const encrypted = crypto.encrypt('test', TEST_USER_ID);
         const parts = encrypted.split(':');
-        parts[4] = 'CORRUPTED_DATA_HERE'; // corrupt ciphertext
-        expect(() => decrypt(parts.join(':'), TEST_USER_ID)).toThrow();
+        parts[4] = 'CORRUPTED_DATA_HERE';
+        expect(() => crypto.decrypt(parts.join(':'), TEST_USER_ID)).toThrow();
     });
 
     it('should throw on tampered v4 auth tag', () => {
-        const encrypted = encrypt('test', TEST_USER_ID);
+        const encrypted = crypto.encrypt('test', TEST_USER_ID);
         const parts = encrypted.split(':');
-        parts[3] = Buffer.from('bad_auth_tag_here').toString('base64'); // corrupt authTag
-        expect(() => decrypt(parts.join(':'), TEST_USER_ID)).toThrow();
+        parts[3] = Buffer.from('bad_auth_tag_here').toString('base64');
+        expect(() => crypto.decrypt(parts.join(':'), TEST_USER_ID)).toThrow();
     });
 
     it('should throw on v4 decrypt with wrong userId', () => {
-        const encrypted = encrypt('test', TEST_USER_ID);
-        expect(() => decrypt(encrypted, 'different-user-id')).toThrow();
+        const encrypted = crypto.encrypt('test', TEST_USER_ID);
+        expect(() => crypto.decrypt(encrypted, 'different-user-id')).toThrow();
     });
 
     it('should throw on plain text input', () => {
-        expect(() => decrypt('not encrypted at all', TEST_USER_ID)).toThrow();
+        expect(() => crypto.decrypt('not encrypted at all', TEST_USER_ID)).toThrow();
     });
 });
 
 // ═══════════════════════════════════════════════════════════════════════════
-// OBJECT ENCRYPTION
+// OBJECT ENCRYPTION (via JSON.stringify/JSON.parse)
 // ═══════════════════════════════════════════════════════════════════════════
 
 describe('Frontend Crypto - Object Encryption', () => {
     it('should encrypt and decrypt objects', () => {
         const obj = { name: 'Test', age: 30, nested: { key: 'value' } };
-        const encrypted = encryptObject(obj, TEST_USER_ID);
-        const decrypted = decryptObject<typeof obj>(encrypted, TEST_USER_ID);
+        const encrypted = crypto.encrypt(JSON.stringify(obj), TEST_USER_ID);
+        const decrypted = JSON.parse(crypto.decrypt(encrypted, TEST_USER_ID));
         expect(decrypted).toEqual(obj);
     });
 
     it('should handle arrays in objects', () => {
         const obj = { events: ['marriage', 'career'], count: 2 };
-        const decrypted = decryptObject<typeof obj>(encryptObject(obj, TEST_USER_ID), TEST_USER_ID);
+        const encrypted = crypto.encrypt(JSON.stringify(obj), TEST_USER_ID);
+        const decrypted = JSON.parse(crypto.decrypt(encrypted, TEST_USER_ID));
         expect(decrypted.events).toEqual(['marriage', 'career']);
     });
 });
@@ -136,82 +138,81 @@ describe('Frontend Crypto - Object Encryption', () => {
 
 describe('Frontend Crypto - isEncrypted', () => {
     it('should detect v4 encrypted strings', () => {
-        const encrypted = encrypt('test', TEST_USER_ID);
-        expect(isEncrypted(encrypted)).toBe(true);
+        const encrypted = crypto.encrypt('test', TEST_USER_ID);
+        expect(crypto.isEncrypted(encrypted)).toBe(true);
     });
 
-
     it('should reject plain text', () => {
-        expect(isEncrypted('hello world')).toBe(false);
+        expect(crypto.isEncrypted('hello world')).toBe(false);
     });
 
     it('should reject JSON strings', () => {
-        expect(isEncrypted('{"key":"value"}')).toBe(false);
+        expect(crypto.isEncrypted('{"key":"value"}')).toBe(false);
     });
 
     it('should reject null/undefined', () => {
-        expect(isEncrypted(null)).toBe(false);
-        expect(isEncrypted(undefined)).toBe(false);
+        expect(crypto.isEncrypted(null)).toBe(false);
+        expect(crypto.isEncrypted(undefined)).toBe(false);
     });
 
     it('should reject empty string', () => {
-        expect(isEncrypted('')).toBe(false);
+        expect(crypto.isEncrypted('')).toBe(false);
     });
 
     it('should reject v1 format', () => {
-        expect(isEncrypted('v1:something')).toBe(false);
+        expect(crypto.isEncrypted('v1:something')).toBe(false);
     });
 });
 
 // ═══════════════════════════════════════════════════════════════════════════
-// parseSensitiveField
+// parseField
 // ═══════════════════════════════════════════════════════════════════════════
 
-describe('Frontend Crypto - parseSensitiveField', () => {
+describe('Frontend Crypto - parseField', () => {
     it('should return default for null/undefined', () => {
-        expect(parseSensitiveField(null, TEST_USER_ID)).toBeNull();
-        expect(parseSensitiveField(undefined, TEST_USER_ID)).toBeNull();
-        expect(parseSensitiveField('', TEST_USER_ID, undefined, 'default')).toBe('default');
+        expect(crypto.parseField(null, TEST_USER_ID)).toBeNull();
+        expect(crypto.parseField(undefined, TEST_USER_ID)).toBeNull();
+        expect(crypto.parseField(null, TEST_USER_ID, 'default')).toBe('default');
     });
 
     it('should decrypt and parse encrypted JSON', () => {
         const data = { events: ['marriage'] };
-        const encrypted = encrypt(JSON.stringify(data), TEST_USER_ID);
-        expect(parseSensitiveField(encrypted, TEST_USER_ID)).toEqual(data);
+        const encrypted = crypto.encrypt(JSON.stringify(data), TEST_USER_ID);
+        expect(crypto.parseField(encrypted, TEST_USER_ID)).toEqual(data);
     });
 
     it('should decrypt plain encrypted string', () => {
         const name = 'Ashok Kumar';
-        const encrypted = encrypt(name, TEST_USER_ID);
-        expect(parseSensitiveField(encrypted, TEST_USER_ID)).toBe(name);
+        const encrypted = crypto.encrypt(name, TEST_USER_ID);
+        expect(crypto.parseField(encrypted, TEST_USER_ID)).toBe(name);
     });
 
     it('should parse unencrypted JSON (legacy)', () => {
         const json = '{"key":"value"}';
-        expect(parseSensitiveField(json, TEST_USER_ID, undefined)).toEqual({ key: 'value' });
+        expect(crypto.parseField(json, TEST_USER_ID)).toEqual({ key: 'value' });
     });
 
     it('should return raw string for non-JSON non-encrypted', () => {
-        expect(parseSensitiveField('plain text', TEST_USER_ID, undefined)).toBe('plain text');
+        expect(crypto.parseField('plain text', TEST_USER_ID)).toBe('plain text');
     });
 });
 
 // ═══════════════════════════════════════════════════════════════════════════
-// INITIALIZATION
+// INSTANCE CREATION
 // ═══════════════════════════════════════════════════════════════════════════
 
-describe('Frontend Crypto - Initialization', () => {
-    it('should throw when encrypting without secret', () => {
-        initializeEncryption(undefined);
-        expect(() => encrypt('test', TEST_USER_ID)).toThrow('Encryption secret is not initialized');
-        initializeEncryption('test-secret-key-for-vitest-testing-32chars!');
+describe('Frontend Crypto - Instance Creation', () => {
+    it('should create a working instance via getWebEncryption', () => {
+        const instance = getWebEncryption();
+        const encrypted = instance.encrypt('test', TEST_USER_ID);
+        expect(instance.isEncrypted(encrypted)).toBe(true);
+        expect(instance.decrypt(encrypted, TEST_USER_ID)).toBe('test');
     });
 
-    it('should throw when decrypting without secret', () => {
-        const encrypted = encrypt('test', TEST_USER_ID);
-        initializeEncryption(undefined);
-        expect(() => decrypt(encrypted, TEST_USER_ID)).toThrow('Encryption secret is not initialized');
-        initializeEncryption('test-secret-key-for-vitest-testing-32chars!');
+    it('should return the same cached instance', () => {
+        const a = getWebEncryption();
+        const b = getWebEncryption();
+        expect(a).toBe(b);
     });
 });
 
@@ -222,22 +223,22 @@ describe('Frontend Crypto - Initialization', () => {
 describe('Frontend Crypto - v4 User Isolation', () => {
     it('should produce different ciphertext for different users on same plaintext', () => {
         const plaintext = 'same data';
-        const enc1 = encrypt(plaintext, 'user-a');
-        const enc2 = encrypt(plaintext, 'user-b');
+        const enc1 = crypto.encrypt(plaintext, 'user-a');
+        const enc2 = crypto.encrypt(plaintext, 'user-b');
         expect(enc1).not.toBe(enc2);
     });
 
     it('should fail to decrypt v4 data with wrong userId', () => {
-        const encrypted = encrypt('secret', 'user-a');
-        expect(() => decrypt(encrypted, 'user-b')).toThrow();
+        const encrypted = crypto.encrypt('secret', 'user-a');
+        expect(() => crypto.decrypt(encrypted, 'user-b')).toThrow();
     });
 
     it('should fail to decrypt v4 data without userId', () => {
-        const encrypted = encrypt('secret', 'user-a');
-        expect(() => decrypt(encrypted, '' as any)).toThrow();
+        const encrypted = crypto.encrypt('secret', 'user-a');
+        expect(() => crypto.decrypt(encrypted, '' as any)).toThrow();
     });
 
     it('should throw when encrypting without userId', () => {
-        expect(() => encrypt('test', '' as any)).toThrow();
+        expect(() => crypto.encrypt('test', '' as any)).toThrow();
     });
 });

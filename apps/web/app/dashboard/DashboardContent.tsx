@@ -7,11 +7,11 @@ import { DashboardSession } from '@/lib/dashboard/types';
 import { DashboardSkeleton } from './DashboardSkeleton';
 
 interface Props {
-  clerkId: string;
+  externalId: string;
   userName: string;
 }
 
-export function DashboardContent({ clerkId, userName }: Props) {
+export function DashboardContent({ externalId, userName }: Props) {
   const { getToken } = useAuth();
   const [sessions, setSessions] = useState<DashboardSession[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -41,7 +41,7 @@ export function DashboardContent({ clerkId, userName }: Props) {
 
     load();
     return () => { cancelled = true; };
-  }, [clerkId, getToken, retryCount]);
+  }, [externalId, getToken, retryCount]);
 
   const handleRetry = () => {
     setError(null);

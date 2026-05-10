@@ -65,23 +65,6 @@ vi.mock('@ai-pandit/db/schema', () => ({
     jobAttempts: { id: 'id', jobId: 'jobId', outcome: 'outcome' },
 }));
 
-vi.mock('@ai-pandit/db/jobs', () => ({
-    appendJobEvent: vi.fn(),
-    claimNextQueuedJob: vi.fn(),
-    completeJobAttempt: vi.fn(),
-    countQueuedJobs: vi.fn(async () => 0),
-    createJobAttempt: vi.fn(async () => ({ id: 'attempt-1' })),
-    failJob: vi.fn(),
-    getLatestJobForSession: vi.fn(async () => null),
-    incrementJobAttempt: vi.fn(async () => ({ attempt: 1 })),
-    listActiveJobs: vi.fn(async () => []),
-    listJobEvents: vi.fn(async () => []),
-    markJobRunning: vi.fn(),
-    requestJobCancellation: vi.fn(),
-    scheduleJobRetry: vi.fn(),
-    updateJobAttemptHeartbeat: vi.fn(),
-    updateJobProgress: vi.fn(),
-}));
 
 vi.mock('../logger.js', () => ({
     logger: {
@@ -105,6 +88,7 @@ vi.mock('@ai-pandit/db/jobs', () => ({
     getLatestJobForSession: vi.fn(),
     listActiveJobs: vi.fn(),
     countQueuedJobs: vi.fn(),
+    countActiveJobs: vi.fn(async () => 0),
     claimNextQueuedJob: vi.fn(),
     completeJobAttempt: vi.fn(),
     scheduleJobRetry: vi.fn(),
@@ -135,8 +119,23 @@ vi.mock('../progress-tracker.js', () => ({
 }));
 
 vi.mock('../encryption/index.js', () => ({
-    safeDecryptWithFallback: vi.fn(() => JSON.stringify({})),
-    parseSensitiveField: vi.fn((val) => val ? val + '-decrypted' : null),
+    getApiEncryption: vi.fn(() => ({
+        encrypt: vi.fn((val: string) => val),
+        decrypt: vi.fn((val: string) => {
+            // Return valid JSON for encrypted-looking values (matches old safeDecryptWithFallback)
+            if (val && typeof val === 'string' && val.startsWith('encrypted-')) {
+                return JSON.stringify({});
+            }
+            return val;
+        }),
+        parseField: vi.fn((val: any) => {
+            if (val && typeof val === 'string' && val.startsWith('encrypted-')) {
+                return JSON.stringify({});
+            }
+            return val ? val + '-decrypted' : null;
+        }),
+        isEncrypted: vi.fn(() => false),
+    })),
 }));
 
 vi.mock('../../config/index.js', () => ({
@@ -232,7 +231,7 @@ describe('Queue Manager', () => {
             vi.mocked(jobRepo.listActiveJobs).mockResolvedValueOnce([
                 { sessionId: 'sess-1', status: 'queued' } as any,
             ]);
-            vi.mocked(jobRepo.countQueuedJobs).mockResolvedValueOnce(1);
+            vi.mocked(jobRepo.countActiveJobs).mockResolvedValueOnce(1);
 
             const status = await getQueueStatus('sess-1');
             expect(status).toBeDefined();
@@ -433,7 +432,7 @@ describe('Queue Manager', () => {
                 { rowsAffected: 1 }, // claimNextQueuedSession -> session processing update
                 [{
                     id: 'sess-poison-1',
-                    clerkId: 'valid-clerk',
+                    externalId: 'valid-clerk',
                     userId: '1',
                     lifeEvents: 'encrypted-events',
                     dateOfBirth: '1990-01-01',
@@ -471,7 +470,7 @@ describe('Queue Manager', () => {
 
     describe('addToQueue', () => {
         it('should completely reject if queue is full', async () => {
-            vi.mocked(jobRepo.countQueuedJobs).mockResolvedValueOnce(100);
+            vi.mocked(jobRepo.countActiveJobs).mockResolvedValueOnce(100);
             const res = await addToQueue('sess-1');
             expect(res.success).toBe(false);
             expect(res.error).toContain('Queue is full');
@@ -482,7 +481,7 @@ describe('Queue Manager', () => {
                 [], // update
                 [{ id: 'sess-1', status: 'queued' }], // getQueueStatus -> session
             ]);
-            vi.mocked(jobRepo.countQueuedJobs)
+            vi.mocked(jobRepo.countActiveJobs)
                 .mockResolvedValueOnce(5)
                 .mockResolvedValueOnce(6);
             vi.mocked(jobRepo.listActiveJobs).mockResolvedValueOnce([

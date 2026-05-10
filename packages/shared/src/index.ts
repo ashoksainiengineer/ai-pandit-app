@@ -4,3 +4,7 @@ export * from './btr-types.js';
 export * from './errors.js';
 export * from './encryption.js';
 export * from './parse-sensitive-field.js';
+export { createEncryption } from './crypto-factory.js';
+export type { EncryptionInstance } from './crypto-factory.js';
+export type { AuthProvider, AuthIdentity, AuthUserProfile, TokenVerificationResult } from './auth-provider.js';
+export { createNoOpAuthProvider } from './auth-provider.js';

@@ -3,9 +3,10 @@ import crypto from 'node:crypto';
 import { db, executeWithRetry } from '@ai-pandit/db';
 import { sessions, users } from '@ai-pandit/db/schema';
 import { addToQueue, startQueueProcessor } from '../apps/api/src/lib/queue-manager.js';
-import { encryptData } from '../apps/api/src/lib/encryption/index.js';
+import { getApiEncryption } from '../apps/api/src/lib/encryption/index.js';
 import { syncUser } from '../apps/api/src/lib/user-sync.js';
 import { initEphemerisProvider } from '../apps/api/src/lib/ephemeris.js';
+const crypto = getApiEncryption();
 
 async function runUserRectification() {
     console.log('🚀 INITIALIZING USER BIRTH TIME RECTIFICATION...');
@@ -83,16 +84,16 @@ async function runUserRectification() {
             id: sessionId,
             userId: internalUserId,
             clerkId: clerkId,
-            fullName: encryptData(birthData.fullName, clerkId),
-            dateOfBirth: encryptData(birthData.dateOfBirth, clerkId),
-            tentativeTime: encryptData(birthData.tentativeTime, clerkId),
-            birthPlace: encryptData(birthData.birthPlace, clerkId),
+            fullName: crypto.encrypt(birthData.fullName, internalUserId),
+            dateOfBirth: crypto.encrypt(birthData.dateOfBirth, internalUserId),
+            tentativeTime: crypto.encrypt(birthData.tentativeTime, internalUserId),
+            birthPlace: crypto.encrypt(birthData.birthPlace, internalUserId),
             latitude: birthData.latitude,
             longitude: birthData.longitude,
             timezone: birthData.timezone,
             gender: birthData.gender,
-            lifeEvents: encryptData(JSON.stringify(lifeEvents), clerkId),
-            offsetConfig: encryptData(JSON.stringify(offsetConfig), clerkId),
+            lifeEvents: crypto.encrypt(JSON.stringify(lifeEvents), internalUserId),
+            offsetConfig: crypto.encrypt(JSON.stringify(offsetConfig), internalUserId),
             status: 'pending',
             createdAt: now,
             updatedAt: now,

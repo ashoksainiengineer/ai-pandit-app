@@ -60,7 +60,7 @@ describe('POST /api/sessions/[id]/clone', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockResolveSessionOwnershipContext.mockResolvedValue({
-      clerkId: 'clerk_test_user',
+      externalId: 'clerk_test_user',
       internalUserId: 'user_internal_1',
     });
   });
@@ -79,7 +79,7 @@ describe('POST /api/sessions/[id]/clone', () => {
     mockFindFirst.mockResolvedValueOnce({
       id: 'original-session',
       userId: 'legacy-user-id',
-      clerkId: 'legacy-clerk-id',
+      externalId: 'legacy-clerk-id',
       fullName: 'enc-name',
       dateOfBirth: 'enc-dob',
       tentativeTime: 'enc-time',
@@ -102,7 +102,7 @@ describe('POST /api/sessions/[id]/clone', () => {
     expect(json.data.id).toBe('new-session-id-123');
     expect(mockInsertValues).toHaveBeenCalledWith(expect.objectContaining({
       id: 'new-session-id-123',
-      clerkId: 'clerk_test_user',
+      externalId: 'clerk_test_user',
       userId: 'user_internal_1',
       status: 'draft',
       analysisResult: null,

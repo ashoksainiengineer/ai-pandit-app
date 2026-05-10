@@ -3,16 +3,16 @@ import { users } from '@ai-pandit/db/schema';
 import { eq } from 'drizzle-orm';
 
 export interface SessionOwnershipContext {
-    clerkId: string;
+    externalId: string;
     internalUserId: string | null;
 }
 
 export interface SessionOwnershipSnapshot {
-    clerkId: string | null;
+    externalId: string | null;
     userId: string | null;
 }
 
-export async function resolveSessionOwnershipContext(clerkId: string): Promise<SessionOwnershipContext> {
+export async function resolveSessionOwnershipContext(externalId: string): Promise<SessionOwnershipContext> {
     const queryUsers = (db as typeof db & {
         query?: {
             users?: {
@@ -26,20 +26,20 @@ export async function resolveSessionOwnershipContext(clerkId: string): Promise<S
 
     if (!queryUsers?.findFirst) {
         return {
-            clerkId,
+            externalId,
             internalUserId: null,
         };
     }
 
     const user = await executeWithRetry(() =>
         queryUsers.findFirst({
-            where: eq(users.clerkId, clerkId),
+            where: eq(users.externalId, externalId),
             columns: { id: true },
         })
     );
 
     return {
-        clerkId,
+        externalId,
         internalUserId: user?.id ?? null,
     };
 }
@@ -48,7 +48,7 @@ export function isSessionOwnedByContext(
     session: SessionOwnershipSnapshot,
     context: SessionOwnershipContext
 ): boolean {
-    if (session.clerkId === context.clerkId) {
+    if (session.externalId === context.externalId) {
         return true;
     }
 

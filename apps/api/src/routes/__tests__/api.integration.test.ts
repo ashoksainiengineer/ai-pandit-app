@@ -57,34 +57,37 @@ vi.mock('@ai-pandit/db', () => ({
 
 vi.mock('@ai-pandit/db/schema', () => ({
   sessions: {
-    id: 'id', clerkId: 'clerkId', userId: 'userId', fullName: 'fullName',
+    id: 'id', externalId: 'externalId', userId: 'userId', fullName: 'fullName',
     dateOfBirth: 'dateOfBirth', tentativeTime: 'tentativeTime', birthPlace: 'birthPlace',
     latitude: 'latitude', longitude: 'longitude', timezone: 'timezone', gender: 'gender',
     status: 'status', createdAt: 'createdAt', updatedAt: 'updatedAt',
   },
-  users: { id: 'id', clerkId: 'clerkId' },
+  users: { id: 'id', externalId: 'externalId' },
 }));
 
 vi.mock('../../middleware/auth.js', () => ({
   authMiddleware: (req: any, _res: any, next: any) => {
-    req.clerkId = req.headers['x-test-clerk-id'] || 'test_clerk_id';
+    req.externalId = req.headers['x-test-clerk-id'] || 'test_clerk_id';
     next();
   },
   AuthenticatedRequest: {} as any,
 }));
 
 vi.mock('../../lib/session-ownership.js', () => ({
-  resolveSessionOwnershipContext: vi.fn(async (clerkId: string) => ({
-    clerkId,
+  resolveSessionOwnershipContext: vi.fn(async (externalId: string) => ({
+    externalId,
     internalUserId: 'test_user_id',
   })),
   isSessionOwnedByContext: vi.fn(() => true),
 }));
 
 vi.mock('../../lib/encryption/index.js', () => ({
-  encryptData: vi.fn((data: string) => `encrypted:${data}`),
-  parseSensitiveField: vi.fn((data: unknown) => data),
-  isEncrypted: vi.fn(() => false),
+  getApiEncryption: vi.fn(() => ({
+    encrypt: vi.fn((data: string) => `encrypted:${data}`),
+    decrypt: vi.fn((data: string) => data),
+    parseField: vi.fn((data: unknown) => data),
+    isEncrypted: vi.fn(() => false),
+  })),
 }));
 
 vi.mock('../../lib/logger.js', () => ({
@@ -151,16 +154,16 @@ function setupSessionMocks() {
   mockSelectWhereFn.mockReturnValue({ orderBy: mockSelectOrderByFn });
   mockSelectOrderByFn.mockReturnValue({ limit: mockSelectLimitFn });
   mockSelectLimitFn.mockResolvedValue([{
-    id: 'session-001', clerkId: 'test_clerk_id', userId: 'test_user_id',
+    id: 'session-001', externalId: 'test_clerk_id', userId: 'test_user_id',
     fullName: 'encrypted:Test User', dateOfBirth: 'encrypted:1990-01-01',
     tentativeTime: 'encrypted:12:00', birthPlace: 'encrypted:Mumbai',
     latitude: '19.076', longitude: '72.877', timezone: '5.5', gender: 'male',
     status: 'pending', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
   }]);
   mockQuerySessionsFindFirst.mockResolvedValue({
-    id: 'session-001', clerkId: 'test_clerk_id', userId: 'test_user_id',
+    id: 'session-001', externalId: 'test_clerk_id', userId: 'test_user_id',
   });
-  mockQueryUsersFindFirst.mockResolvedValue({ id: 'test_user_id', clerkId: 'test_clerk_id' });
+  mockQueryUsersFindFirst.mockResolvedValue({ id: 'test_user_id', externalId: 'test_clerk_id' });
   mockDeleteFn.mockReturnValue({ returning: vi.fn().mockResolvedValue([{ id: 'session-001' }]) });
   mockInsertFn.mockResolvedValue(undefined);
   mockSetWhereFn.mockResolvedValue(undefined);
@@ -312,7 +315,7 @@ describe('API Routes - Integration Tests', () => {
       it('should return a specific session by ID', async () => {
         mockQuerySessionsFindFirst.mockResolvedValue({
           id: 'session-001',
-          clerkId: 'test_clerk_id',
+          externalId: 'test_clerk_id',
           userId: 'test_user_id',
         });
 

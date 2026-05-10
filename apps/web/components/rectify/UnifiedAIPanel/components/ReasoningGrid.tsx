@@ -80,19 +80,19 @@ export const ReasoningGrid = memo(function ReasoningGrid({
                         placeholder="Search candidates, times, or reasoning..."
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
-                        className="w-full px-3 py-2 text-xs bg-white/90 backdrop-blur-sm border border-[rgba(0,0,0,0.08)] rounded-xl focus:ring-2 focus:ring-[#000000]/20 outline-none transition-all pr-8"
+                        className="w-full px-3 py-2 text-xs bg-white/90 backdrop-blur-sm border border-[rgba(0,0,0,0.06)] rounded-xl focus:ring-2 focus:ring-[#C65D3B]/20 outline-none transition-all pr-8"
                     />
                     {searchQuery && (
                         <button
                             onClick={() => setSearchQuery('')}
-                            className="absolute right-2 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600 p-1"
+                            className="absolute right-2 top-1/2 -translate-y-1/2 text-[#8A837D] hover:text-[#6B6560] p-1"
                         >
                             ×
                         </button>
                     )}
                 </div>
                 {searchQuery && (
-                    <div className="mt-1 text-[9px] text-stone-500 font-medium uppercase tracking-wider px-1">
+                    <div className="mt-1 text-[9px] text-[#6B6560] font-medium uppercase tracking-wider px-1">
                         Found {filteredEntries.length} results
                     </div>
                 )}

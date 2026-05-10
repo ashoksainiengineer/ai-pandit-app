@@ -71,7 +71,7 @@ vi.mock('@ai-pandit/db', () => {
 
 vi.mock('@ai-pandit/db/schema', () => ({
   sessions: {
-    id: 'id', clerkId: 'clerkId', userId: 'userId', status: 'status',
+    id: 'id', externalId: 'externalId', userId: 'userId', status: 'status',
     errorMessage: 'errorMessage', updatedAt: 'updatedAt',
     analysisResult: 'analysisResult', fullName: 'fullName',
     offsetConfig: 'offsetConfig', lifeEvents: 'lifeEvents',
@@ -93,11 +93,11 @@ vi.mock('../../middleware/auth.js', () => ({
   authMiddleware: (req: any, _res: any, next: any) => {
     const authHeader = req.headers.authorization;
     if (authHeader === 'Bearer VALID_TOKEN') {
-      req.clerkId = 'valid_clerk_001';
+      req.externalId = 'valid_clerk_001';
     } else if (authHeader === 'Bearer OTHER_USER') {
-      req.clerkId = 'other_clerk_002';
+      req.externalId = 'other_clerk_002';
     }
-    // If no valid auth header, clerkId stays undefined
+    // If no valid auth header, externalId stays undefined
     next();
   },
   AuthenticatedRequest: {} as any,
@@ -116,8 +116,12 @@ vi.mock('../../lib/queue-manager.js', () => ({
 }));
 
 vi.mock('../../lib/encryption/index.js', () => ({
-  parseSensitiveField: mockParseSensitiveFieldFn,
-  safeDecryptWithFallback: mockSafeDecryptFn,
+  getApiEncryption: vi.fn(() => ({
+    encrypt: vi.fn(),
+    decrypt: mockSafeDecryptFn,
+    parseField: mockParseSensitiveFieldFn,
+    isEncrypted: vi.fn(() => false),
+  })),
 }));
 
 vi.mock('../../lib/session-ownership.js', () => ({
@@ -192,14 +196,14 @@ function parseSSE(text: string) {
 }
 
 function setupDefaultMocks() {
-  mockResolveOwnershipContextFn.mockImplementation(async (clerkId: string) => ({
-    clerkId,
-    internalUserId: clerkId === 'valid_clerk_001' ? 'user_001' : null,
+  mockResolveOwnershipContextFn.mockImplementation(async (externalId: string) => ({
+    externalId,
+    internalUserId: externalId === 'valid_clerk_001' ? 'user_001' : null,
   }));
   mockIsOwnedByContextFn.mockImplementation(
-    (session: { clerkId?: string; userId?: string } | null, ctx: { clerkId: string; internalUserId: string | null }) => {
+    (session: { externalId?: string; userId?: string } | null, ctx: { externalId: string; internalUserId: string | null }) => {
       if (!session) return false;
-      if (session.clerkId === ctx.clerkId) return true;
+      if (session.externalId === ctx.externalId) return true;
       if (ctx.internalUserId && session.userId === ctx.internalUserId) return true;
       return false;
     }
@@ -286,7 +290,7 @@ describe('Stream Integration', () => {
     });
 
     it('should return SSE error FORBIDDEN when session belongs to another user', async () => {
-      setMockResults([[{ clerkId: 'other_owner', userId: 'owner_999', status: 'pending' }]]);
+      setMockResults([[{ externalId: 'other_owner', userId: 'owner_999', status: 'pending' }]]);
 
       const res = await request(app)
         .get('/api/stream/sess-other')
@@ -305,7 +309,7 @@ describe('Stream Integration', () => {
     it('should return terminal_state for completed sessions', async () => {
       setMockResults([[
         {
-          clerkId: 'valid_clerk_001',
+          externalId: 'valid_clerk_001',
           userId: 'user_001',
           status: 'complete',
           analysisResult: JSON.stringify({ rectifiedTime: '12:34:56', accuracy: 96 }),
@@ -327,7 +331,7 @@ describe('Stream Integration', () => {
     it('should return terminal_state for failed sessions with error message', async () => {
       setMockResults([[
         {
-          clerkId: 'valid_clerk_001',
+          externalId: 'valid_clerk_001',
           userId: 'user_001',
           status: 'failed',
           errorMessage: 'Analysis engine OOM',
@@ -350,7 +354,7 @@ describe('Stream Integration', () => {
 
   describe('Active SSE stream for valid session', () => {
     it('should open SSE connection with correct headers for active session', { timeout: 5000 }, async () => {
-      setMockResults([[{ clerkId: 'valid_clerk_001', userId: 'user_001', status: 'processing' }]]);
+      setMockResults([[{ externalId: 'valid_clerk_001', userId: 'user_001', status: 'processing' }]]);
 
       let responseText = '';
       let gotHeaders = false;

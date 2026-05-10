@@ -1,17 +1,17 @@
 'use server';
 
-import { auth } from '@clerk/nextjs/server';
+import { getServerAuth } from '@/lib/server/auth';
 import { env } from '@/lib/config';
 import { APIClient } from '@/lib/api-client';
 import { logger } from '@/lib/secure-logger';
 
 export async function cancelAnalysis(sessionId: string) {
-    const { getToken } = await auth();
-    const token = await getToken();
-
-    if (!token) {
+    const sessionAuth = await getServerAuth();
+    if (!sessionAuth) {
         throw new Error('Unauthorized: No session token found');
     }
+
+    const token = await sessionAuth.getToken();
 
     try {
         const backendUrl = env.api.backendUrl.replace(/\/$/, '');
@@ -25,12 +25,12 @@ export async function cancelAnalysis(sessionId: string) {
 }
 
 export async function restartAnalysis(sessionId: string) {
-    const { getToken } = await auth();
-    const token = await getToken();
-
-    if (!token) {
+    const sessionAuth = await getServerAuth();
+    if (!sessionAuth) {
         throw new Error('Unauthorized: No session token found');
     }
+
+    const token = await sessionAuth.getToken();
 
     try {
         const backendUrl = env.api.backendUrl.replace(/\/$/, '');

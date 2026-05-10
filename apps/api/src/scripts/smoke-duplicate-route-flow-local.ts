@@ -33,7 +33,7 @@ async function main(): Promise<void> {
     await db.insert(sessions).values({
       id: syntheticTemplateId,
       userId: testUserId,
-      clerkId: 'TEST_SCRIPT',
+      externalId: 'TEST_SCRIPT',
       fullName: 'Synthetic Smoke Template',
       dateOfBirth: '1990-01-01',
       tentativeTime: '10:00:00',
@@ -78,7 +78,7 @@ async function main(): Promise<void> {
   await db.insert(sessions).values({
     id: seededCompletedSessionId,
     userId: testUserId,
-    clerkId: 'TEST_SCRIPT',
+    externalId: 'TEST_SCRIPT',
     fullName: templateSession.fullName,
     dateOfBirth: templateSession.dateOfBirth,
     tentativeTime: templateSession.tentativeTime,

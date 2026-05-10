@@ -17,7 +17,7 @@ describe('StreamTicketManager', () => {
 
         const payload = consumeStreamTicket(ticket);
         expect(payload).toEqual({
-            clerkId: 'clerk_1',
+            externalId: 'clerk_1',
             sessionId: 'session_1',
         });
 

@@ -25,7 +25,7 @@ const router = Router();
  */
 router.post('/', validateBody(ConsentSchema), async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const clerkId = req.clerkId!;
+    const externalId = req.externalId!;
     const { sessionId, consent } = req.body;
 
     if (!sessionId || consent === undefined) {
@@ -36,7 +36,7 @@ router.post('/', validateBody(ConsentSchema), async (req: AuthenticatedRequest, 
     // Verify session belongs to user
     const session = await db
       .select({
-        clerkId: sessions.clerkId,
+        externalId: sessions.externalId,
         userId: sessions.userId,
       })
       .from(sessions)
@@ -48,7 +48,7 @@ router.post('/', validateBody(ConsentSchema), async (req: AuthenticatedRequest, 
       return;
     }
 
-    const ownershipContext = await resolveSessionOwnershipContext(clerkId);
+    const ownershipContext = await resolveSessionOwnershipContext(externalId);
     if (!isSessionOwnedByContext(session[0], ownershipContext)) {
       res.status(403).json({ success: false, error: 'Unauthorized' });
       return;
@@ -78,7 +78,7 @@ router.post('/', validateBody(ConsentSchema), async (req: AuthenticatedRequest, 
 router.get('/:sessionId', validateParams(SessionIdParamSchema), async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { sessionId } = req.params;
-    const clerkId = req.clerkId!;
+    const externalId = req.externalId!;
 
     // SELF-HEALING USER SYNC
     // Ensures user exists in DB and gets internal UUID
@@ -88,7 +88,7 @@ router.get('/:sessionId', validateParams(SessionIdParamSchema), async (req: Auth
       .select({
         aiConsentGiven: sessions.aiConsentGiven,
         aiConsentGivenAt: sessions.aiConsentGivenAt,
-        clerkId: sessions.clerkId,
+        externalId: sessions.externalId,
         userId: sessions.userId,
       })
       .from(sessions)
@@ -100,7 +100,7 @@ router.get('/:sessionId', validateParams(SessionIdParamSchema), async (req: Auth
       return;
     }
 
-    const ownershipContext = await resolveSessionOwnershipContext(clerkId);
+    const ownershipContext = await resolveSessionOwnershipContext(externalId);
     if (!isSessionOwnedByContext(session[0], ownershipContext)) {
       res.status(403).json({ success: false, error: 'Unauthorized' });
       return;

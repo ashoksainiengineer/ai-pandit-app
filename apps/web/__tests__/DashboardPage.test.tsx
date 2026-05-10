@@ -47,7 +47,7 @@ vi.mock('@/components/Layout', () => ({
 
 // Mock DashboardContent (the actual component rendered by the page)
 vi.mock('@/app/dashboard/DashboardContent', () => ({
-    DashboardContent: ({ clerkId, userName }: any) => (
+    DashboardContent: ({ externalId, userName }: any) => (
         <div data-testid="dashboard-content">
             <h1>Welcome, {userName}</h1>
             <div data-testid="session-count">2</div>

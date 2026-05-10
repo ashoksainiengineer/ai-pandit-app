@@ -19,19 +19,19 @@ const router = Router();
 
 type OwnershipSession = Pick<
     typeof sessions.$inferSelect,
-    'id' | 'clerkId' | 'tentativeTime' | 'dateOfBirth' | 'latitude' | 'longitude' | 'timezone'
+    'id' | 'externalId' | 'tentativeTime' | 'dateOfBirth' | 'latitude' | 'longitude' | 'timezone'
 >;
 
 /**
  * Verify session ownership (reusable helper)
  */
-async function verifyOwnership(sessionId: string, clerkId: string): Promise<{ ok: boolean; session?: OwnershipSession }> {
+async function verifyOwnership(sessionId: string, externalId: string): Promise<{ ok: boolean; session?: OwnershipSession }> {
     try {
-        const ownershipContext = await resolveSessionOwnershipContext(clerkId);
+        const ownershipContext = await resolveSessionOwnershipContext(externalId);
         const result = await executeWithRetry(() =>
             db.select({
                 id: sessions.id,
-                clerkId: sessions.clerkId,
+                externalId: sessions.externalId,
                 userId: sessions.userId,
                 tentativeTime: sessions.tentativeTime,
                 dateOfBirth: sessions.dateOfBirth,
@@ -45,7 +45,7 @@ async function verifyOwnership(sessionId: string, clerkId: string): Promise<{ ok
         );
 
         if (result.length === 0) return { ok: false };
-        // Security fix (BUG-015): Use full ownership context instead of simple clerkId check
+        // Security fix (BUG-015): Use full ownership context instead of simple externalId check
         if (!isSessionOwnedByContext(result[0], ownershipContext)) return { ok: false };
         return { ok: true, session: result[0] };
     } catch {
@@ -62,9 +62,9 @@ async function verifyOwnership(sessionId: string, clerkId: string): Promise<{ ok
 router.get('/:sessionId/:time/ephemeris', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
     try {
         const { sessionId, time } = req.params;
-        const clerkId = req.clerkId!;
+        const externalId = req.externalId!;
 
-        const { ok } = await verifyOwnership(sessionId, clerkId);
+        const { ok } = await verifyOwnership(sessionId, externalId);
         if (!ok) {
             res.status(403).json({ error: 'Access denied' });
             return;
@@ -116,9 +116,9 @@ router.get('/:sessionId/:time/reasoning', authMiddleware, async (req: Authentica
     try {
         const { sessionId, time } = req.params;
         const stage = req.query.stage ? parseInt(req.query.stage as string) : undefined;
-        const clerkId = req.clerkId!;
+        const externalId = req.externalId!;
 
-        const { ok } = await verifyOwnership(sessionId, clerkId);
+        const { ok } = await verifyOwnership(sessionId, externalId);
         if (!ok) {
             res.status(403).json({ error: 'Access denied' });
             return;

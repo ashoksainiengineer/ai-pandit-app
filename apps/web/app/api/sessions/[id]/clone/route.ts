@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@ai-pandit/db';
 import { sessions } from '@ai-pandit/db/schema';
-import { auth } from '@clerk/nextjs/server';
+import { getServerAuth } from '@/lib/server/auth';
 import { logger } from '@/lib/secure-logger';
 import { randomUUID } from 'crypto';
 import { buildOwnedSessionWhereClause, resolveSessionOwnershipContext } from '@/lib/server/session-ownership';
@@ -18,10 +18,11 @@ export async function POST(
     if (buildPhaseResponse) return buildPhaseResponse;
 
     try {
-        const { userId: clerkId } = await auth();
-        if (!clerkId) {
+        const sessionAuth = await getServerAuth();
+        if (!sessionAuth) {
             return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
         }
+        const externalId = sessionAuth.providerId;
 
         const resolvedParams = await params;
         const sessionId = resolvedParams.id;
@@ -30,7 +31,7 @@ export async function POST(
             return NextResponse.json({ success: false, error: 'Session ID required' }, { status: 400 });
         }
 
-        const ownershipContext = await resolveSessionOwnershipContext(clerkId);
+        const ownershipContext = await resolveSessionOwnershipContext(externalId);
 
         // 1. Fetch original session safely verifying ownership
         const originalSession = await db.query.sessions.findFirst({
@@ -48,7 +49,7 @@ export async function POST(
         const clonePayload = {
             id: newSessionId,
             userId: ownershipContext.internalUserId ?? originalSession.userId,
-            clerkId,
+            externalId,
 
             // Core Data (Already Encrypted from DB)
             fullName: originalSession.fullName,

@@ -32,7 +32,7 @@ vi.mock('@ai-pandit/db', () => ({
 vi.mock('@ai-pandit/db/schema', () => ({
   idempotencyKeys: { userId: 'userId', key: 'key', requestHash: 'requestHash', jobId: 'jobId' },
   jobs: { id: 'id', sessionId: 'sessionId' },
-  sessions: { id: 'id', clerkId: 'clerkId', userId: 'userId', aiConsentGiven: 'aiConsentGiven' },
+  sessions: { id: 'id', externalId: 'externalId', userId: 'userId', aiConsentGiven: 'aiConsentGiven' },
   users: { id: 'id', role: 'role' },
 }));
 
@@ -61,7 +61,12 @@ vi.mock('../../time-offset-manager.js', () => ({
 }));
 
 vi.mock('../../encryption/index.js', () => ({
-  encryptData: vi.fn((value: string) => `enc:${value}`),
+  getApiEncryption: vi.fn(() => ({
+    encrypt: vi.fn((value: string) => `enc:${value}`),
+    decrypt: vi.fn((value: string) => value),
+    parseField: vi.fn((value: unknown) => value),
+    isEncrypted: vi.fn(() => false),
+  })),
 }));
 
 vi.mock('../../user-sync.js', () => ({
@@ -127,8 +132,8 @@ describe('job-service validation + idempotency guardrails', () => {
 
     await expect(
       createQueuedBirthRectificationJob({
-        clerkId: 'clerk_1',
-        ownershipContext: { clerkId: 'clerk_1', internalUserId: 'internal-user-1' },
+        externalId: 'clerk_1',
+        ownershipContext: { externalId: 'clerk_1', internalUserId: 'internal-user-1' },
         body: payload,
       })
     ).rejects.toBeInstanceOf(ValidationError);
@@ -152,8 +157,8 @@ describe('job-service validation + idempotency guardrails', () => {
     ]);
     await expect(
       createQueuedBirthRectificationJob({
-        clerkId: 'clerk_1',
-        ownershipContext: { clerkId: 'clerk_1', internalUserId: 'internal-user-1' },
+        externalId: 'clerk_1',
+        ownershipContext: { externalId: 'clerk_1', internalUserId: 'internal-user-1' },
         body: baseBody,
         idempotencyKey: 'idem-xyz',
       })
@@ -174,8 +179,8 @@ describe('job-service validation + idempotency guardrails', () => {
     selectQueue.push([{ count: 0 }]); // user retrying
     await expect(
       createQueuedBirthRectificationJob({
-        clerkId: 'clerk_1',
-        ownershipContext: { clerkId: 'clerk_1', internalUserId: 'internal-user-1' },
+        externalId: 'clerk_1',
+        ownershipContext: { externalId: 'clerk_1', internalUserId: 'internal-user-1' },
         body: baseBody,
       })
     ).rejects.toMatchObject({

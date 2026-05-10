@@ -28,22 +28,24 @@ vi.mock('@ai-pandit/db', () => ({
 
 vi.mock('../../middleware/auth.js', () => ({
     authMiddleware: (req: any, _res: any, next: any) => {
-        req.clerkId = 'test_user_777';
+        req.externalId = 'test_user_777';
         next();
     },
 }));
 
 vi.mock('../../lib/encryption/index.js', () => ({
-    encryptData: vi.fn((data: string) => `ENC_${data}`),
-    safeDecrypt: vi.fn((data: string) => data.replace('ENC_', '')),
-    isEncrypted: vi.fn((data: string) => data?.startsWith('ENC_')),
-    parseSensitiveField: vi.fn((field: any) => field || ''),
+    getApiEncryption: vi.fn(() => ({
+        encrypt: vi.fn((data: string) => `ENC_${data}`),
+        decrypt: vi.fn((data: string) => data.replace('ENC_', '')),
+        parseField: vi.fn((field: any) => field || ''),
+        isEncrypted: vi.fn((data: string) => data?.startsWith('ENC_')),
+    })),
 }));
 
 vi.mock('../../lib/session-ownership.js', () => ({
   isSessionOwnedByContext: vi.fn(() => true),
-  resolveSessionOwnershipContext: vi.fn(async (clerkId: string) => ({
-    clerkId,
+  resolveSessionOwnershipContext: vi.fn(async (externalId: string) => ({
+    externalId,
     internalUserId: null,
   })),
 }));
@@ -77,7 +79,7 @@ describe('Phase C: Security Fortress (Automated Fuzzing)', () => {
         it('should correctly handle script tags in names by sanitizing or treating as literal strings', async () => {
             (db.query.sessions.findFirst as any).mockResolvedValueOnce({
                 id: 'session-123',
-                clerkId: 'test_user_777'
+                externalId: 'test_user_777'
             });
 
             const payload = {
@@ -114,7 +116,7 @@ describe('Phase C: Security Fortress (Automated Fuzzing)', () => {
 
     describe('HPE Resilience (Horizontal Privilege Escalation)', () => {
         it('should block authenticated user from accessing another user\'s session', async () => {
-            // Mock DB to return NULL because the 'where' clause includes the current clerkId
+            // Mock DB to return NULL because the 'where' clause includes the current externalId
             // and the session being requested belongs to someone else.
             (db.query.sessions.findFirst as any).mockResolvedValueOnce(null);
 

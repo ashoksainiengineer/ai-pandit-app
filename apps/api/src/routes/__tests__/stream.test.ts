@@ -70,7 +70,7 @@ vi.mock('@ai-pandit/db/schema', () => ({
         id: 'id',
         status: 'status',
         userId: 'userId',
-        clerkId: 'clerkId',
+        externalId: 'externalId',
         errorMessage: 'errorMessage',
         updatedAt: 'updatedAt',
         analysisResult: 'analysisResult'
@@ -82,14 +82,14 @@ vi.mock('drizzle-orm', () => ({
     and: vi.fn(),
 }));
 
-// Mock Auth Middleware to directly inject clerkId
+// Mock Auth Middleware to directly inject externalId
 vi.mock('../../middleware/auth.js', () => ({
     authMiddleware: (req: any, res: any, next: any) => {
         if (req.headers.authorization === 'Bearer VALID') {
-            req.clerkId = 'valid-clerk';
+            req.externalId = 'valid-clerk';
             req.userId = '1';
         } else if (req.headers.authorization === 'Bearer VALID_OTHER') {
-            req.clerkId = 'other-clerk';
+            req.externalId = 'other-clerk';
             req.userId = '2';
         }
         next();
@@ -117,17 +117,21 @@ vi.mock('../../lib/queue-manager.js', () => ({
 }));
 
 vi.mock('../../lib/encryption/index.js', () => ({
-    parseSensitiveField: vi.fn((val) => val === 'encrypted' ? 'decrypted' : val),
-    safeDecryptWithFallback: vi.fn((val) => val),
+    getApiEncryption: vi.fn(() => ({
+        encrypt: vi.fn((data: string) => `enc:${data}`),
+        decrypt: vi.fn((data: string) => data.replace(/^enc:/, '')),
+        parseField: vi.fn((val: unknown) => val === 'encrypted' ? 'decrypted' : val),
+        isEncrypted: vi.fn((data: string) => data?.startsWith('enc:')),
+    })),
 }));
 
 vi.mock('../../lib/session-ownership.js', () => ({
-    resolveSessionOwnershipContext: vi.fn(async (clerkId: string) => ({
-        clerkId,
-        internalUserId: clerkId === 'valid-clerk' ? '1' : (clerkId === 'other-clerk' ? '2' : null),
+    resolveSessionOwnershipContext: vi.fn(async (externalId: string) => ({
+        externalId,
+        internalUserId: externalId === 'valid-clerk' ? '1' : (externalId === 'other-clerk' ? '2' : null),
     })),
-    isSessionOwnedByContext: vi.fn((session: { clerkId?: string | null; userId?: string | null }, context: { clerkId: string; internalUserId: string | null }) => {
-        if (session?.clerkId === context.clerkId) return true;
+    isSessionOwnedByContext: vi.fn((session: { externalId?: string | null; userId?: string | null }, context: { externalId: string; internalUserId: string | null }) => {
+        if (session?.externalId === context.externalId) return true;
         if (!context.internalUserId) return false;
         return session?.userId === context.internalUserId;
     }),
@@ -211,7 +215,7 @@ describe('GET /api/stream/:sessionId', () => {
         expect(res.headers['access-control-allow-credentials']).toBe('true');
     });
 
-    it('should return error if no clerkId (unauthorized)', async () => {
+    it('should return error if no externalId (unauthorized)', async () => {
         const res = await request(app).get('/api/stream/sess-1');
         const sse = parseSSE(res.text);
 
@@ -233,8 +237,8 @@ describe('GET /api/stream/:sessionId', () => {
         expect(sse[0].code).toBe('NOT_FOUND');
     });
 
-    it('should return error if clerkId does not match (IDOR Protection)', async () => {
-        setMockResults([[{ clerkId: 'owner-clerk', status: 'pending' }]]);
+    it('should return error if externalId does not match (IDOR Protection)', async () => {
+        setMockResults([[{ externalId: 'owner-clerk', status: 'pending' }]]);
 
         const res = await request(app)
             .get('/api/stream/sess-1')
@@ -246,7 +250,7 @@ describe('GET /api/stream/:sessionId', () => {
     });
 
     it('should allow access when legacy session matches internal userId fallback', async () => {
-        setMockResults([[{ clerkId: 'legacy-clerk', userId: '1', status: 'failed', errorMessage: 'Legacy failed' }]]);
+        setMockResults([[{ externalId: 'legacy-clerk', userId: '1', status: 'failed', errorMessage: 'Legacy failed' }]]);
 
         const res = await request(app)
             .get('/api/stream/sess-legacy')
@@ -260,7 +264,7 @@ describe('GET /api/stream/:sessionId', () => {
     it('should immediately send terminal_state if session is complete', async () => {
         setMockResults([[
             {
-                clerkId: 'valid-clerk',
+                externalId: 'valid-clerk',
                 userId: '1',
                 status: 'complete',
                 analysisResult: JSON.stringify({
@@ -283,7 +287,7 @@ describe('GET /api/stream/:sessionId', () => {
     });
 
     it('should immediately send terminal_state if session is failed', async () => {
-        setMockResults([[{ clerkId: 'valid-clerk', status: 'failed', errorMessage: 'OOM' }]]);
+        setMockResults([[{ externalId: 'valid-clerk', status: 'failed', errorMessage: 'OOM' }]]);
 
         const res = await request(app)
             .get('/api/stream/sess-1')
@@ -296,7 +300,7 @@ describe('GET /api/stream/:sessionId', () => {
     });
 
     it('should open active SSE connection for valid pending session', async () => {
-        setMockResults([[{ clerkId: 'valid-clerk', status: 'processing', userId: '1' }]]);
+        setMockResults([[{ externalId: 'valid-clerk', status: 'processing', userId: '1' }]]);
 
         let responseHeaders: any;
         let responseText = '';
@@ -358,7 +362,7 @@ describe('GET /api/stream/:sessionId', () => {
     describe('Last-Event-ID Reconnection Replay', () => {
         it('should replay missed events when Last-Event-ID header is provided', { timeout: 10000 }, async () => {
             const sessionId = 'sess-reconnect';
-            setMockResults([[{ clerkId: 'valid-clerk', status: 'processing', userId: '1' }]]);
+            setMockResults([[{ externalId: 'valid-clerk', status: 'processing', userId: '1' }]]);
 
             const missedEvent = { type: 'ai_thinking', chunk: 'replayed' };
             (sessionEvents.getEventsSince as any).mockReturnValue([{ seq: 5, event: missedEvent }]);
@@ -398,7 +402,7 @@ describe('GET /api/stream/:sessionId', () => {
 
         it('should prefer persisted incremental events for partial missed windows', { timeout: 10000 }, async () => {
             const sessionId = 'sess-partial-window';
-            setMockResults([[{ clerkId: 'valid-clerk', status: 'processing', userId: '1' }]]);
+            setMockResults([[{ externalId: 'valid-clerk', status: 'processing', userId: '1' }]]);
             getPersistedSessionEventsSinceMock.mockResolvedValueOnce([
                 { seq: 7, event: { type: 'ai_thinking', chunk: 'persisted-window' } },
             ] as any[]);
@@ -430,7 +434,7 @@ describe('GET /api/stream/:sessionId', () => {
 
         it('should fall back to in-memory replay when no persisted events exist', { timeout: 10000 }, async () => {
             const sessionId = 'sess-no-persisted';
-            setMockResults([[{ clerkId: 'valid-clerk', status: 'processing', userId: '1' }]]);
+            setMockResults([[{ externalId: 'valid-clerk', status: 'processing', userId: '1' }]]);
             getPersistedSessionEventsSinceMock.mockResolvedValueOnce([]);
             (sessionEvents.getEventsSince as any).mockReturnValueOnce([
                 { seq: 9, event: { type: 'ai_thinking', chunk: 'memory-fallback' } },
@@ -462,7 +466,7 @@ describe('GET /api/stream/:sessionId', () => {
 
         it('should suppress duplicate replay when persisted events are available', { timeout: 10000 }, async () => {
             const sessionId = 'sess-no-duplicates';
-            setMockResults([[{ clerkId: 'valid-clerk', status: 'processing', userId: '1' }]]);
+            setMockResults([[{ externalId: 'valid-clerk', status: 'processing', userId: '1' }]]);
             getPersistedSessionEventsSinceMock.mockResolvedValueOnce([
                 { seq: 11, event: { type: 'ai_thinking', chunk: 'deduped-event' } },
             ] as any[]);
@@ -494,7 +498,7 @@ describe('GET /api/stream/:sessionId', () => {
         });
 
         it('should correctly format sequenced SSE events with id: field', async () => {
-            setMockResults([[{ clerkId: 'valid-clerk', status: 'processing', userId: '1' }]]);
+            setMockResults([[{ externalId: 'valid-clerk', status: 'processing', userId: '1' }]]);
             (sessionEvents.getNextSeq as any).mockReturnValue(42);
 
             let responseText = '';
@@ -524,7 +528,7 @@ describe('GET /api/stream/:sessionId', () => {
 
     describe('High-Frequency Throughput', () => {
         it('should handle rapid event emission without dropping events', { timeout: 10000 }, async () => {
-            setMockResults([[{ clerkId: 'valid-clerk', status: 'processing', userId: '1' }]]);
+            setMockResults([[{ externalId: 'valid-clerk', status: 'processing', userId: '1' }]]);
 
             let receivedEvents: any[] = [];
             let resolveDone: () => void;

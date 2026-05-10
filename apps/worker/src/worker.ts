@@ -16,6 +16,7 @@ import {
 import { sessions } from '@ai-pandit/db/schema';
 import { eq, and } from 'drizzle-orm';
 import type { SecondsPrecisionInput, SecondsPrecisionResult } from '@ai-pandit/shared';
+import { createEncryption } from '@ai-pandit/shared';
 
 // Load environment variables
 config({ path: '.env' });
@@ -24,6 +25,18 @@ config({ path: '.env.local' });
 const pollIntervalMs = Number(process.env.WORKER_POLL_INTERVAL_MS || 2000);
 const port = Number(process.env.PORT || 8080);
 const drainTimeoutMs = Number(process.env.WORKER_DRAIN_TIMEOUT_MS || 30000);
+
+// ── Encryption instance (shared crypto-factory, validates ≥32 chars) ───────
+const crypto = (() => {
+  const secret = process.env.ENCRYPTION_SECRET;
+  if (!secret || secret.length < 32) {
+    throw new Error(
+      `FATAL: ENCRYPTION_SECRET must be ≥32 characters (got ${secret?.length ?? 0}). ` +
+      'Worker cannot decrypt session data without a valid secret.',
+    );
+  }
+  return createEncryption(secret);
+})();
 
 let workerStarted = false;
 let workerHealthy = false;
@@ -113,31 +126,20 @@ async function processJob(): Promise<void> {
       progressPercent: 20,
     });
 
-    const { safeDecryptWithFallback, parseSensitiveField } =
-      await apiDynamicImport<{
-        safeDecryptWithFallback: (data: string | null | undefined, primaryId: string, secondaryId?: string) => string | null;
-        parseSensitiveField: <T = unknown>(data: string | null | undefined, clerkId: string, internalUserId: string, defaultValue?: T | null) => T | string | null;
-      }>('../../api/src/lib/encryption/index.js');
     if (!session.lifeEvents) {
       throw new Error('lifeEvents data is missing — cannot process without life events');
     }
 
-    // Decrypt and parse session fields (matching queue-manager.ts approach)
+    // Decrypt and parse session fields using the shared encryption instance
     const lifeEvents = decryptSessionJsonField(
       session.lifeEvents,
-      session.clerkId,
       session.userId,
-      safeDecryptWithFallback,
-      true,
     );
 
-
-    const dateOfBirth =
-      parseSensitiveField(session.dateOfBirth, session.clerkId, session.userId, '') as string;
-    const tentativeTime =
-      parseSensitiveField(session.tentativeTime, session.clerkId, session.userId, '') as string;
+    const dateOfBirth = crypto.parseField(session.dateOfBirth, session.userId, '') as string;
+    const tentativeTime = crypto.parseField(session.tentativeTime, session.userId, '') as string;
     const spouseData = session.spouseData
-      ? parseSensitiveField(session.spouseData, session.clerkId, session.userId)
+      ? crypto.parseField(session.spouseData, session.userId)
       : undefined;
 
     // ── Build BTR input ─────────────────────────────────────────────────────
@@ -148,7 +150,7 @@ async function processJob(): Promise<void> {
     });
 
     const rawOffset =
-      parseSensitiveField(session.offsetConfig, session.clerkId, session.userId) as
+      crypto.parseField(session.offsetConfig, session.userId) as
         | Record<string, unknown>
         | null;
     const offsetConfig =
@@ -293,22 +295,19 @@ async function processJob(): Promise<void> {
  */
 function decryptSessionJsonField(
   encrypted: string,
-  clerkId: string,
   userId: string,
-  decryptFn: (data: string | null | undefined, primaryId: string, secondaryId?: string) => string | null,
-  _required: boolean,
 ): unknown {
-  const decrypted = decryptFn(encrypted, clerkId, userId);
-  if (decrypted) {
+  if (!crypto.isEncrypted(encrypted)) {
+    // Not encrypted — try raw JSON parse (legacy data)
     try {
-      return JSON.parse(decrypted);
+      return JSON.parse(encrypted);
     } catch {
-      // Decrypted value is not valid JSON
+      throw new Error('Failed to parse unencrypted session field');
     }
   }
-  // Fallback: try raw JSON parse (for unencrypted test data or legacy records)
   try {
-    return JSON.parse(encrypted);
+    const decrypted = crypto.decrypt(encrypted, userId);
+    return JSON.parse(decrypted);
   } catch {
     throw new Error('Failed to decrypt or parse session field');
   }
@@ -320,23 +319,22 @@ function decryptSessionJsonField(
  */
 function decryptOptionalSessionJsonField(
   encrypted: string | null,
-  clerkId: string,
   userId: string,
-  decryptFn: (data: string | null | undefined, primaryId: string, secondaryId?: string) => string | null,
-): unknown {
+  ): unknown {
   if (!encrypted) {
     return undefined;
   }
-  const decrypted = decryptFn(encrypted, clerkId, userId);
-  if (decrypted) {
+  if (!crypto.isEncrypted(encrypted)) {
+    // Not encrypted — try raw JSON parse (legacy data)
     try {
-      return JSON.parse(decrypted);
+      return JSON.parse(encrypted);
     } catch {
-      /* fall through */
+      return undefined;
     }
   }
   try {
-    return JSON.parse(encrypted);
+    const decrypted = crypto.decrypt(encrypted, userId);
+    return JSON.parse(decrypted);
   } catch {
     return undefined;
   }

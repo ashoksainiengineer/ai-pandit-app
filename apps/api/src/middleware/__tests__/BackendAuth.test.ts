@@ -58,7 +58,7 @@ describe('BackendAuth Middleware', () => {
         await authMiddleware(mockReq, mockRes, nextFunction);
 
         expect(nextFunction).toHaveBeenCalled();
-        expect(mockReq.clerkId).toBe('user_123');
+        expect(mockReq.externalId).toBe('user_123');
         expect(mockReq.sessionId).toBe('sess_123');
     });
 
@@ -134,6 +134,6 @@ describe('BackendAuth Middleware', () => {
         await authMiddleware(mockReq, mockRes, nextFunction);
 
         expect(nextFunction).toHaveBeenCalled();
-        expect(mockReq.clerkId).toBe('TEST_SCRIPT');
+        expect(mockReq.externalId).toBe('TEST_SCRIPT');
     });
 });

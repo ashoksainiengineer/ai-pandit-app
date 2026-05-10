@@ -13,8 +13,8 @@ describe('Postgres DB batching and atomic integrity', () => {
     it('should suggest batching for performance in high-frequency inserts', () => {
         // Documentation/Validation test for code patterns
         const sampleBatch = [
-            { id: '1', clerkId: 'u1', email: 'e1@test.com' },
-            { id: '2', clerkId: 'u2', email: 'e2@test.com' }
+            { id: '1', externalId: 'u1', email: 'e1@test.com' },
+            { id: '2', externalId: 'u2', email: 'e2@test.com' }
         ];
         expect(sampleBatch.length).toBe(2);
     });

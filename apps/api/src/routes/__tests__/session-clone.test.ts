@@ -2,12 +2,59 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import request from 'supertest';
 import express from 'express';
 import { db } from '@ai-pandit/db';
-import { encryptData } from '../../lib/encryption/index.js';
+
+// Hoisted mock for encryption barrel — sessions.ts calls getApiEncryption() at module level
+const { mockGetApiEncryption } = vi.hoisted(() => {
+    const cryptoLib = {
+        encrypt: vi.fn((data: string) => data),
+        decrypt: vi.fn((data: string) => data),
+        parseField: vi.fn((data: unknown) => data),
+        isEncrypted: vi.fn(() => false),
+    };
+    return {
+        mockGetApiEncryption: vi.fn(() => cryptoLib),
+    };
+});
+
+vi.mock('../../lib/encryption/index.js', () => ({
+    getApiEncryption: mockGetApiEncryption,
+    createEncryption: vi.fn((secret: string) => ({
+        encrypt: vi.fn((data: string) => data),
+        decrypt: vi.fn((data: string) => data),
+        parseField: vi.fn((data: unknown) => data),
+        isEncrypted: vi.fn(() => false),
+    })),
+}));
+// Mock session-ownership to bypass DB-dependent ownership checks
+vi.mock('../../lib/session-ownership.js', () => ({
+    resolveSessionOwnershipContext: vi.fn(async (externalId: string) => ({
+        externalId,
+        internalUserId: null,
+    })),
+    isSessionOwnedByContext: vi.fn(() => true),
+}));
+
+// Mock drizzle-orm operators used by sessions route
+vi.mock('drizzle-orm', () => ({
+    eq: vi.fn((col: any, val: any) => ({ op: 'eq', col, val })),
+    and: vi.fn((...args: any[]) => ({ op: 'and', args })),
+    or: vi.fn((...args: any[]) => ({ op: 'or', args })),
+    desc: vi.fn((val: any) => val),
+}));
+
+// Mock DB schema to prevent real schema imports
+vi.mock('@ai-pandit/db/schema', () => ({
+    sessions: { id: 'id', status: 'status', externalId: 'externalId', userId: 'userId' },
+}));
+
+import { createEncryption } from '../../lib/encryption/index.js';
+
+const crypto = createEncryption('test-secret-min-32-chars-for-testing!!');
 
 // Mock Auth Middleware specifically BEFORE importing the router
 vi.mock('../../middleware/auth.js', () => ({
     authMiddleware: (req: any, res: any, next: any) => {
-        req.clerkId = 'test_user_123';
+        req.externalId = 'test_user_123';
         req.userId = 1;
         next();
     }
@@ -68,16 +115,16 @@ describe('Session Duplication / Clone API', () => {
         // Mock existing completed session
         const existingSession = {
             id: 'original-session-123',
-            clerkId: mockClerkId,
+            externalId: mockClerkId,
             userId: 1,
-            fullName: encryptData('John Doe', mockClerkId),
-            dateOfBirth: encryptData('1990-01-01', mockClerkId),
-            tentativeTime: encryptData('12:00:00', mockClerkId),
+            fullName: crypto.encrypt('John Doe', mockClerkId),
+            dateOfBirth: crypto.encrypt('1990-01-01', mockClerkId),
+            tentativeTime: crypto.encrypt('12:00:00', mockClerkId),
             status: 'completed',
             rectifiedTime: '12:05:00',
             accuracy: 98,
-            analysisResult: encryptData(JSON.stringify({ some: 'analysis' }), mockClerkId),
-            progressData: encryptData(JSON.stringify({ stage: 6 }), mockClerkId)
+            analysisResult: crypto.encrypt(JSON.stringify({ some: 'analysis' }), mockClerkId),
+            progressData: crypto.encrypt(JSON.stringify({ stage: 6 }), mockClerkId)
         };
 
         (db.query.sessions.findFirst as any).mockResolvedValueOnce(existingSession);

@@ -19,7 +19,7 @@ beforeAll(async () => {
     await db.execute(sql`
       CREATE TABLE IF NOT EXISTS users (
         id TEXT PRIMARY KEY NOT NULL,
-        "clerkId" TEXT NOT NULL UNIQUE,
+        "externalId" TEXT NOT NULL UNIQUE,
         email TEXT NOT NULL,
         "fullName" TEXT,
         "isActive" BOOLEAN NOT NULL DEFAULT true,
@@ -35,7 +35,7 @@ beforeAll(async () => {
       CREATE TABLE IF NOT EXISTS sessions (
         id TEXT PRIMARY KEY NOT NULL,
         "userId" TEXT NOT NULL REFERENCES users(id),
-        "clerkId" TEXT NOT NULL,
+        "externalId" TEXT NOT NULL,
         "fullName" TEXT NOT NULL,
         "dateOfBirth" TEXT NOT NULL,
         "tentativeTime" TEXT NOT NULL,

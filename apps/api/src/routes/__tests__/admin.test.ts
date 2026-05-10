@@ -22,7 +22,7 @@ vi.mock('@ai-pandit/db', () => {
             query: {
                 users: {
                     findFirst: vi.fn(async () => ({
-                        clerkId: 'admin_clerk_001',
+                        externalId: 'admin_clerk_001',
                         isActive: true,
                         role: 'admin',
                     })),
@@ -40,7 +40,7 @@ vi.mock('@ai-pandit/db/jobs', () => ({
 
 vi.mock('../../middleware/auth.js', () => ({
     authMiddleware: (req: any, _res: any, next: any) => {
-        req.clerkId = 'admin_clerk_001';
+        req.externalId = 'admin_clerk_001';
         next();
     },
 }));

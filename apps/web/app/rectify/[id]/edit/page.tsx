@@ -6,17 +6,15 @@ import { sessions } from '@ai-pandit/db/schema';
 import { eq } from 'drizzle-orm';
 import { EditSessionClient } from './EditSessionClient';
 import Layout from '@/components/Layout';
-import { env } from '@/lib/config/env';
-import { initializeEncryption, parseSensitiveField } from '@/lib/crypto';
+import { getWebEncryption } from '@/lib/crypto';
 import { logger } from '@/lib/secure-logger';
 import '@/app/globals.css';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
-// Initialize encryption for server-side decryption
-initializeEncryption(env.security.encryptionSecret);
 
+const crypto = getWebEncryption();
 const getSessionData = cache(async (sessionId: string, userId: string): Promise<any> => {
     try {
         // 1. Primary Query using Drizzle Relation API
@@ -32,17 +30,17 @@ const getSessionData = cache(async (sessionId: string, userId: string): Promise<
             }
         }
 
-        if (!session || session.clerkId !== userId) {
+        if (!session || session.externalId !== userId) {
             return null;
         }
 
         // 3. Robust Data Reconstruction
         const sessionUserId = session.userId;
         const birthData = {
-            fullName: parseSensitiveField(session.fullName, sessionUserId, undefined, 'Unencryptable Session'),
-            dateOfBirth: parseSensitiveField(session.dateOfBirth, sessionUserId, undefined, 'Not set'),
-            tentativeTime: parseSensitiveField(session.tentativeTime, sessionUserId, undefined, 'Not set'),
-            birthPlace: parseSensitiveField(session.birthPlace, sessionUserId, undefined, 'Unknown'),
+            fullName: crypto.parseField(session.fullName, sessionUserId, 'Unencryptable Session'),
+            dateOfBirth: crypto.parseField(session.dateOfBirth, sessionUserId, 'Not set'),
+            tentativeTime: crypto.parseField(session.tentativeTime, sessionUserId, 'Not set'),
+            birthPlace: crypto.parseField(session.birthPlace, sessionUserId, 'Unknown'),
             latitude: session.latitude,
             longitude: session.longitude,
             timezone: session.timezone,
@@ -52,9 +50,9 @@ const getSessionData = cache(async (sessionId: string, userId: string): Promise<
         return {
             ...session,
             birthData,
-            lifeEvents: parseSensitiveField(session.lifeEvents, sessionUserId, undefined, []),
-            spouseData: parseSensitiveField(session.spouseData, sessionUserId, undefined),
-            offsetConfig: parseSensitiveField(session.offsetConfig, sessionUserId, undefined),
+            lifeEvents: crypto.parseField(session.lifeEvents, sessionUserId, []),
+            spouseData: crypto.parseField(session.spouseData, sessionUserId),
+            offsetConfig: crypto.parseField(session.offsetConfig, sessionUserId),
         };
     } catch (error) {
         logger.error('CRITICAL: Error in getSessionData', error instanceof Error ? error : new Error(String(error)));

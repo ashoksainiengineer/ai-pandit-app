@@ -28,7 +28,7 @@ async function waitForSessionVisibility(
         const found = await executeWithRetry(() =>
             db.select({
                 id: sessions.id,
-                clerkId: sessions.clerkId,
+                externalId: sessions.externalId,
                 userId: sessions.userId,
                 status: sessions.status,
             })
@@ -58,10 +58,10 @@ async function waitForSessionVisibility(
  */
 router.post('/', authMiddleware, validateBody(QueueSubmitSchema), async (req: AuthenticatedRequest, res: Response) => {
     try {
-        const clerkId = req.clerkId!;
-        const ownershipContext = await resolveSessionOwnershipContext(clerkId);
+        const externalId = req.externalId!;
+        const ownershipContext = await resolveSessionOwnershipContext(externalId);
         const result = await createQueuedBirthRectificationJob({
-            clerkId,
+            externalId,
             ownershipContext,
             body: req.body as Record<string, unknown>,
             idempotencyKey: getJobIdempotencyKey(req),
@@ -93,8 +93,8 @@ router.post('/', authMiddleware, validateBody(QueueSubmitSchema), async (req: Au
  */
 router.get('/', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
     try {
-        const clerkId = req.clerkId!;
-        const ownershipContext = await resolveSessionOwnershipContext(clerkId);
+        const externalId = req.externalId!;
+        const ownershipContext = await resolveSessionOwnershipContext(externalId);
         const sessionId = req.query.sessionId as string;
 
         if (!sessionId) {
@@ -188,8 +188,8 @@ router.get('/', authMiddleware, async (req: AuthenticatedRequest, res: Response)
  */
 router.post('/cancel', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
     try {
-        const clerkId = req.clerkId!;
-        const ownershipContext = await resolveSessionOwnershipContext(clerkId);
+        const externalId = req.externalId!;
+        const ownershipContext = await resolveSessionOwnershipContext(externalId);
         const { sessionId } = req.body;
 
         if (!sessionId) {
@@ -208,7 +208,7 @@ router.post('/cancel', authMiddleware, async (req: AuthenticatedRequest, res: Re
         }
 
         if (!isSessionOwnedByContext(session[0], ownershipContext)) {
-            logger.warn(`Cancel unauthorized: Session ${sessionId} owned by ${session[0].clerkId}, requested by ${clerkId}`);
+            logger.warn(`Cancel unauthorized: Session ${sessionId} owned by ${session[0].externalId}, requested by ${externalId}`);
             sendForbidden(res, 'Unauthorized');
             return;
         }
@@ -232,8 +232,8 @@ router.post('/cancel', authMiddleware, async (req: AuthenticatedRequest, res: Re
  */
 async function requeueAnalysisSession(req: AuthenticatedRequest, res: Response, sessionIdFromPath?: string) {
     try {
-        const clerkId = req.clerkId!;
-        const ownershipContext = await resolveSessionOwnershipContext(clerkId);
+        const externalId = req.externalId!;
+        const ownershipContext = await resolveSessionOwnershipContext(externalId);
         const sessionId = sessionIdFromPath ||
             req.body.sessionId ||
             (req.query.sessionId as string);
@@ -357,7 +357,7 @@ async function requeueAnalysisSession(req: AuthenticatedRequest, res: Response, 
         // 4. Kick off processor
         startQueueProcessor();
 
-        logger.info('Session requeued successfully', { sessionId, clerkId, legacy: !!sessionIdFromPath });
+        logger.info('Session requeued successfully', { sessionId, externalId, legacy: !!sessionIdFromPath });
 
         res.json({
             success: true,
@@ -387,7 +387,7 @@ router.post('/requeue', authMiddleware, async (req: AuthenticatedRequest, res: R
  * Used by older frontend builds that haven't been redeployed yet.
  */
 router.post('/:sessionId/requeue', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
-    logger.info('[LEGACY_REQUEUE] Legacy requeue bridge used', { sessionId: req.params.sessionId, clerkId: req.clerkId?.slice(0, 12) });
+    logger.info('[LEGACY_REQUEUE] Legacy requeue bridge used', { sessionId: req.params.sessionId, externalId: req.externalId?.slice(0, 12) });
     return requeueAnalysisSession(req, res, req.params.sessionId);
 });
 

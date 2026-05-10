@@ -7,10 +7,12 @@ import { sessions } from '@ai-pandit/db/schema';
 import { eq, desc, or, and } from 'drizzle-orm';
 import { AuthenticatedRequest } from '../middleware/auth.js';
 import { logger } from '../utils/logger.js';
-import { encryptData, parseSensitiveField } from '../lib/encryption/index.js';
+import { getApiEncryption } from '../lib/encryption/index.js';
 import { randomUUID } from 'crypto';
 import { isSessionOwnedByContext, resolveSessionOwnershipContext } from '../lib/session-ownership.js';
 import { validateBody, SessionUpdateSchema } from '../middleware/validation.js';
+const crypto = getApiEncryption();
+
 const router = Router();
 
 // BUG-013 fix: Never expose raw error messages to clients
@@ -29,8 +31,8 @@ function normalizeTimezoneValue(rawTimezone: string): number | string {
  */
 router.get('/', async (req: AuthenticatedRequest, res: Response) => {
     try {
-        const clerkId = req.clerkId!;
-        const ownershipContext = await resolveSessionOwnershipContext(clerkId);
+        const externalId = req.externalId!;
+        const ownershipContext = await resolveSessionOwnershipContext(externalId);
 
         // Get sessions
         const userSessions = await executeWithRetry(() =>
@@ -39,10 +41,10 @@ router.get('/', async (req: AuthenticatedRequest, res: Response) => {
                 .where(
                     ownershipContext.internalUserId
                         ? or(
-                            eq(sessions.clerkId, ownershipContext.clerkId),
+                            eq(sessions.externalId, ownershipContext.externalId),
                             eq(sessions.userId, ownershipContext.internalUserId)
                         )
-                        : eq(sessions.clerkId, ownershipContext.clerkId)
+                        : eq(sessions.externalId, ownershipContext.externalId)
                 )
                 .orderBy(desc(sessions.createdAt))
                 .limit(50)
@@ -51,13 +53,13 @@ router.get('/', async (req: AuthenticatedRequest, res: Response) => {
         // Decrypt fields
         const decryptedSessions = userSessions.map(session => ({
             ...session,
-            fullName: parseSensitiveField(session.fullName, clerkId, session.userId),
-            dateOfBirth: parseSensitiveField(session.dateOfBirth, clerkId, session.userId),
-            tentativeTime: parseSensitiveField(session.tentativeTime, clerkId, session.userId),
-            birthPlace: parseSensitiveField(session.birthPlace, clerkId, session.userId),
-            offsetConfig: parseSensitiveField(session.offsetConfig, clerkId, session.userId),
-            lifeEvents: parseSensitiveField(session.lifeEvents, clerkId, session.userId, []),
-            spouseData: parseSensitiveField(session.spouseData, clerkId, session.userId),
+            fullName: crypto.parseField(session.fullName, session.userId),
+            dateOfBirth: crypto.parseField(session.dateOfBirth, session.userId),
+            tentativeTime: crypto.parseField(session.tentativeTime, session.userId),
+            birthPlace: crypto.parseField(session.birthPlace, session.userId),
+            offsetConfig: crypto.parseField(session.offsetConfig, session.userId),
+            lifeEvents: crypto.parseField(session.lifeEvents, session.userId, []),
+            spouseData: crypto.parseField(session.spouseData, session.userId),
         }));
 
         res.json({ success: true, data: decryptedSessions });
@@ -72,8 +74,8 @@ router.get('/', async (req: AuthenticatedRequest, res: Response) => {
  */
 router.get('/:id', async (req: AuthenticatedRequest, res: Response) => {
     try {
-        const clerkId = req.clerkId!;
-        const ownershipContext = await resolveSessionOwnershipContext(clerkId);
+        const externalId = req.externalId!;
+        const ownershipContext = await resolveSessionOwnershipContext(externalId);
         const sessionId = req.params.id;
 
         if (!sessionId) {
@@ -95,15 +97,15 @@ router.get('/:id', async (req: AuthenticatedRequest, res: Response) => {
         // Decrypt fields
         const decryptedSession = {
             ...session,
-            fullName: parseSensitiveField(session.fullName, clerkId, session.userId),
-            dateOfBirth: parseSensitiveField(session.dateOfBirth, clerkId, session.userId),
-            tentativeTime: parseSensitiveField(session.tentativeTime, clerkId, session.userId),
-            birthPlace: parseSensitiveField(session.birthPlace, clerkId, session.userId),
-            offsetConfig: parseSensitiveField(session.offsetConfig, clerkId, session.userId),
-            lifeEvents: parseSensitiveField(session.lifeEvents, clerkId, session.userId, []),
-            spouseData: parseSensitiveField(session.spouseData, clerkId, session.userId),
-            analysisResult: parseSensitiveField(session.analysisResult as string, clerkId, session.userId),
-            progressData: parseSensitiveField(session.progressData as string, clerkId, session.userId),
+            fullName: crypto.parseField(session.fullName, session.userId),
+            dateOfBirth: crypto.parseField(session.dateOfBirth, session.userId),
+            tentativeTime: crypto.parseField(session.tentativeTime, session.userId),
+            birthPlace: crypto.parseField(session.birthPlace, session.userId),
+            offsetConfig: crypto.parseField(session.offsetConfig, session.userId),
+            lifeEvents: crypto.parseField(session.lifeEvents, session.userId, []),
+            spouseData: crypto.parseField(session.spouseData, session.userId),
+            analysisResult: crypto.parseField(session.analysisResult as string, session.userId),
+            progressData: crypto.parseField(session.progressData as string, session.userId),
         };
 
         // Reconstruct birthData for frontend compatibility
@@ -133,8 +135,8 @@ router.get('/:id', async (req: AuthenticatedRequest, res: Response) => {
  */
 router.put('/:id', validateBody(SessionUpdateSchema), async (req: AuthenticatedRequest, res: Response) => {
     try {
-        const clerkId = req.clerkId!;
-        const ownershipContext = await resolveSessionOwnershipContext(clerkId);
+        const externalId = req.externalId!;
+        const ownershipContext = await resolveSessionOwnershipContext(externalId);
         const sessionId = req.params.id;
         const body = req.body;
 
@@ -163,10 +165,10 @@ router.put('/:id', validateBody(SessionUpdateSchema), async (req: AuthenticatedR
         // Flatten birthData if present
         if (body.birthData) {
             const bd = body.birthData;
-            if (bd.fullName) updateData.fullName = encryptData(bd.fullName, clerkId);
-            if (bd.dateOfBirth) updateData.dateOfBirth = encryptData(bd.dateOfBirth, clerkId);
-            if (bd.tentativeTime) updateData.tentativeTime = encryptData(bd.tentativeTime, clerkId);
-            if (bd.birthPlace) updateData.birthPlace = encryptData(bd.birthPlace, clerkId);
+            if (bd.fullName) updateData.fullName = crypto.encrypt(bd.fullName, existing.userId);
+            if (bd.dateOfBirth) updateData.dateOfBirth = crypto.encrypt(bd.dateOfBirth, existing.userId);
+            if (bd.tentativeTime) updateData.tentativeTime = crypto.encrypt(bd.tentativeTime, existing.userId);
+            if (bd.birthPlace) updateData.birthPlace = crypto.encrypt(bd.birthPlace, existing.userId);
             if (bd.latitude !== undefined) updateData.latitude = bd.latitude;
             if (bd.longitude !== undefined) updateData.longitude = bd.longitude;
             if (bd.timezone !== undefined) updateData.timezone = String(bd.timezone);
@@ -175,20 +177,20 @@ router.put('/:id', validateBody(SessionUpdateSchema), async (req: AuthenticatedR
 
         // Encrypt JSON fields
         if (body.lifeEvents !== undefined) {
-            updateData.lifeEvents = encryptData(JSON.stringify(body.lifeEvents), clerkId);
+            updateData.lifeEvents = crypto.encrypt(JSON.stringify(body.lifeEvents), existing.userId);
         }
         if (body.spouseData !== undefined) {
-            updateData.spouseData = encryptData(JSON.stringify(body.spouseData), clerkId);
+            updateData.spouseData = crypto.encrypt(JSON.stringify(body.spouseData), existing.userId);
         }
         if (body.offsetConfig !== undefined) {
-            updateData.offsetConfig = encryptData(JSON.stringify(body.offsetConfig), clerkId);
+            updateData.offsetConfig = crypto.encrypt(JSON.stringify(body.offsetConfig), existing.userId);
         }
 
-        // Update with ownership check (TOCTOU-safe: clerkId in WHERE)
+        // Update with ownership check (TOCTOU-safe: externalId in WHERE)
         await executeWithRetry(() =>
             db.update(sessions)
                 .set(updateData)
-                .where(and(eq(sessions.id, sessionId), eq(sessions.clerkId, clerkId)))
+                .where(and(eq(sessions.id, sessionId), eq(sessions.externalId, externalId)))
         );
 
         res.json({ success: true, message: 'Session updated' });
@@ -203,8 +205,8 @@ router.put('/:id', validateBody(SessionUpdateSchema), async (req: AuthenticatedR
  */
 router.delete('/:id', async (req: AuthenticatedRequest, res: Response) => {
     try {
-        const clerkId = req.clerkId!;
-        const ownershipContext = await resolveSessionOwnershipContext(clerkId);
+        const externalId = req.externalId!;
+        const ownershipContext = await resolveSessionOwnershipContext(externalId);
         const sessionId = req.params.id;
 
         if (!sessionId) {
@@ -215,7 +217,7 @@ router.delete('/:id', async (req: AuthenticatedRequest, res: Response) => {
         const existing = await executeWithRetry(() =>
             db.query.sessions.findFirst({
                 where: eq(sessions.id, sessionId),
-                columns: { id: true, clerkId: true, userId: true },
+                columns: { id: true, externalId: true, userId: true },
             })
         );
 
@@ -227,7 +229,7 @@ router.delete('/:id', async (req: AuthenticatedRequest, res: Response) => {
         // Delete with ownership check
         const result = await executeWithRetry(() =>
             db.delete(sessions)
-                .where(and(eq(sessions.id, sessionId), eq(sessions.clerkId, clerkId)))
+                .where(and(eq(sessions.id, sessionId), eq(sessions.externalId, externalId)))
                 .returning({ id: sessions.id })
         );
 
@@ -248,8 +250,8 @@ router.delete('/:id', async (req: AuthenticatedRequest, res: Response) => {
  */
 router.post('/:id/clone', async (req: AuthenticatedRequest, res: Response) => {
     try {
-        const clerkId = req.clerkId!;
-        const ownershipContext = await resolveSessionOwnershipContext(clerkId);
+        const externalId = req.externalId!;
+        const ownershipContext = await resolveSessionOwnershipContext(externalId);
         const sessionId = req.params.id;
 
         if (!sessionId) {
@@ -276,7 +278,7 @@ router.post('/:id/clone', async (req: AuthenticatedRequest, res: Response) => {
         const clonePayload = {
             id: newSessionId,
             userId: ownershipContext.internalUserId ?? originalSession.userId,
-            clerkId: clerkId,
+            externalId: externalId,
 
             // Core Date (Encrypted)
             fullName: originalSession.fullName,

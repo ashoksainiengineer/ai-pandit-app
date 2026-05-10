@@ -13,9 +13,14 @@ import {
 import { Response, NextFunction } from 'express';
 
 // Mock @clerk/backend BEFORE importing auth module
-vi.mock('@clerk/backend', () => ({
-    createClerkClient: vi.fn(() => ({})),
-    verifyToken: vi.fn(),
+// Mock auth provider (clerk-provider.js) — auth middleware now uses clerkAuthProvider.verifyToken
+vi.mock('../../lib/auth/clerk-provider.js', () => ({
+    clerkAuthProvider: {
+        verifyToken: vi.fn(),
+    },
+    getClerkAdminClient: vi.fn(() => ({
+        users: { getUser: vi.fn() },
+    })),
 }));
 
 // Mock logger
@@ -35,7 +40,7 @@ vi.mock('fs', () => ({
 }));
 
 import { authMiddleware, AuthenticatedRequest } from '../auth.js';
-import { verifyToken } from '@clerk/backend';
+import { clerkAuthProvider } from '../../lib/auth/clerk-provider.js';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // HELPERS
@@ -93,8 +98,8 @@ describe('Auth Middleware - Token Extraction', () => {
     });
 
     it('should extract token from Bearer header', async () => {
-        const mockVerify = vi.mocked(verifyToken);
-        mockVerify.mockResolvedValue({ sub: 'user_123', sid: 'sess_abc' } as any);
+        const mockVerify = vi.mocked(clerkAuthProvider.verifyToken);
+        mockVerify.mockResolvedValue({ identity: { userId: 'user_123', providerId: 'user_123', sessionId: 'sess_abc', provider: 'clerk' }, error: null });
 
         const req = createMockReq({
             headers: { authorization: 'Bearer valid_token_123' } as any,
@@ -103,15 +108,15 @@ describe('Auth Middleware - Token Extraction', () => {
 
         await authMiddleware(req, res, next);
 
-        expect(mockVerify).toHaveBeenCalledWith('valid_token_123', expect.any(Object));
+        expect(mockVerify).toHaveBeenCalledWith('valid_token_123');
         expect(next).toHaveBeenCalled();
-        expect(req.clerkId).toBe('user_123');
+        expect(req.externalId).toBe('user_123');
         expect(req.sessionId).toBe('sess_abc');
     });
 
     it('should ignore query token and only use Authorization header', async () => {
-        const mockVerify = vi.mocked(verifyToken);
-        mockVerify.mockResolvedValue({ sub: 'user_header', sid: 'sess_h' } as any);
+        const mockVerify = vi.mocked(clerkAuthProvider.verifyToken);
+        mockVerify.mockResolvedValue({ identity: { userId: 'user_header', providerId: 'user_header', sessionId: 'sess_h', provider: 'clerk' }, error: null });
 
         const req = createMockReq({
             headers: { authorization: 'Bearer header_token' } as any,
@@ -121,7 +126,7 @@ describe('Auth Middleware - Token Extraction', () => {
 
         await authMiddleware(req, res, next);
 
-        expect(mockVerify).toHaveBeenCalledWith('header_token', expect.any(Object));
+        expect(mockVerify).toHaveBeenCalledWith('header_token');
         expect(next).toHaveBeenCalled();
     });
 });
@@ -157,7 +162,7 @@ describe('Auth Middleware - Malformed Token Handling', () => {
     });
 
     it('should correctly intercept and clean "[object Object]" before it hits verifyToken', async () => {
-        const mockVerify = vi.mocked(verifyToken);
+        const mockVerify = vi.mocked(clerkAuthProvider.verifyToken);
         mockVerify.mockRejectedValue(new Error('Malformed token'));
 
         const req = createMockReq({
@@ -194,8 +199,8 @@ describe('Auth Middleware - Clerk Verification Failures', () => {
     });
 
     it('should return 401 when verifyToken returns no sub', async () => {
-        const mockVerify = vi.mocked(verifyToken);
-        mockVerify.mockResolvedValue({ sub: null, sid: 'sess_1' } as any);
+        const mockVerify = vi.mocked(clerkAuthProvider.verifyToken);
+        mockVerify.mockResolvedValue({ identity: null, error: 'Token verified but missing subject (sub) claim' });
 
         const req = createMockReq({
             headers: { authorization: 'Bearer valid_but_nosub' } as any,
@@ -212,7 +217,7 @@ describe('Auth Middleware - Clerk Verification Failures', () => {
     });
 
     it('should return 401 when verifyToken throws (expired token)', async () => {
-        const mockVerify = vi.mocked(verifyToken);
+        const mockVerify = vi.mocked(clerkAuthProvider.verifyToken);
         mockVerify.mockRejectedValue(new Error('Token expired'));
 
         const req = createMockReq({
@@ -229,7 +234,7 @@ describe('Auth Middleware - Clerk Verification Failures', () => {
     });
 
     it('should return 401 when verifyToken throws (network error)', async () => {
-        const mockVerify = vi.mocked(verifyToken);
+        const mockVerify = vi.mocked(clerkAuthProvider.verifyToken);
         mockVerify.mockRejectedValue(new Error('Network error'));
 
         const req = createMockReq({
@@ -267,7 +272,7 @@ describe('Auth Middleware - Stream Request Special Handling', () => {
     });
 
     it('should send SSE error format for stream request with failed verification', async () => {
-        const mockVerify = vi.mocked(verifyToken);
+        const mockVerify = vi.mocked(clerkAuthProvider.verifyToken);
         mockVerify.mockRejectedValue(new Error('Token revoked'));
 
         const req = createMockReq({

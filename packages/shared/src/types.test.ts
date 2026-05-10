@@ -838,7 +838,7 @@ describe('Type-level interface exports', () => {
     const s: RectificationSession = {
       id: 'ses_x',
       userId: 'u1',
-      clerkId: 'c1',
+      externalId: 'c1',
       fullName: 'Test',
       dateOfBirth: '1990-01-01',
       tentativeTime: '12:00:00',

@@ -123,10 +123,10 @@ class RateLimiter {
   }
 
   private defaultKeyGenerator(req: Request): string {
-    // Use IP + clerkId (set by auth middleware) for per-user limiting
+    // Use IP + externalId (set by auth middleware) for per-user limiting
     const ip = req.ip || req.socket.remoteAddress || 'unknown';
-    const clerkId = req.clerkId;
-    return clerkId ? `${ip}:${clerkId}` : ip;
+    const externalId = req.externalId;
+    return externalId ? `${ip}:${externalId}` : ip;
   }
 
   private getRetryAfter(resetTime: number): number {
@@ -227,9 +227,9 @@ export const calculateRateLimiter = new RateLimiter({
   windowMs: 5 * 60 * 1000, // 5 minutes
   maxRequests: 3, // 3 BTR calculations per 5 minutes
   keyGenerator: (req: Request) => {
-    // Auth middleware sets clerkId — use it for per-user rate limiting
-    const clerkId = req.clerkId;
-    return `calculate:${clerkId || req.ip || 'unknown'}`;
+    // Auth middleware sets externalId — use it for per-user rate limiting
+    const externalId = req.externalId;
+    return `calculate:${externalId || req.ip || 'unknown'}`;
   },
 }).middleware();
 

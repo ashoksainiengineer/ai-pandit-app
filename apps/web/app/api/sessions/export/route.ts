@@ -1,14 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@clerk/nextjs/server';
+import { getServerAuth } from '@/lib/server/auth';
 import { db } from '@ai-pandit/db';
 import { sessions, users } from '@ai-pandit/db/schema';
 import { and, desc, eq, gte, inArray, lte } from 'drizzle-orm';
-import { parseSensitiveField } from '@/lib/crypto';
+import { getWebEncryption } from '@/lib/crypto';
 import { getBuildPhaseRouteResponse } from '@/lib/server/build-phase-route-guard';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
+const crypto = getWebEncryption();
 type ExportFormat = 'pdf' | 'json' | 'csv';
 
 interface ExportOptions {
@@ -35,10 +36,11 @@ export async function POST(req: NextRequest) {
   if (buildPhaseResponse) return buildPhaseResponse;
 
   try {
-    const { userId: clerkId } = await auth();
-    if (!clerkId) {
+    const sessionAuth = await getServerAuth();
+    if (!sessionAuth) {
       return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
     }
+    const externalId = sessionAuth.providerId;
 
     const body = (await req.json().catch(() => ({}))) as ExportOptions;
     const format = body.format ?? 'json';
@@ -48,7 +50,7 @@ export async function POST(req: NextRequest) {
     }
 
     const user = await db.query.users.findFirst({
-      where: eq(users.clerkId, clerkId),
+      where: eq(users.externalId, externalId),
       columns: { id: true },
     });
     if (!user) {
@@ -79,15 +81,15 @@ export async function POST(req: NextRequest) {
       status: row.status,
       createdAt: row.createdAt,
       updatedAt: row.updatedAt,
-      fullName: parseSensitiveField(row.fullName, exportUserId, undefined),
-      dateOfBirth: parseSensitiveField(row.dateOfBirth, exportUserId, undefined),
-      tentativeTime: parseSensitiveField(row.tentativeTime, exportUserId, undefined),
-      birthPlace: parseSensitiveField(row.birthPlace, exportUserId, undefined),
+      fullName: crypto.parseField(row.fullName, exportUserId),
+      dateOfBirth: crypto.parseField(row.dateOfBirth, exportUserId),
+      tentativeTime: crypto.parseField(row.tentativeTime, exportUserId),
+      birthPlace: crypto.parseField(row.birthPlace, exportUserId),
       rectifiedTime: row.rectifiedTime ?? null,
       accuracy: row.accuracy ?? null,
       confidence: row.confidence ?? null,
-      analysisResult: includeResults ? parseSensitiveField(row.analysisResult as string | null | undefined, exportUserId, undefined, null) : undefined,
-      reasoningLogs: includeLogs ? parseSensitiveField(row.reasoningLogs as string | null | undefined, exportUserId, undefined, null) : undefined,
+      analysisResult: includeResults ? crypto.parseField(row.analysisResult as string | null | undefined, exportUserId, null) : undefined,
+      reasoningLogs: includeLogs ? crypto.parseField(row.reasoningLogs as string | null | undefined, exportUserId, null) : undefined,
     }));
 
     if (format === 'json') {

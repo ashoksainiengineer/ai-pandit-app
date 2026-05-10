@@ -11,6 +11,11 @@ vi.mock('framer-motion', () => ({
                 {children}
             </div>
         ),
+        span: ({ children, className, ...props }: any) => (
+            <span className={className} {...props}>
+                {children}
+            </span>
+        ),
     },
     AnimatePresence: ({ children }: any) => <>{children}</>,
 }));

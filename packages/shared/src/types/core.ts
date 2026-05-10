@@ -342,7 +342,7 @@ export interface CandidateTime {
 export interface RectificationSession {
   id: string;
   userId: string;
-  clerkId: string;
+  externalId: string;
   fullName: string;
   dateOfBirth: string;
   tentativeTime: string;

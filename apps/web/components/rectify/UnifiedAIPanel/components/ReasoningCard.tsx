@@ -61,10 +61,10 @@ export const ReasoningCard = memo(function ReasoningCard({
             className={`
         relative p-3 rounded-lg border cursor-pointer transition-all duration-200 flex flex-col h-[180px]
         ${isWinner
-                    ? 'bg-amber-50/80 border-amber-400 ring-1 ring-amber-400 shadow-[0_0_15px_rgba(251,191,36,0.3)]'
+                    ? 'bg-[#FFFCF9] border-[#C65D3B]/40 ring-1 ring-[#C65D3B]/20 shadow-[0_0_20px_rgba(198,93,59,0.12)]'
                     : isLive
-                        ? 'bg-amber-50/60 border-amber-300 shadow-sm ring-1 ring-amber-300/40'
-                        : 'bg-white border-[rgba(0,0,0,0.08)] hover:border-amber-400 hover:shadow-sm'
+                        ? 'bg-[#FFFCF9] border-[#C65D3B]/30 shadow-sm ring-1 ring-[#C65D3B]/15'
+                        : 'bg-white border-[rgba(0,0,0,0.06)] hover:border-[#C65D3B]/40 hover:shadow-sm'
                 }
       `}
         >
@@ -74,9 +74,9 @@ export const ReasoningCard = memo(function ReasoningCard({
                     <motion.div
                         initial={{ width: 0 }}
                         animate={{ width: `${score}%` }}
-                        className={`h-full ${score >= 85 ? 'bg-emerald-500' :
-                            score >= 70 ? 'bg-amber-500' :
-                                'bg-stone-400'
+                        className={`h-full ${score >= 85 ? 'bg-[#184131]' :
+                            score >= 70 ? 'bg-[#C65D3B]' :
+                                'bg-[#6B6560]'
                             }`}
                     />
                 </div>
@@ -84,13 +84,13 @@ export const ReasoningCard = memo(function ReasoningCard({
             {/* Header */}
             <div className="flex items-center justify-between mb-2 shrink-0">
                 <div className="flex items-center gap-1.5">
-                    <div className={`w-1.5 h-1.5 rounded-full ${isLive ? 'bg-amber-500 animate-pulse' : 'bg-stone-300'}`} />
+                    <div className={`w-1.5 h-1.5 rounded-full ${isLive ? 'bg-[#C65D3B] animate-pulse' : 'bg-[#6B6560]/30'}`} />
                     <span className="text-[10px] font-mono text-black/60 truncate max-w-[100px]">
                         {title}
                     </span>
                 </div>
                 {isLive && (
-                    <span className="text-[8px] font-medium text-amber-700 bg-amber-100/80 px-1.5 py-0.5 rounded-full uppercase tracking-wider flex items-center gap-0.5">
+                    <span className="text-[8px] font-medium text-[#C65D3B] bg-[#C65D3B]/[0.08] px-1.5 py-0.5 rounded-full uppercase tracking-wider flex items-center gap-0.5">
                         <Radio className="w-2 h-2 animate-pulse" /> Live
                     </span>
                 )}
@@ -119,8 +119,8 @@ export const ReasoningCard = memo(function ReasoningCard({
             <div className="mt-1.5 pt-1.5 border-t border-stone-100 flex items-center justify-between shrink-0">
                 <div className="flex items-center gap-2">
                     {elapsed > 0 && (
-                        <span className="text-[9px] text-stone-500 font-mono flex items-center gap-1">
-                            ⏱ {elapsed}s
+                        <span className="text-[9px] text-[#6B6560] font-mono flex items-center gap-1">
+                            {elapsed}s
                         </span>
                     )}
                     <span className="text-[8px] text-stone-400 font-mono">
@@ -129,8 +129,8 @@ export const ReasoningCard = memo(function ReasoningCard({
                 </div>
                 <div className="flex items-center gap-1.5">
                     {isWinner && (
-                        <span className="text-[9px] font-black text-emerald-700 flex items-center gap-0.5">
-                            🏆 MATCH
+                        <span className="text-[9px] font-black text-[#184131] flex items-center gap-0.5">
+                        MATCH
                         </span>
                     )}
                     <span className="text-[8px] font-medium text-black">

@@ -13,13 +13,16 @@ import { sessionEvents, SessionEvent } from '../lib/session-events.js';
 import { getSessionProgress } from '../lib/progress-tracker.js';
 import { getQueueStatus } from '../lib/queue-manager.js';
 import { logger } from '../utils/logger.js';
-import { safeDecryptWithFallback, parseSensitiveField } from '../lib/encryption/index.js';
+import { getApiEncryption } from '../lib/encryption/index.js';
 import { createStreamTicket } from '../lib/stream-ticket-manager.js';
 import { isSessionOwnedByContext, resolveSessionOwnershipContext } from '../lib/session-ownership.js';
 import {
     getPersistedSessionEvents,
     getPersistedSessionEventsSince,
 } from '../lib/jobs/job-event-stream.js';
+
+const crypto = getApiEncryption();
+
 
 const router = Router();
 type SseResponse = Response & {
@@ -83,7 +86,7 @@ router.options(['/', '/:sessionId'], (req, res) => {
  * FLOW:
  * 1. Frontend calls this endpoint with a Clerk Bearer token + session ID.
  * 2. This handler verifies auth (via authMiddleware) and session ownership.
- * 3. createStreamTicket() mints a single-use ticket bound to (clerkId, sessionId).
+ * 3. createStreamTicket() mints a single-use ticket bound to (externalId, sessionId).
  * 4. Frontend opens EventSource at GET /api/stream/:sessionId?ticket=<ticket>.
  * 5. Auth middleware detects the ticket, calls consumeStreamTicket(), and
  *    authenticates the SSE connection without requiring an Authorization header.
@@ -96,22 +99,22 @@ router.options(['/', '/:sessionId'], (req, res) => {
  */
 router.post('/ticket/:sessionId', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
     const sessionId = req.params.sessionId;
-    const clerkId = req.clerkId;
+    const externalId = req.externalId;
     if (!sessionId) {
         sendValidationError(res, 'Session ID required');
         return;
     }
 
-    if (!clerkId) {
+    if (!externalId) {
         sendUnauthorized(res);
         return;
     }
 
     try {
-        const ownershipContext = await resolveSessionOwnershipContext(clerkId);
+        const ownershipContext = await resolveSessionOwnershipContext(externalId);
         const found = await db.select({
             id: sessions.id,
-            clerkId: sessions.clerkId,
+            externalId: sessions.externalId,
             userId: sessions.userId,
         })
             .from(sessions)
@@ -128,7 +131,7 @@ router.post('/ticket/:sessionId', authMiddleware, async (req: AuthenticatedReque
             return;
         }
 
-        const ticket = createStreamTicket(clerkId, sessionId);
+        const ticket = createStreamTicket(externalId, sessionId);
         res.json({
             success: true,
             ticket,
@@ -154,8 +157,7 @@ router.get(['/', '/:sessionId'], authMiddleware, async (req: AuthenticatedReques
         (req.query.sessionId as string);
 
     const isTestScript = false;
-    const clerkId = req.clerkId;
-
+    const externalId = req.externalId;
     if (!sessionId) {
         res.setHeader('Content-Type', 'text/event-stream');
         sendEvent(res, { type: 'error', message: 'Session ID required (path param or ?sessionId=)', code: 'BAD_REQUEST' });
@@ -163,7 +165,7 @@ router.get(['/', '/:sessionId'], authMiddleware, async (req: AuthenticatedReques
         return;
     }
 
-    if (!clerkId) {
+    if (!externalId) {
         res.setHeader('Content-Type', 'text/event-stream');
         sendEvent(res, { type: 'error', message: 'Authentication required', code: 'UNAUTHORIZED' });
         res.end();
@@ -172,18 +174,18 @@ router.get(['/', '/:sessionId'], authMiddleware, async (req: AuthenticatedReques
 
     const trackSseConnection = () => {
         activeSseConnections++;
-        logger.info(`[SSE] Connection requested for session ${sessionId} by clerkId ${clerkId.slice(0, 12)}... | Active: ${activeSseConnections}`);
+        logger.info(`[SSE] Connection requested for session ${sessionId} by externalId ${externalId.slice(0, 12)}... | Active: ${activeSseConnections}`);
     };
 
     // SECURITY: Verify session ownership
 
     let currentStatus = 'pending';
     try {
-        const ownershipContext = await resolveSessionOwnershipContext(clerkId);
+        const ownershipContext = await resolveSessionOwnershipContext(externalId);
         const session = await db.select({
             status: sessions.status,
             userId: sessions.userId,
-            clerkId: sessions.clerkId,
+            externalId: sessions.externalId,
             errorMessage: sessions.errorMessage,
             updatedAt: sessions.updatedAt,
             analysisResult: sessions.analysisResult,
@@ -206,7 +208,7 @@ router.get(['/', '/:sessionId'], authMiddleware, async (req: AuthenticatedReques
 
         // Verify ownership
         if (!isSessionOwnedByContext(session[0], ownershipContext) && !isTestScript) {
-            logger.warn(`[SSE] Unauthorized access attempt: clerkId ${clerkId.slice(0, 12)}... tried to access session ${sessionId}`);
+            logger.warn(`[SSE] Unauthorized access attempt: externalId ${externalId.slice(0, 12)}... tried to access session ${sessionId}`);
             res.setHeader('Content-Type', 'text/event-stream');
             res.setHeader('Cache-Control', 'no-cache');
             res.setHeader('X-Accel-Buffering', 'no');
@@ -233,7 +235,7 @@ router.get(['/', '/:sessionId'], authMiddleware, async (req: AuthenticatedReques
 
             let terminalResult: Record<string, unknown> | null = null;
             if (currentStatus === 'complete') {
-                const decryptedResult = safeDecryptWithFallback(session[0].analysisResult as string, clerkId, userId);
+                const decryptedResult = crypto.decrypt(session[0].analysisResult as string, userId);
                 if (decryptedResult) {
                     if (typeof decryptedResult === 'string') {
                         try {
@@ -375,12 +377,12 @@ router.get(['/', '/:sessionId'], authMiddleware, async (req: AuthenticatedReques
                         data: {
                             jobId: job?.id,
                             jobStatus: job?.status,
-                            fullName: parseSensitiveField(session.fullName, clerkId, session.userId),
-                            dateOfBirth: parseSensitiveField(session.dateOfBirth, clerkId, session.userId),
-                            tentativeTime: parseSensitiveField(session.tentativeTime, clerkId, session.userId),
-                            birthPlace: parseSensitiveField(session.birthPlace, clerkId, session.userId),
-                            offsetConfig: parseSensitiveField(session.offsetConfig, clerkId, session.userId),
-                            lifeEvents: parseSensitiveField(session.lifeEvents, clerkId, session.userId, []),
+                            fullName: crypto.parseField(session.fullName, session.userId),
+                            dateOfBirth: crypto.parseField(session.dateOfBirth, session.userId),
+                            tentativeTime: crypto.parseField(session.tentativeTime, session.userId),
+                            birthPlace: crypto.parseField(session.birthPlace, session.userId),
+                            offsetConfig: crypto.parseField(session.offsetConfig, session.userId),
+                            lifeEvents: crypto.parseField(session.lifeEvents, session.userId, []),
                             status: queueStatus.status,
                             aiModel: aiConfig.model,
                             timezone: session.timezone,
@@ -426,12 +428,12 @@ router.get(['/', '/:sessionId'], authMiddleware, async (req: AuthenticatedReques
                         data: {
                             jobId: job?.id,
                             jobStatus: job?.status,
-                            fullName: parseSensitiveField(session.fullName, clerkId, session.userId),
-                            dateOfBirth: parseSensitiveField(session.dateOfBirth, clerkId, session.userId),
-                            tentativeTime: parseSensitiveField(session.tentativeTime, clerkId, session.userId),
-                            birthPlace: parseSensitiveField(session.birthPlace, clerkId, session.userId),
-                            offsetConfig: parseSensitiveField(session.offsetConfig, clerkId, session.userId),
-                            lifeEvents: parseSensitiveField(session.lifeEvents, clerkId, session.userId, []),
+                            fullName: crypto.parseField(session.fullName, session.userId),
+                            dateOfBirth: crypto.parseField(session.dateOfBirth, session.userId),
+                            tentativeTime: crypto.parseField(session.tentativeTime, session.userId),
+                            birthPlace: crypto.parseField(session.birthPlace, session.userId),
+                            offsetConfig: crypto.parseField(session.offsetConfig, session.userId),
+                            lifeEvents: crypto.parseField(session.lifeEvents, session.userId, []),
                             status: queueStatus.status,
                             aiModel: aiConfig.model,
                             timezone: session.timezone,
@@ -537,14 +539,14 @@ router.get(['/', '/:sessionId'], authMiddleware, async (req: AuthenticatedReques
         if (reason === 'error') {
             logger.error('SSE connection error', {
                 sessionId,
-                clerkId: clerkId.slice(0, 12) + '...',
+                externalId: externalId.slice(0, 12) + '...',
                 error,
                 activeConnections: activeSseConnections
             });
         } else {
             logger.info('SSE connection closed', {
                 sessionId,
-                clerkId: clerkId.slice(0, 12) + '...',
+                externalId: externalId.slice(0, 12) + '...',
                 activeConnections: activeSseConnections
             });
         }

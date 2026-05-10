@@ -79,7 +79,7 @@ export async function cleanupOldEncryption(): Promise<CleanupStats> {
     const allSessions = await db
         .select({
             id: sessions.id,
-            clerkId: sessions.clerkId,
+            externalId: sessions.externalId,
             lifeEvents: sessions.lifeEvents,
         })
         .from(sessions)
