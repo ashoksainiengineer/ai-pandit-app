@@ -1,3 +1,4 @@
+import crypto from 'node:crypto';
 import { Router, Response } from 'express';
 import { AuthenticatedRequest, authMiddleware } from '../middleware/auth.js';
 import { db, executeWithRetry } from '@ai-pandit/db';
@@ -316,8 +317,27 @@ async function requeueAnalysisSession(req: AuthenticatedRequest, res: Response, 
                 previousStatus: latestJob.status,
             });
         } else {
-            logger.warn('[REQUEUE] No existing job found for session — worker may not pick it up', {
+            // No previous job exists — create a new one
+            const newJobId = crypto.randomUUID();
+            await executeWithRetry(() =>
+                db.insert(jobs).values({
+                    id: newJobId,
+                    sessionId,
+                    userId: session[0].userId,
+                    kind: 'btr_rectification',
+                    status: 'queued',
+                    progressPercent: 0,
+                    priority: 100,
+                    attempt: 0,
+                    maxAttempts: 3,
+                    queuedAt: now,
+                    createdAt: now,
+                    updatedAt: now,
+                })
+            );
+            logger.info('[REQUEUE] Created new job for session', {
                 sessionId,
+                jobId: newJobId,
             });
         }
 
