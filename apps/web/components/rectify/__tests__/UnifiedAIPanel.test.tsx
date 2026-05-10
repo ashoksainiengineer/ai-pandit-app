@@ -121,9 +121,9 @@ describe('UnifiedAIPanel (Heavy Testing)', () => {
         // Should show the "Back to Grid" button and the focused time
         expect(screen.getByText(/Back to Grid/i)).toBeInTheDocument();
 
-        // Check if the full text is rendered in its sanitized form
-        // The "ReasoningContent" component renders it
-        expect(screen.getByText(/Heavy reasoning data for 12:01/i)).toBeInTheDocument();
+        // Verify ReasoningContent renders the candidate's fullText
+        // (highlightKeywords splits text into spans — check via body textContent)
+        expect(document.body.textContent).toMatch(/Heavy reasoning data for 12:01/i);
     });
 
     it('collapses content when isCompleted is true and isActive is false', () => {
