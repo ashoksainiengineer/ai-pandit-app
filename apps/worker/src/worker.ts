@@ -2,10 +2,11 @@ import { config } from 'dotenv';
 import { createServer } from 'node:http';
 import {
   createWorkerRuntime,
+  createRedisQueueClient,
   type WorkerRuntime,
+  type RedisQueueClient,
 } from '@ai-pandit/worker-runtime';
 import {
-  claimNextQueuedJob,
   updateJobProgress,
   completeJob,
   failJob,
@@ -36,6 +37,14 @@ const crypto = (() => {
     );
   }
   return createEncryption(secret);
+})();
+
+// ── Redis Queue Client (replaces DB-polling claimNextQueuedJob) ────────────
+const queueClient: RedisQueueClient = (() => {
+  const url = process.env.REDIS_URL;
+  if (!url) throw new Error('FATAL: REDIS_URL required. Worker cannot claim jobs without Redis.');
+  const tls = ['1','true','yes','on'].includes((process.env.REDIS_TLS ?? 'true').toLowerCase());
+  return createRedisQueueClient({ url, tls });
 })();
 
 let workerStarted = false;
@@ -73,6 +82,9 @@ async function gracefulShutdown(signal: 'SIGTERM' | 'SIGINT'): Promise<void> {
       const drain = await workerRuntime.stop({ drainTimeoutMs });
       console.log(`[WORKER] Drain result: drained=${drain.drained} activeJobs=${drain.activeJobs} waitedMs=${drain.waitedMs}`);
     }
+
+    // Disconnect Redis queue client
+    await queueClient.disconnect();
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     console.error('[WORKER] Graceful shutdown encountered an error:', message);
@@ -85,7 +97,8 @@ async function gracefulShutdown(signal: 'SIGTERM' | 'SIGINT'): Promise<void> {
 }
 
 async function processJob(): Promise<void> {
-  const job = await claimNextQueuedJob();
+  // Use Redis queue client with non-blocking claim (worker runtime handles polling)
+  const job = await queueClient.claimNextJob();
 
   if (!job) {
     return;

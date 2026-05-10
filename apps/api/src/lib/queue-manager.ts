@@ -654,36 +654,16 @@ async function scheduleRetry(
     await queueDriver.scheduleRetrySession(sessionId, nextRetryAt);
   }
 
-  if (config.queue.architecture === 'redis_bullmq') {
-    await markSessionQueuedForRetry(sessionId);
-    logger.warn(`Queued retry via Redis transport for session ${sessionId}`, {
-      delayMs: delay,
-      attempt: attempt + 1,
-      maxAttempts: RETRY_CONFIG.maxRetries,
-      retryReasonCode,
-    });
-    return;
-  }
-
-  releaseProcessingSlot(sessionId);
-  await sleep(delay);
-
-  // BUG-009 fix: Re-claim through queue driver to prevent phantom processor
-  const claimedId = await claimNextQueuedSession();
-  if (claimedId === sessionId) {
-    logger.warn(`Retrying session ${sessionId} after ${delay}ms (attempt ${attempt + 1}/${RETRY_CONFIG.maxRetries})`, {
-      error: errorMsg,
-      isRetryable: true,
-    });
-    // BUG-FIX: Added await to prevent fire-and-forget retry with unhandled promise
-    return await analyzeBirthTimeWithRetry(sessionId, attempt + 1);
-  }
-
-  // Another iteration claimed our session, or it became invalid
-  if (claimedId) {
-    startSessionProcessing(claimedId);
-  }
-  logger.warn(`Retry claim race for session ${sessionId}`, { claimedId });
+  // QueueManager rewrite: 0d0ef44 — Redis transports ALL retries instantly.
+  // No DB polling, no sleep-and-reclaim. scheduleRetrySession() above
+  // already pushed into the Redis delayed set + DB marked for retry.
+  await markSessionQueuedForRetry(sessionId);
+  logger.warn(`Retry queued via Redis transport for session ${sessionId}`, {
+    delayMs: delay,
+    attempt: attempt + 1,
+    maxAttempts: RETRY_CONFIG.maxRetries,
+    retryReasonCode,
+  });
 }
 
 async function finalizePermanentFailure(

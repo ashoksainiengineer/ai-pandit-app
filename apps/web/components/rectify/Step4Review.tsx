@@ -3,6 +3,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { BirthData, LifeEvent, SpouseData, TimeOffsetConfig } from '@/lib/types';
+import { Clock, MapPin, Calendar, User, Globe } from 'lucide-react';
 
 interface Step4ReviewProps {
   data: BirthData;
@@ -14,261 +15,201 @@ interface Step4ReviewProps {
   offsetConfig?: TimeOffsetConfig;
 }
 
-const importanceBadge = (importance: string) => {
-  const styles: Record<string, string> = {
-    critical: 'bg-red-50 text-red-700 border-red-200',
-    high: 'bg-orange-50 text-orange-700 border-orange-200',
-    medium: 'bg-blue-50 text-blue-700 border-blue-200',
-    low: 'bg-gray-50 text-gray-600 border-gray-200',
+// ── Tiny helpers ────────────────────────────────────────────────────────────
+
+const imp = (level: string) => {
+  const m: Record<string, string> = {
+    critical: 'bg-[#C65D3B]/10 text-[#C65D3B]',
+    high:     'bg-amber-50 text-amber-700',
+    medium:   'bg-[#184131]/10 text-[#184131]',
+    low:      'bg-stone-100 text-stone-500',
   };
-  return (
-    <span className={`inline-flex px-2 py-0.5 rounded-full text-[10px] font-medium border ${styles[importance] || styles.low}`}>
-      {importance}
-    </span>
-  );
+  return m[level] || m.low;
 };
 
-const datePrecisionLabel = (precision?: string) => {
-  const labels: Record<string, string> = {
-    exact_date_time: 'Exact Date & Time',
-    exact_date: 'Exact Date',
-    date_range: 'Date Range',
-    month_year: 'Month & Year',
-    month_range: 'Month Range',
+const prec = (p?: string) => {
+  const m: Record<string, string> = {
+    exact_date_time: 'Exact date & time',
+    exact_date: 'Exact date',
+    month_year: 'Month & year',
     year_range: 'Year',
+    date_range: 'Date range',
   };
-  return precision ? (labels[precision] || precision) : 'Exact Date';
+  return p ? (m[p] || p) : '—';
 };
 
-const formatCoordinate = (val: number | undefined | null, decimals = 4): string => {
-  if (val == null || isNaN(val)) return '—';
-  return val.toFixed(decimals);
-};
+const coord = (v: number | undefined | null) =>
+  v != null && !isNaN(v) ? v.toFixed(4) + '°' : '—';
+
+// ── Component ───────────────────────────────────────────────────────────────
 
 export default function Step4Review({
-  data,
-  events,
-  spouseData,
-  onSubmit,
-  isSubmitting,
-  onEdit,
-  offsetConfig,
+  data, events, spouseData, onSubmit, isSubmitting, onEdit, offsetConfig,
 }: Step4ReviewProps) {
-  const hasSpouseData =
-    spouseData?.name || spouseData?.dateOfBirth || spouseData?.birthTime || spouseData?.birthPlace;
-
-  const totalEvents = events.length;
-  const criticalEvents = events.filter(e => e.importance === 'critical' || e.importance === 'high').length;
-  const categoriesCovered = new Set(events.map(e => e.category)).size;
+  const showSpouse = !!(spouseData?.name || spouseData?.dateOfBirth || spouseData?.birthTime || spouseData?.birthPlace);
 
   return (
-    <>
-      {/* Header */}
-      <div className="text-center my-8">
-        <motion.div
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-[#ffffff] to-white border border-[rgba(0,0,0,0.08)] rounded-full text-xs mb-6 shadow-sm"
-        >
-          <span className="text-black font-medium tracking-wider">STEP 3 OF 3</span>
-        </motion.div>
-        <motion.h1
-          className="text-3xl sm:text-4xl font-medium text-black leading-tight mb-2"
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-        >
-          Review <span className="text-black">Your Information</span>
-        </motion.h1>
-        <motion.p
-          className="text-sm text-black/60"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.3 }}
-        >
-          Please verify all details before submitting for analysis
-        </motion.p>
-      </div>
+    <div className="space-y-5 max-w-2xl mx-auto">
 
-      {/* Summary Stats */}
+      {/* ── Heading ────────────────────────────────────────────────────────── */}
       <motion.div
-        initial={{ opacity: 0, y: 20 }}
+        initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.4 }}
-        className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6"
+        transition={{ duration: 0.35, ease: 'easeOut' }}
+        className="pt-6 pb-2 text-center"
       >
-        <div className="bg-[var(--prism-canvas)] rounded-xl p-4 text-center">
-          <p className="text-2xl font-semibold text-black">{totalEvents}</p>
-          <p className="text-[10px] text-black/40 uppercase tracking-wider mt-1">Life Events</p>
-        </div>
-        <div className="bg-[var(--prism-canvas)] rounded-xl p-4 text-center">
-          <p className="text-2xl font-semibold text-black">{categoriesCovered}</p>
-          <p className="text-[10px] text-black/40 uppercase tracking-wider mt-1">Categories</p>
-        </div>
-        <div className="bg-[var(--prism-canvas)] rounded-xl p-4 text-center">
-          <p className="text-2xl font-semibold text-black">{criticalEvents}</p>
-          <p className="text-[10px] text-black/40 uppercase tracking-wider mt-1">High Impact</p>
-        </div>
-        <div className="bg-[var(--prism-canvas)] rounded-xl p-4 text-center">
-          <p className="text-2xl font-semibold text-black">{hasSpouseData ? 'Yes' : '—'}</p>
-          <p className="text-[10px] text-black/40 uppercase tracking-wider mt-1">Spouse Data</p>
-        </div>
+        <span className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-black/5 rounded-full text-[10px] font-semibold text-[var(--prism-graphite)] tracking-[0.2em] mb-4">
+          STEP 3 OF 3
+        </span>
+        <h2 className="text-2xl font-semibold text-[var(--prism-ink)]">
+          Almost there — review your details
+        </h2>
       </motion.div>
 
-      {/* Birth Details Table */}
+      {/* ── Quick stats ───────────────────────────────────────────────────── */}
+      <div className="flex divide-x divide-black/[0.06] bg-[var(--prism-canvas)] rounded-xl border border-black/[0.04]">
+        <Stat n={events.length} label="Events" />
+        <Stat n={new Set(events.map(e => e.category)).size} label="Categories" />
+        <Stat n={events.filter(e => e.importance === 'critical' || e.importance === 'high').length} label="Key events" />
+        <Stat n={showSpouse ? 'Yes' : '—'} label="Spouse" />
+      </div>
+
+      {/* ── Birth details ─────────────────────────────────────────────────── */}
       <motion.div
-        initial={{ opacity: 0, y: 20 }}
+        initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.45 }}
-        className="bg-white rounded-xl border border-black/5 shadow-sm overflow-hidden mb-4"
+        transition={{ delay: 0.08, duration: 0.3 }}
+        className="bg-white rounded-xl border border-black/[0.06] shadow-sm overflow-hidden"
       >
-        <div className="flex items-center justify-between px-6 py-4 border-b border-black/5">
-          <h3 className="text-lg font-medium text-black">Birth Details</h3>
-          <button
-            onClick={() => onEdit(1)}
-            className="text-xs text-black/50 hover:text-black font-medium transition-colors"
-          >
+        <div className="flex items-center justify-between px-5 py-3 border-b border-black/[0.04]">
+          <div className="flex items-center gap-2">
+            <User className="w-3.5 h-3.5 text-[var(--prism-graphite)]" />
+            <h3 className="text-sm font-semibold text-[var(--prism-ink)]">Birth details</h3>
+          </div>
+          <button onClick={() => onEdit(1)} className="text-xs text-[var(--prism-graphite)] hover:text-[var(--prism-ink)] transition-colors">
             Edit
           </button>
         </div>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <tbody>
-              <TableRow label="Full Name" value={data.fullName || '—'} />
-              <TableRow label="Date of Birth" value={data.dateOfBirth || '—'} />
-              <TableRow label="Approximate Birth Time" value={data.tentativeTime || '—'} />
-              <TableRow label="Gender" value={data.gender ? data.gender.charAt(0).toUpperCase() + data.gender.slice(1) : '—'} />
-              <TableRow label="Birth Place" value={data.birthPlace || '—'} />
-              <TableRow label="Latitude" value={formatCoordinate(data.latitude) + '°'} />
-              <TableRow label="Longitude" value={formatCoordinate(data.longitude) + '°'} />
-              <TableRow label="Timezone" value={data.timezone != null ? `UTC${data.timezone >= 0 ? '+' : ''}${data.timezone}` : '—'} />
-              {offsetConfig && (
-                <TableRow
-                  label="Time Uncertainty Window"
-                  value={
-                    offsetConfig.preset === 'custom'
-                      ? `±${offsetConfig.customMinutes || '?'} minutes`
-                      : offsetConfig.description || offsetConfig.preset || '—'
-                  }
-                />
-              )}
-            </tbody>
-          </table>
+        <div className="grid grid-cols-1 sm:grid-cols-2">
+          <Cell label="Full name"     value={data.fullName || '—'} />
+          <Cell label="Date of birth" value={data.dateOfBirth || '—'} />
+          <Cell label="Approx. time"  value={data.tentativeTime || '—'} icon={<Clock className="w-3 h-3" />} />
+          <Cell label="Gender"        value={data.gender ? data.gender.charAt(0).toUpperCase() + data.gender.slice(1) : '—'} />
+          <Cell label="Birth place"   value={data.birthPlace || '—'} icon={<MapPin className="w-3 h-3" />} full />
+          <Cell label="Coordinates"   value={`${coord(data.latitude)}, ${coord(data.longitude)}`} />
+          <Cell label="Timezone"      value={data.timezone != null ? `UTC${data.timezone >= 0 ? '+' : ''}${data.timezone}` : '—'} icon={<Globe className="w-3 h-3" />} />
+          {offsetConfig && (
+            <Cell
+              label="Uncertainty"
+              value={offsetConfig.preset === 'custom'
+                ? `±${offsetConfig.customMinutes || '?'} min`
+                : offsetConfig.description || offsetConfig.preset || '—'}
+            />
+          )}
         </div>
       </motion.div>
 
-      {/* Spouse Details Table */}
-      {hasSpouseData && (
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.5 }}
-          className="bg-white rounded-xl border border-black/5 shadow-sm overflow-hidden mb-4"
-        >
-          <div className="flex items-center justify-between px-6 py-4 border-b border-black/5">
-            <h3 className="text-lg font-medium text-black">Spouse Details</h3>
-            <button
-              onClick={() => onEdit(1)}
-              className="text-xs text-black/50 hover:text-black font-medium transition-colors"
-            >
+      {/* ── Spouse details ─────────────────────────────────────────────────── */}
+      {showSpouse && (
+        <div className="bg-white rounded-xl border border-black/[0.06] shadow-sm overflow-hidden">
+          <div className="flex items-center justify-between px-5 py-3 border-b border-black/[0.04]">
+            <div className="flex items-center gap-2">
+              <User className="w-3.5 h-3.5 text-[var(--prism-graphite)]" />
+              <h3 className="text-sm font-semibold text-[var(--prism-ink)]">Spouse details</h3>
+            </div>
+            <button onClick={() => onEdit(1)} className="text-xs text-[var(--prism-graphite)] hover:text-[var(--prism-ink)] transition-colors">
               Edit
             </button>
           </div>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <tbody>
-                {spouseData.name && <TableRow label="Spouse Name" value={spouseData.name} />}
-                {spouseData.dateOfBirth && <TableRow label="Date of Birth" value={spouseData.dateOfBirth} />}
-                {spouseData.birthTime && <TableRow label="Birth Time" value={spouseData.birthTime} />}
-                {spouseData.birthPlace && <TableRow label="Birth Place" value={spouseData.birthPlace} />}
-                {spouseData.latitude != null && <TableRow label="Latitude" value={formatCoordinate(spouseData.latitude) + '°'} />}
-                {spouseData.longitude != null && <TableRow label="Longitude" value={formatCoordinate(spouseData.longitude) + '°'} />}
-                {spouseData.timezone != null && (
-                  <TableRow
-                    label="Timezone"
-                    value={`UTC${Number(spouseData.timezone) >= 0 ? '+' : ''}${spouseData.timezone}`}
-                  />
-                )}
-              </tbody>
-            </table>
+          <div className="grid grid-cols-1 sm:grid-cols-2">
+            {spouseData?.name && <Cell label="Name" value={spouseData.name} />}
+            {spouseData?.dateOfBirth && <Cell label="Date of birth" value={spouseData.dateOfBirth} />}
+            {spouseData?.birthTime && <Cell label="Birth time" value={spouseData.birthTime} />}
+            {spouseData?.birthPlace && <Cell label="Birth place" value={spouseData.birthPlace} full />}
+            {spouseData?.latitude != null && spouseData?.longitude != null && (
+              <Cell label="Coordinates" value={`${coord(spouseData.latitude)}, ${coord(spouseData.longitude)}`} />
+            )}
+            {spouseData?.timezone != null && (
+              <Cell label="Timezone" value={`UTC${Number(spouseData.timezone) >= 0 ? '+' : ''}${spouseData.timezone}`} />
+            )}
           </div>
-        </motion.div>
+        </div>
       )}
 
-      {/* Life Events Table */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: hasSpouseData ? 0.55 : 0.5 }}
-        className="bg-white rounded-xl border border-black/5 shadow-sm overflow-hidden mb-4"
-      >
-        <div className="flex items-center justify-between px-6 py-4 border-b border-black/5">
-          <h3 className="text-lg font-medium text-black">
-            Life Events ({events.length})
-          </h3>
-          <button
-            onClick={() => onEdit(2)}
-            className="text-xs text-black/50 hover:text-black font-medium transition-colors"
-          >
+      {/* ── Life events table ──────────────────────────────────────────────── */}
+      <div className="bg-white rounded-xl border border-black/[0.06] shadow-sm overflow-hidden">
+        <div className="flex items-center justify-between px-5 py-3 border-b border-black/[0.04]">
+          <div className="flex items-center gap-2">
+            <Calendar className="w-3.5 h-3.5 text-[var(--prism-graphite)]" />
+            <h3 className="text-sm font-semibold text-[var(--prism-ink)]">Life events</h3>
+            <span className="text-[10px] text-[var(--prism-slate)] bg-black/[0.04] px-2 py-0.5 rounded-full font-medium">
+              {events.length}
+            </span>
+          </div>
+          <button onClick={() => onEdit(2)} className="text-xs text-[var(--prism-graphite)] hover:text-[var(--prism-ink)] transition-colors">
             Edit
           </button>
         </div>
+
         {events.length === 0 ? (
-          <div className="p-6">
-            <p className="text-sm text-black/60 bg-[var(--prism-canvas)] rounded-lg p-4 text-center">
-              No life events added yet. At least 3 events are required for accurate analysis.
+          <div className="px-5 py-8 text-center">
+            <p className="text-sm text-[var(--prism-graphite)]">
+              No events added yet — at least 3 are needed for accurate analysis.
             </p>
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="w-full">
               <thead>
-                <tr className="bg-[var(--prism-canvas)] text-left">
-                  <th className="px-6 py-3 text-[10px] font-medium text-black/40 uppercase tracking-wider">#</th>
-                  <th className="px-6 py-3 text-[10px] font-medium text-black/40 uppercase tracking-wider">Event</th>
-                  <th className="px-6 py-3 text-[10px] font-medium text-black/40 uppercase tracking-wider">Category</th>
-                  <th className="px-6 py-3 text-[10px] font-medium text-black/40 uppercase tracking-wider">Date</th>
-                  <th className="px-6 py-3 text-[10px] font-medium text-black/40 uppercase tracking-wider">Precision</th>
-                  <th className="px-6 py-3 text-[10px] font-medium text-black/40 uppercase tracking-wider">Importance</th>
-                  <th className="px-6 py-3 text-[10px] font-medium text-black/40 uppercase tracking-wider">Description</th>
+                <tr className="border-b border-black/[0.04]">
+                  <th className="px-4 py-2.5 text-left text-[10px] font-semibold text-[var(--prism-slate)] tracking-[0.15em] uppercase w-10">#</th>
+                  <th className="px-4 py-2.5 text-left text-[10px] font-semibold text-[var(--prism-slate)] tracking-[0.15em] uppercase">Event</th>
+                  <th className="px-4 py-2.5 text-left text-[10px] font-semibold text-[var(--prism-slate)] tracking-[0.15em] uppercase hidden sm:table-cell">Date</th>
+                  <th className="px-4 py-2.5 text-left text-[10px] font-semibold text-[var(--prism-slate)] tracking-[0.15em] uppercase hidden md:table-cell">Precision</th>
+                  <th className="px-4 py-2.5 text-left text-[10px] font-semibold text-[var(--prism-slate)] tracking-[0.15em] uppercase">Weight</th>
                 </tr>
               </thead>
               <tbody>
                 {events.map((event, i) => (
-                  <tr key={event.id} className="border-t border-black/[0.04] hover:bg-[var(--prism-canvas)]/50 transition-colors">
-                    <td className="px-6 py-3 text-xs text-black/40">{i + 1}</td>
-                    <td className="px-6 py-3">
-                      <span className="text-black font-medium">
-                        {event.icon ? `${event.icon} ` : ''}{event.eventType}
-                      </span>
-                      {event.isCustom && (
-                        <span className="ml-2 text-[10px] text-black/30 italic">custom</span>
+                  <tr
+                    key={event.id}
+                    className="border-b border-black/[0.03] last:border-0 hover:bg-[var(--prism-canvas)]/50 transition-colors"
+                  >
+                    <td className="px-4 py-3 text-xs text-[var(--prism-slate)] tabular-nums">{i + 1}</td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-sm">{event.icon || '📌'}</span>
+                        <span className="text-sm font-medium text-[var(--prism-ink)]">{event.eventType}</span>
+                        {event.isCustom && (
+                          <span className="text-[10px] text-[var(--prism-slate)] ml-1">· custom</span>
+                        )}
+                      </div>
+                      <div className="sm:hidden flex items-center gap-2 mt-0.5 text-xs text-[var(--prism-graphite)]">
+                        <span>{event.eventDate}</span>
+                        {event.eventTime && <span className="text-[var(--prism-slate)]">{event.eventTime}</span>}
+                        <span className="text-[var(--prism-pebble)]">·</span>
+                        <span>{prec(event.datePrecision)}</span>
+                      </div>
+                      {event.description && (
+                        <p className="text-xs text-[var(--prism-graphite)] mt-0.5 line-clamp-1 max-w-[300px]">
+                          {event.description}
+                        </p>
                       )}
                     </td>
-                    <td className="px-6 py-3">
-                      <span className="inline-flex px-2 py-0.5 rounded text-[10px] font-medium bg-[var(--prism-canvas)] text-black/60 capitalize">
-                        {event.category}
-                      </span>
-                    </td>
-                    <td className="px-6 py-3">
-                      <div className="text-black/80">{event.eventDate}</div>
+                    <td className="px-4 py-3 hidden sm:table-cell">
+                      <div className="text-xs text-[var(--prism-ink)]/80">{event.eventDate}</div>
                       {event.eventTime && (
-                        <div className="text-[10px] text-black/40 mt-0.5">{event.eventTime}</div>
-                      )}
-                      {event.endDate && (
-                        <div className="text-[10px] text-black/40">
-                          to {event.endDate}
-                        </div>
+                        <div className="text-[10px] text-[var(--prism-graphite)]">{event.eventTime}</div>
                       )}
                     </td>
-                    <td className="px-6 py-3">
-                      <span className="text-xs text-black/50">{datePrecisionLabel(event.datePrecision)}</span>
+                    <td className="px-4 py-3 hidden md:table-cell">
+                      <span className="text-xs text-[var(--prism-graphite)]">{prec(event.datePrecision)}</span>
                     </td>
-                    <td className="px-6 py-3">{importanceBadge(event.importance)}</td>
-                    <td className="px-6 py-3 max-w-[200px]">
-                      <p className="text-xs text-black/60 line-clamp-2">
-                        {event.description || '—'}
-                      </p>
+                    <td className="px-4 py-3">
+                      <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-semibold ${imp(event.importance)}`}>
+                        <span className={`w-1.5 h-1.5 rounded-full ${event.importance === 'critical' ? 'bg-[#C65D3B]' : event.importance === 'high' ? 'bg-amber-500' : event.importance === 'medium' ? 'bg-[#184131]' : 'bg-stone-400'}`} />
+                        {event.importance}
+                      </span>
                     </td>
                   </tr>
                 ))}
@@ -276,39 +217,61 @@ export default function Step4Review({
             </table>
           </div>
         )}
-      </motion.div>
+      </div>
 
-      {/* Action Buttons */}
+      {/* ── Actions ─────────────────────────────────────────────────────────── */}
       <motion.div
-        initial={{ opacity: 0, y: 20 }}
+        initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.7 }}
-        className="flex gap-4 mt-6"
+        transition={{ delay: 0.15, duration: 0.3 }}
+        className="flex gap-3 pt-1"
       >
         <button
           onClick={() => onEdit(1)}
-          className="px-6 py-3 border border-black/10 text-black rounded-xl font-medium hover:bg-black/5 transition-colors"
+          className="px-5 py-2.5 border border-black/[0.08] text-sm text-[var(--prism-graphite)] rounded-xl font-medium hover:border-black/20 hover:text-[var(--prism-ink)] transition-all"
         >
-          Edit Details
+          Go back & edit
         </button>
         <button
           onClick={onSubmit}
           disabled={isSubmitting}
-          className="flex-1 px-8 py-3 bg-black text-white rounded-xl font-medium hover:shadow-lg transition-all disabled:opacity-50"
+          className="flex-1 px-6 py-2.5 bg-[var(--prism-ink)] text-white text-sm rounded-xl font-semibold hover:bg-black/85 transition-all disabled:opacity-40"
         >
-          {isSubmitting ? 'Submitting...' : 'Submit for Analysis'}
+          {isSubmitting ? 'Submitting…' : 'Submit for analysis'}
         </button>
       </motion.div>
-    </>
+    </div>
   );
 }
 
-/** Reusable table row for key-value display */
-function TableRow({ label, value }: { label: string; value: string }) {
+// ── Reusable bits ───────────────────────────────────────────────────────────
+
+function Cell({ label, value, icon, full }: {
+  label: string;
+  value: string;
+  icon?: React.ReactNode;
+  full?: boolean;
+}) {
   return (
-    <tr className="border-t border-black/[0.04]">
-      <td className="px-6 py-3 text-xs text-black/40 font-medium w-48">{label}</td>
-      <td className="px-6 py-3 text-sm text-black">{value}</td>
-    </tr>
+    <div className={`px-5 py-3 border-b border-black/[0.03] last:border-0 ${full ? 'sm:col-span-2' : ''}`}>
+      <div className="text-[10px] font-semibold text-[var(--prism-slate)] tracking-[0.15em] uppercase mb-0.5">
+        {label}
+      </div>
+      <div className="text-sm text-[var(--prism-ink)]/85 flex items-center gap-1.5">
+        {icon}
+        {value}
+      </div>
+    </div>
+  );
+}
+
+function Stat({ n, label }: { n: number | string; label: string }) {
+  return (
+    <div className="flex-1 py-3 text-center">
+      <div className="text-lg font-bold text-[var(--prism-ink)] tabular-nums">{n}</div>
+      <div className="text-[10px] text-[var(--prism-slate)] font-medium tracking-[0.1em] uppercase">
+        {label}
+      </div>
+    </div>
   );
 }

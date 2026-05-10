@@ -65,6 +65,8 @@ export default function Step3LifeEventsIndex(props: Step3Props) {
 
             <EventTimeline
                 sortedEvents={engine.sortedEvents}
+                accuracy={engine.accuracy}
+                allCategories={engine.allCategories}
                 setEditingId={engine.setEditingId}
             />
 

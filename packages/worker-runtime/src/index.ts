@@ -29,6 +29,15 @@ export type {
   WorkerConfig,
   JobProcessor,
 } from './types.js';
+import type {
+  RedisQueueConfig,
+  RedisQueueClient,
+} from './redis-queue.js';
+
+import { createRedisQueueClient } from './redis-queue.js';
+
+export { createRedisQueueClient };
+export type { RedisQueueConfig, RedisQueueClient };
 
 // Default configuration
 const DEFAULT_POLL_INTERVAL_MS = 2000;

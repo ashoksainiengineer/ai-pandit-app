@@ -1,6 +1,5 @@
 import { Redis as IORedis } from 'ioredis';
 import {
-  claimNextQueuedJob,
   countActiveJobs,
   getLatestJobForSession,
   listActiveJobs,
@@ -24,7 +23,7 @@ export class RedisBullMqQueueDriver implements QueueDriver {
 
   public constructor() {
     if (!config.queue.redis?.url) {
-      throw new AppError(ErrorCodes.INTERNAL_ERROR, 'REDIS_URL is required for redis_bullmq queue architecture.');
+      throw new AppError(ErrorCodes.INTERNAL_ERROR, 'REDIS_URL is required for the job queue.');
     }
 
     this.client = new IORedis(config.queue.redis.url, {
@@ -124,10 +123,9 @@ export class RedisBullMqQueueDriver implements QueueDriver {
       await this.client.lpush(this.queueKey, sessionId);
     }
 
-    // Compatibility fallback for jobs queued before Redis transport was enabled.
-    return claimNextQueuedJob();
+    // Queue empty — nothing to claim
+    return null;
   }
-
   private async ensureConnected(): Promise<void> {
     if (this.client.status === 'ready' || this.client.status === 'connecting') {
       return;

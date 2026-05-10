@@ -84,8 +84,7 @@ const envSchema = z.object({
     MAX_ACTIVE_JOBS_ENTERPRISE: z.string().transform(Number).default('12'),
     LOAD_SHED_QUEUE_DEPTH: z.string().transform(Number).default('80'),
     JOB_EXECUTION_MODE: z.enum(['inline', 'external_worker']).default('inline'),
-    QUEUE_ARCHITECTURE: z.enum(['db_polling', 'redis_bullmq']).default('db_polling'),
-    REDIS_URL: z.string().url().optional(),
+    REDIS_URL: z.string().url().min(1, 'REDIS_URL is required for Redis-based job queue'),
     REDIS_TLS: z
         .string()
         .default('false')
@@ -150,11 +149,6 @@ function parseEnv() {
         );
     }
 
-    if (env.QUEUE_ARCHITECTURE === 'redis_bullmq' && !env.REDIS_URL) {
-        throw new Error(
-            'Configuration Validation Failed:\n  • REDIS_URL is required when QUEUE_ARCHITECTURE=redis_bullmq'
-        );
-    }
 
     return {
         ...env,
@@ -313,7 +307,7 @@ export const config = {
         baseAnalysisTime: 240, // Hardcoded
         contentionMultiplier: 0.1, // Hardcoded
         executionMode: env.JOB_EXECUTION_MODE,
-        architecture: env.QUEUE_ARCHITECTURE,
+        architecture: 'redis_bullmq' as const,
         redis: {
             url: env.REDIS_URL,
             tls: env.REDIS_TLS,

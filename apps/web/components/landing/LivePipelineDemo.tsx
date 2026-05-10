@@ -376,56 +376,43 @@ function EphemerisTable() {
 }
 
 /* ═══════════════════════════════════════════════════════════
-   MAIN DEMO COMPONENT
+   MAIN DEMO COMPONENT — 3-panel horizontal grid
    ═══════════════════════════════════════════════════════════ */
 
 export default function LivePipelineDemo() {
   const [aiActive, setAiActive] = useState(true);
-  const [showCandidates, setShowCandidates] = useState(false);
   const [cycleCount, setCycleCount] = useState(0);
 
   const handleAIComplete = useCallback(() => {
     setAiActive(false);
+    // Restart AI animation cycle after 15s pause
     setTimeout(() => {
-      setShowCandidates(true);
-      // Restart AI cycle after 30s pause
-      setTimeout(() => {
-        setShowCandidates(false);
-        setAiActive(true);
-        setCycleCount(c => c + 1);
-      }, 30000);
-    }, 1500);
+      setAiActive(true);
+      setCycleCount(c => c + 1);
+    }, 15000);
   }, []);
 
   return (
-    <div className="space-y-4">
-      {/* AI Thinking Panel */}
-      <AIThinkingPanel
-        key={`ai-${cycleCount}`}
-        isActive={aiActive}
-        onComplete={handleAIComplete}
-        cycleCount={cycleCount}
-      />
+    <div>
+      {/* 3-panel horizontal row */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        {/* AI Reasoning Engine */}
+        <AIThinkingPanel
+          key={`ai-${cycleCount}`}
+          isActive={aiActive}
+          onComplete={handleAIComplete}
+          cycleCount={cycleCount}
+        />
 
-      {/* Candidate Leaderboard (appears after AI completes) */}
-      <AnimatePresence>
-        {showCandidates && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            transition={{ duration: 0.5, ease: 'easeOut' }}
-          >
-            <CandidateLeaderboard />
-          </motion.div>
-        )}
-      </AnimatePresence>
+        {/* Ephemeris Data */}
+        <EphemerisTable />
 
-      {/* Ephemeris Table (always visible) */}
-      <EphemerisTable />
+        {/* Candidate Birth Times — always visible */}
+        <CandidateLeaderboard />
+      </div>
 
       {/* Cycle indicator */}
-      <div className="flex items-center justify-center gap-2 text-[10px] text-black/20">
+      <div className="flex items-center justify-center gap-2 text-[10px] text-black/20 mt-4">
         <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
         Analysis simulation — refreshes every cycle
       </div>

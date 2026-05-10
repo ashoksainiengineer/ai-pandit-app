@@ -61,6 +61,8 @@ export default defineConfig({
             HEAP_THRESHOLD_GB: envOrDefault('HEAP_THRESHOLD_GB', '4'),
             RSS_THRESHOLD_GB: envOrDefault('RSS_THRESHOLD_GB', '8'),
             CLERK_SECRET_KEY: envOrDefault('CLERK_SECRET_KEY', 'sk_test_123'),
+            REDIS_URL: envOrDefault('REDIS_URL', 'redis://localhost:6379'),
+            REDIS_TLS: envOrDefault('REDIS_TLS', 'false'),
             ENCRYPTION_SECRET: envOrDefault('ENCRYPTION_SECRET', 'test-secret-at-least-32-chars-long-12345'),
             RATE_LIMIT_WINDOW_MS: envOrDefault('RATE_LIMIT_WINDOW_MS', '60000'),
             RATE_LIMIT_MAX_REQUESTS: envOrDefault('RATE_LIMIT_MAX_REQUESTS', '100'),

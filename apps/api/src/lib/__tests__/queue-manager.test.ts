@@ -140,7 +140,7 @@ vi.mock('../encryption/index.js', () => ({
 
 vi.mock('../../config/index.js', () => ({
     config: {
-        queue: { maxConcurrent: 3, pollIntervalMs: 1000, syncPollIntervalMs: 2000, maxSize: 100, staleTimeoutMs: 7200000, baseAnalysisTime: 240, contentionMultiplier: 0.2, architecture: 'db_polling' },
+        queue: { maxConcurrent: 3, pollIntervalMs: 1000, syncPollIntervalMs: 2000, maxSize: 100, staleTimeoutMs: 7200000, baseAnalysisTime: 240, contentionMultiplier: 0.2, architecture: 'redis_bullmq', redis: { url: 'redis://localhost:6379', tls: false, queueName: 'ai-pandit:btr:jobs' }, executionMode: 'external_worker' },
         memory: { pressureThresholdGB: 10, criticalThresholdGB: 14, gcThresholdGB: 8, heapThresholdGB: 4 },
         ai: { baseUrl: 'http://localhost', apiKey: 'key', model: 'model' },
         storage: { gcsBucket: undefined, artifactPrefix: 'analysis-artifacts', artifactRetentionDays: 30 },

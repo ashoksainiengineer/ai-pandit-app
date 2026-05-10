@@ -34,12 +34,6 @@ const fadeIn = {
   transition: { duration: 0.5, ease: 'easeOut' },
 };
 
-const scaleIn = {
-  initial: { opacity: 0, scale: 0.96 },
-  whileInView: { opacity: 1, scale: 1 },
-  viewport: { once: true, margin: '-40px' },
-  transition: { duration: 0.5, ease: [0.215, 0.61, 0.355, 1] },
-};
 
 
 const staggerItem = {
@@ -300,7 +294,7 @@ function Hero() {
 
 /* ═══════════════════════════════════════════════════════════════════════════════
    COMPONENT — How It Works Section (id="how-it-works")
-   Two-column: feature accordion (60%) + sticky browser mockup (40%)
+   Vertical stack: full-width 6-stage accordion (top) + 3-panel horizontal row (bottom)
    ═══════════════════════════════════════════════════════════════════════════════ */
 
 function HowItWorks() {
@@ -319,75 +313,59 @@ function HowItWorks() {
           </h2>
         </motion.div>
 
-        {/* Two-column layout */}
-        <div className="grid grid-cols-1 lg:grid-cols-5 gap-16 items-start">
-          {/* Left Side — Feature List (60% = 3/5 cols) */}
-          <div className="lg:col-span-3">
-            {FEATURES_LIST.map((feature, index) => (
-              <motion.div
-                key={feature.number}
-                {...staggerItem}
-                transition={{ ...staggerItem.transition, delay: index * 0.1 }}
-                data-number={feature.number}
-                onClick={() => setActiveFeature(index)}
-                className={`relative pl-8 py-5 pr-6 rounded-r-2xl cursor-pointer group transition-all duration-300 border-l ${
-                  activeFeature === index
-                    ? 'border-black/20 bg-white shadow-sm'
-                    : 'border-black/[0.06] hover:border-black/15'
-                }`}
-              >
-                {/* Number positioned over the thin left border */}
-                <span className={`absolute left-0 top-5 -translate-x-1/2 w-5 text-center text-xs font-mono transition-colors duration-300 ${
-                  activeFeature === index ? 'text-black' : 'text-black/30'
+        {/* Part 1 — Full-width 6-stage accordion */}
+        <div className="max-w-3xl mx-auto mb-16">
+          {FEATURES_LIST.map((feature, index) => (
+            <motion.div
+              key={feature.number}
+              {...staggerItem}
+              transition={{ ...staggerItem.transition, delay: index * 0.1 }}
+              data-number={feature.number}
+              onClick={() => setActiveFeature(index)}
+              className={`relative pl-8 py-5 pr-6 rounded-r-2xl cursor-pointer group transition-all duration-300 border-l ${
+                activeFeature === index
+                  ? 'border-black/20 bg-white shadow-sm'
+                  : 'border-black/[0.06] hover:border-black/15'
+              }`}
+            >
+              {/* Number positioned over the thin left border */}
+              <span className={`absolute left-0 top-5 -translate-x-1/2 w-5 text-center text-xs font-mono transition-colors duration-300 ${
+                activeFeature === index ? 'text-black' : 'text-black/30'
+              }`}>
+                {feature.number}
+              </span>
+              <div>
+                {/* Title — active=black, inactive=black/50 */}
+                <h3 className={`text-lg font-medium mb-2 transition-colors duration-300 ${
+                  activeFeature === index ? 'text-black' : 'text-black/50'
                 }`}>
-                  {feature.number}
-                </span>
-                <div>
-                  {/* Title — active=black, inactive=black/50 */}
-                  <h3 className={`text-lg font-medium mb-2 transition-colors duration-300 ${
-                    activeFeature === index ? 'text-black' : 'text-black/50'
-                  }`}>
-                    {feature.title}
-                  </h3>
-                  {/* Description — animated expand on click */}
-                  <AnimatePresence>
-                    {activeFeature === index && (
-                      <motion.div
-                        initial={{ opacity: 0, height: 0 }}
-                        animate={{ opacity: 1, height: 'auto' }}
-                        exit={{ opacity: 0, height: 0 }}
-                        transition={{ duration: 0.3, ease: [0.215, 0.61, 0.355, 1] }}
-                        className="overflow-hidden"
-                      >
-                        <p className="text-black/50 text-sm leading-relaxed pt-1">
-                          {feature.description}
-                        </p>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </div>
-              </motion.div>
-            ))}
-          </div>
-
-          {/* Right Side — Live Analysis Engine (40% = 2/5 cols) */}
-          <motion.div
-            {...scaleIn}
-            className="lg:col-span-2 lg:sticky lg:top-32"
-          >
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={activeFeature}
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -8 }}
-                transition={{ duration: 0.25, ease: [0.215, 0.61, 0.355, 1] }}
-              >
-                <LivePipelineDemo />
-              </motion.div>
-            </AnimatePresence>
-          </motion.div>
+                  {feature.title}
+                </h3>
+                {/* Description — animated expand on click */}
+                <AnimatePresence>
+                  {activeFeature === index && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: 'auto' }}
+                      exit={{ opacity: 0, height: 0 }}
+                      transition={{ duration: 0.3, ease: [0.215, 0.61, 0.355, 1] }}
+                      className="overflow-hidden"
+                    >
+                      <p className="text-black/50 text-sm leading-relaxed pt-1">
+                        {feature.description}
+                      </p>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            </motion.div>
+          ))}
         </div>
+
+        {/* Part 2 — 3-panel horizontal row: AI Reasoning | Ephemeris | Candidate Times */}
+        <motion.div {...fadeIn}>
+          <LivePipelineDemo />
+        </motion.div>
       </div>
     </section>
   );
