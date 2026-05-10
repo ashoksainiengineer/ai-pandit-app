@@ -10,6 +10,7 @@
  *   crypto.encrypt(data, userId) / crypto.decrypt(data, userId) / crypto.parseField(data, userId)
  */
 
+import { config } from '../../config/index.js';
 import {
   createEncryption,
   type EncryptionInstance,
@@ -25,8 +26,6 @@ let _instance: EncryptionInstance | null = null;
 /** Get the API's pre-bound encryption instance (lazy-init from config). */
 export function getApiEncryption(): EncryptionInstance {
   if (!_instance) {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
-    const { config } = require('../../config/index.js');
     _instance = createEncryption(config.security.encryptionSecret);
   }
   return _instance;
