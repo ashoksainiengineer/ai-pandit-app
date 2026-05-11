@@ -31,7 +31,7 @@ export function buildVimshottariDasha(
 ): VimshottariDashaEntry[] {
   const { moonLongitude, birthDate, dashaDepth, pranaWindowDays, eventRanges, now } = options;
 
-  const vimDashas = calculateVimshottariDasha(moonLongitude, birthDate, dashaDepth);
+  const vimDashas = calculateVimshottariDasha(moonLongitude, birthDate, 5); // Always generate full tree
 
   if (!vimDashas || vimDashas.length === 0) {
     logger.error('[DASHA-BUILDER] calculateVimshottariDasha returned empty', {
@@ -60,6 +60,15 @@ export function buildVimshottariDasha(
       if (antar.startDate.getTime() > cutoffDate) break;
 
       if (!antar.subPeriods || dashaDepth < 2) continue;
+
+      // When depth=2, add Maha+Antar entries without going deeper
+      if (dashaDepth === 2) {
+        result.push(createDashaEntry(
+          maha.lord, antar.lord, '-', '-', '-',
+          formatDateRange(antar.startDate, antar.endDate)
+        ));
+        continue;
+      }
 
       for (const prat of antar.subPeriods) {
         if (prat.startDate.getTime() > cutoffDate) break;
