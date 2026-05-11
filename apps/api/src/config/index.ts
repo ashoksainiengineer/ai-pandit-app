@@ -7,7 +7,7 @@ import type { EphemerisHouseSystem } from '@ai-pandit/shared/types';
 
 const DEFAULTS = {
   ALLOWED_ORIGINS: 'http://localhost:3000',
-  AI_BASE_URL: 'https://api.openai.com/v1',
+  AI_BASE_URL: 'https://api.groq.com/openai/v1',
   EPHEMERIS_SERVICE_URL: 'http://localhost:8000',
 } as const;
 
@@ -30,7 +30,7 @@ const envSchema = z.object({
     // AI Configuration
     AI_API_KEY: z.string().min(1, 'AI_API_KEY is required'),
     AI_BASE_URL: z.string().url().default(DEFAULTS.AI_BASE_URL),
-    AI_MODEL: z.string().default('gpt-4o'),
+    AI_MODEL: z.string().default('openai/gpt-oss-120b'),
     AI_REASONER_IDENTIFIERS: z.string().default('reasoner,r1,o1,think'),
     AI_REASONING_MODE: z.enum(['include_reasoning', 'none', 'auto', 'reasoning_format_raw']).default('auto'),
     AI_MAX_TOKENS: z.string().transform(Number).default('32768'),

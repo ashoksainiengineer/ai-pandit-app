@@ -100,7 +100,7 @@ class SessionEventManager {
     // ═══ REDIS BACKUP STORE ═══
     // Redis-backed persistent storage for crash recovery
     private redisStore = getRedisEventStore();
-    private useRedis: boolean = process.env.USE_REDIS_EVENTS === 'true';
+    private useRedis: boolean = true; // Always use Redis when available
 
     constructor() {
         // Run garbage collection every 10 minutes

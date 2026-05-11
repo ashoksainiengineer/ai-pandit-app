@@ -44,6 +44,13 @@ vi.mock('../logger.js', () => ({
     logger: { info: vi.fn(), error: vi.fn(), warn: vi.fn(), debug: vi.fn() },
 }));
 
+vi.mock('../redis-event-store.js', () => ({
+    getRedisEventStore: vi.fn(() => ({
+        storeContext: vi.fn().mockResolvedValue(undefined),
+        getContext: vi.fn().mockResolvedValue(null),
+        isAvailable: vi.fn().mockReturnValue(true),
+    })),
+}));
 import { ProgressTracker, ANALYSIS_STEPS, getSessionProgress } from '../progress-tracker.js';
 import { db } from '@ai-pandit/db';
 
@@ -344,23 +351,23 @@ describe('getSessionProgress', () => {
         expect(progress!.currentStep).toBe(0);
     });
 
-    it('should fallback to DB if no active instance', async () => {
-        (db as any).limit.mockResolvedValueOnce([{
-            progressData: JSON.stringify({ currentStep: 5, percentage: 70 })
-        }]);
+    it('should return null if no active instance and Redis has no data', async () => {
         const progress = await getSessionProgress('db-session');
-        expect(progress).toBeDefined();
-        expect(progress!.currentStep).toBe(5);
+        expect(progress).toBeNull();
     });
 
     it('should return null if not found anywhere', async () => {
-        (db as any).limit.mockResolvedValueOnce([]);
         const progress = await getSessionProgress('nonexistent');
         expect(progress).toBeNull();
     });
 
-    it('should return null on DB error', async () => {
-        (db as any).limit.mockRejectedValueOnce(new Error('DB down'));
+    it('should return null on Redis error', async () => {
+        const { getRedisEventStore } = await import('../redis-event-store.js');
+        vi.mocked(getRedisEventStore).mockReturnValueOnce({
+            storeContext: vi.fn().mockResolvedValue(undefined),
+            getContext: vi.fn().mockRejectedValueOnce(new Error('Redis down')),
+            isAvailable: vi.fn().mockReturnValue(true),
+        } as any);
         const progress = await getSessionProgress('error-session');
         expect(progress).toBeNull();
     });

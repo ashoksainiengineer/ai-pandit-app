@@ -31,6 +31,8 @@ import { config } from '../config/index.js';
 import { executeSecondsPrecisionRectification } from './seconds-precision-btr.js';
 import { getMemoryPressureSnapshot, triggerGC } from './memory-manager.js';
 import { getQueueDriver } from './queue/index.js';
+import { getRedisEventStore } from './redis-event-store.js';
+
 import {
   getBlockingCircuitBreakers,
   getCircuitSnapshots,
@@ -517,13 +519,10 @@ export async function flushSessionTrash(sessionId: string): Promise<void> {
 }
 
 export async function heartbeat(sessionId: string): Promise<void> {
-  await executeWithRetry(() =>
-    db.update(sessions)
-      .set({
-        updatedAt: new Date().toISOString(),
-      })
-      .where(eq(sessions.id, sessionId))
-  );
+  const redisStore = getRedisEventStore();
+  await redisStore.storeContext(sessionId, {
+    heartbeatAt: Date.now(),
+  });
   await syncJobHeartbeat(sessionId, activeAttemptIds);
 }
 

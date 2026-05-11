@@ -34,7 +34,7 @@ import {
 } from './time-offset-manager.js';
 import { logger } from '../utils/logger.js';
 import { ProgressTracker, ANALYSIS_STEPS } from './progress-tracker.js';
-import { SecondsPrecisionInput, SecondsPrecisionResult } from '@ai-pandit/shared';
+import { SecondsPrecisionInput, SecondsPrecisionResult, type CandidateTime } from '@ai-pandit/shared';
 import { throwIfCancelled, isCancellationError } from './cancellation-manager.js';
 import { emitStageStats } from './session-events.js';
 import { _enhanceCandidateWithPrecisionData, _generatePrecisionAIPrompt } from './btr-precision-integrator.js';
@@ -68,6 +68,15 @@ import {
     stage5MicroGrid,
     stage6FinalPrecision,
 } from './btr/stages/index.js';
+// Checkpoint / Resume support for long-running pipelines
+import {
+  saveBTRCheckpoint,
+  loadBTRCheckpoint,
+  getResumeStage,
+  getStageCandidates,
+  type BTRCheckpoint,
+} from './btr/checkpoint-manager.js';
+
 
 // Main Processing Function
 
@@ -136,6 +145,15 @@ async function initializeBTRSession(
  * @param input - BTR input parameters including birth data and life events
  * @returns Final rectified birth time with accuracy metrics
  */
+/**
+ * Main BTR processing function - 6 stage tournament for birth time rectification
+ *
+ * Supports checkpoint/resume so that a crashed worker can continue from the
+ * last completed stage instead of restarting from Stage 1.
+ *
+ * @param input - BTR input parameters including birth data and life events
+ * @returns Final rectified birth time with accuracy metrics
+ */
 export async function executeSecondsPrecisionRectification(
     input: SecondsPrecisionInput
 ): Promise<SecondsPrecisionResult> {
@@ -143,67 +161,163 @@ export async function executeSecondsPrecisionRectification(
     const progress = new ProgressTracker(input.sessionId);
     const stageHistory: Record<number, StageResult> = {};
 
+    // ── CHECKPOINT: Resume support ───────────────────────────────────────────
+    let checkpoint: BTRCheckpoint | null = null;
+    let resumeStage = 1;
+
+    if (input.jobId) {
+        checkpoint = loadBTRCheckpoint(input.jobId);
+        resumeStage = getResumeStage(checkpoint);
+        if (resumeStage > 1) {
+            logger.info('[PIPELINE] Resuming from checkpoint', {
+                sessionId: input.sessionId,
+                resumeStage,
+                completedStages: checkpoint?.completedStages ?? [],
+            });
+        }
+    }
+
     try {
         const globalLifecycle = await initializeBTRSession(input, progress);
 
         // ═══════════════════════════════════════════════════════════════════════
         // STAGE 1: EXHAUSTIVE DATA GENERATION
         // ═══════════════════════════════════════════════════════════════════════
-        await throwIfCancelled(input.sessionId, input.abortSignal);
-        logger.info('[PIPELINE] Entering Stage 1: Exhaustive Data Generation');
-        const stage1 = await stage1ExhaustiveDataGeneration(input, progress);
-        logger.info(`[PIPELINE] Stage 1 Complete: ${stage1.candidates.length} candidates generated`);
-        stageHistory[1] = stage1.stageResult;
-        emitStageStats(input.sessionId, 1, stage1.stageResult.candidatesOut, `Generated ${stage1.stageResult.candidatesOut} candidates`);
+        let stage1Candidates: CandidateTime[];
+        if (resumeStage <= 1) {
+            await throwIfCancelled(input.sessionId, input.abortSignal);
+            logger.info('[PIPELINE] Entering Stage 1: Exhaustive Data Generation');
+            const stage1 = await stage1ExhaustiveDataGeneration(input, progress);
+            logger.info(`[PIPELINE] Stage 1 Complete: ${stage1.candidates.length} candidates generated`);
+            stageHistory[1] = stage1.stageResult;
+            stage1Candidates = stage1.candidates;
+            if (input.jobId) {
+                await saveBTRCheckpoint({
+                    jobId: input.jobId,
+                    sessionId: input.sessionId,
+                    stage: 1,
+                    candidates: stage1Candidates,
+                    stageResult: stage1.stageResult,
+                });
+            }
+        } else {
+            stage1Candidates = getStageCandidates(checkpoint, 1) ?? [];
+            logger.info(`[PIPELINE] Skipping Stage 1 (resumed): ${stage1Candidates.length} candidates from checkpoint`);
+        }
+        emitStageStats(input.sessionId, 1, stage1Candidates.length, `Generated ${stage1Candidates.length} candidates`);
         await progress.flush("Initiating Batch Tournament: Pruning non-matching paths...");
 
         // ═══════════════════════════════════════════════════════════════════════
         // STAGE 2: BATCH TOURNAMENT
         // ═══════════════════════════════════════════════════════════════════════
-        await throwIfCancelled(input.sessionId, input.abortSignal);
-        await progress.updateETA(480);
-        logger.info('[PIPELINE] Entering Stage 2: Batch Tournament');
-        const stage2 = await stage2BatchTournament(input, stage1.candidates, progress, globalLifecycle);
-        logger.info(`[PIPELINE] Stage 2 Complete: ${stage2.survivors.length} survivors`);
-        stageHistory[2] = stage2.stageResult;
-        emitStageStats(input.sessionId, 2, stage2.stageResult.candidatesOut,
-            `Tournament: ${stage2.rounds.length} rounds, ${stage2.survivors.length} survivors`);
+        let stage2Survivors: CandidateTime[];
+        if (resumeStage <= 2) {
+            await throwIfCancelled(input.sessionId, input.abortSignal);
+            await progress.updateETA(480);
+            logger.info('[PIPELINE] Entering Stage 2: Batch Tournament');
+            const stage2 = await stage2BatchTournament(input, stage1Candidates, progress, globalLifecycle);
+            logger.info(`[PIPELINE] Stage 2 Complete: ${stage2.survivors.length} survivors`);
+            stageHistory[2] = stage2.stageResult;
+            stage2Survivors = stage2.survivors;
+            if (input.jobId) {
+                await saveBTRCheckpoint({
+                    jobId: input.jobId,
+                    sessionId: input.sessionId,
+                    stage: 2,
+                    candidates: stage2Survivors,
+                    stageResult: stage2.stageResult,
+                });
+            }
+        } else {
+            stage2Survivors = getStageCandidates(checkpoint, 2) ?? [];
+            logger.info(`[PIPELINE] Skipping Stage 2 (resumed): ${stage2Survivors.length} survivors from checkpoint`);
+        }
+        emitStageStats(input.sessionId, 2, stage2Survivors.length,
+            `Tournament survivors: ${stage2Survivors.length}`);
         await progress.flush("Stage 2 finalized. Expanding research grid...");
 
         // ═══════════════════════════════════════════════════════════════════════
         // STAGE 3: REFINEMENT GRID
         // ═══════════════════════════════════════════════════════════════════════
-        await throwIfCancelled(input.sessionId, input.abortSignal);
-        await progress.updateETA(360);
-        logger.info('[PIPELINE] Entering Stage 3: Refinement Grid');
-        const stage3 = await stage3RefinementGrid(input, stage2.survivors, progress);
-        logger.info(`[PIPELINE] Stage 3 Complete: ${stage3.candidates.length} candidates refined`);
-        stageHistory[3] = stage3.stageResult;
-        emitStageStats(input.sessionId, 3, stage3.stageResult.candidatesOut, `Refined to ${stage3.stageResult.candidatesOut}`);
+        let stage3Candidates: CandidateTime[];
+        if (resumeStage <= 3) {
+            await throwIfCancelled(input.sessionId, input.abortSignal);
+            await progress.updateETA(360);
+            logger.info('[PIPELINE] Entering Stage 3: Refinement Grid');
+            const stage3 = await stage3RefinementGrid(input, stage2Survivors, progress);
+            logger.info(`[PIPELINE] Stage 3 Complete: ${stage3.candidates.length} candidates refined`);
+            stageHistory[3] = stage3.stageResult;
+            stage3Candidates = stage3.candidates;
+            if (input.jobId) {
+                await saveBTRCheckpoint({
+                    jobId: input.jobId,
+                    sessionId: input.sessionId,
+                    stage: 3,
+                    candidates: stage3Candidates,
+                    stageResult: stage3.stageResult,
+                });
+            }
+        } else {
+            stage3Candidates = getStageCandidates(checkpoint, 3) ?? [];
+            logger.info(`[PIPELINE] Skipping Stage 3 (resumed): ${stage3Candidates.length} candidates from checkpoint`);
+        }
+        emitStageStats(input.sessionId, 3, stage3Candidates.length, `Refined to ${stage3Candidates.length}`);
         await progress.flush("Stage 3 finalized. Starting multi-dasha analysis...");
 
         // ═══════════════════════════════════════════════════════════════════════
         // STAGE 4: DEEP ANALYSIS
         // ═══════════════════════════════════════════════════════════════════════
-        await throwIfCancelled(input.sessionId, input.abortSignal);
-        await progress.updateETA(240);
-        logger.info('[PIPELINE] Entering Stage 4: Deep Analysis');
-        const stage4 = await stage4DeepAnalysis(input, stage3.candidates, progress, globalLifecycle);
-        logger.info(`[PIPELINE] Stage 4 Complete: ${stage4.survivors.length} deep survivors`);
-        stageHistory[4] = stage4.stageResult;
-        emitStageStats(input.sessionId, 4, stage4.stageResult.candidatesOut, `Deep: ${stage4.survivors.length} survivors`);
+        let stage4Survivors: CandidateTime[];
+        if (resumeStage <= 4) {
+            await throwIfCancelled(input.sessionId, input.abortSignal);
+            await progress.updateETA(240);
+            logger.info('[PIPELINE] Entering Stage 4: Deep Analysis');
+            const stage4 = await stage4DeepAnalysis(input, stage3Candidates, progress, globalLifecycle);
+            logger.info(`[PIPELINE] Stage 4 Complete: ${stage4.survivors.length} deep survivors`);
+            stageHistory[4] = stage4.stageResult;
+            stage4Survivors = stage4.survivors;
+            if (input.jobId) {
+                await saveBTRCheckpoint({
+                    jobId: input.jobId,
+                    sessionId: input.sessionId,
+                    stage: 4,
+                    candidates: stage4Survivors,
+                    stageResult: stage4.stageResult,
+                });
+            }
+        } else {
+            stage4Survivors = getStageCandidates(checkpoint, 4) ?? [];
+            logger.info(`[PIPELINE] Skipping Stage 4 (resumed): ${stage4Survivors.length} survivors from checkpoint`);
+        }
+        emitStageStats(input.sessionId, 4, stage4Survivors.length, `Deep: ${stage4Survivors.length} survivors`);
         await progress.flush("Stage 4 finalized. Entering micro-precision phase...");
 
         // ═══════════════════════════════════════════════════════════════════════
         // STAGE 5: MICRO GRID
         // ═══════════════════════════════════════════════════════════════════════
-        await throwIfCancelled(input.sessionId, input.abortSignal);
-        await progress.updateETA(120);
-        logger.info('[PIPELINE] Entering Stage 5: Micro Grid');
-        const stage5 = await stage5MicroGrid(input, stage4.survivors, progress);
-        logger.info(`[PIPELINE] Stage 5 Complete: ${stage5.candidates.length} micro candidates`);
-        stageHistory[5] = stage5.stageResult;
-        emitStageStats(input.sessionId, 5, stage5.stageResult.candidatesOut, `Micro: ${stage5.candidates.length}`);
+        let stage5Candidates: CandidateTime[];
+        if (resumeStage <= 5) {
+            await throwIfCancelled(input.sessionId, input.abortSignal);
+            await progress.updateETA(120);
+            logger.info('[PIPELINE] Entering Stage 5: Micro Grid');
+            const stage5 = await stage5MicroGrid(input, stage4Survivors, progress);
+            logger.info(`[PIPELINE] Stage 5 Complete: ${stage5.candidates.length} micro candidates`);
+            stageHistory[5] = stage5.stageResult;
+            stage5Candidates = stage5.candidates;
+            if (input.jobId) {
+                await saveBTRCheckpoint({
+                    jobId: input.jobId,
+                    sessionId: input.sessionId,
+                    stage: 5,
+                    candidates: stage5Candidates,
+                    stageResult: stage5.stageResult,
+                });
+            }
+        } else {
+            stage5Candidates = getStageCandidates(checkpoint, 5) ?? [];
+            logger.info(`[PIPELINE] Skipping Stage 5 (resumed): ${stage5Candidates.length} candidates from checkpoint`);
+        }
+        emitStageStats(input.sessionId, 5, stage5Candidates.length, `Micro: ${stage5Candidates.length}`);
         await progress.flush("Stage 5 finalized. Running final seconds-level synthesis...");
 
         // ═══════════════════════════════════════════════════════════════════════
@@ -212,7 +326,7 @@ export async function executeSecondsPrecisionRectification(
         await throwIfCancelled(input.sessionId, input.abortSignal);
         await progress.updateETA(60);
         logger.info('[PIPELINE] Entering Stage 6: Final Precision');
-        const stage6 = await stage6FinalPrecision(input, stage5.candidates, progress, globalLifecycle);
+        const stage6 = await stage6FinalPrecision(input, stage5Candidates, progress, globalLifecycle);
         logger.info('[PIPELINE] Stage 6 Complete: Final Verdict reached');
         stageHistory[6] = stage6.stageResult;
         emitStageStats(input.sessionId, 6, 1, 'FINAL TIME DETERMINED');

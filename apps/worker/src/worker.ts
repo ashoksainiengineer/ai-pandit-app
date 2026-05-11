@@ -18,6 +18,10 @@ import { sessions } from '@ai-pandit/db/schema';
 import { eq, and } from 'drizzle-orm';
 import type { SecondsPrecisionInput, SecondsPrecisionResult } from '@ai-pandit/shared';
 import { createEncryption } from '@ai-pandit/shared';
+import { Redis } from 'ioredis';
+import { initRedisEventStore } from '../../api/src/lib/redis-event-store.js';
+import { adaptIORedis } from '../../api/src/lib/redis-adapter.js';
+
 
 // Load environment variables
 config({ path: '.env' });
@@ -46,6 +50,30 @@ const queueClient: RedisQueueClient = (() => {
   const tls = ['1','true','yes','on'].includes((process.env.REDIS_TLS ?? 'true').toLowerCase());
   return createRedisQueueClient({ url, tls });
 })();
+// ── Redis Event Store (for progress streaming, heartbeats, checkpoints) ─────
+const redisClient = (() => {
+  const url = process.env.REDIS_URL;
+  if (!url) throw new Error('FATAL: REDIS_URL required. Worker cannot initialise event store without Redis.');
+  const tls = ['1','true','yes','on'].includes((process.env.REDIS_TLS ?? 'true').toLowerCase());
+  return new Redis(url, {
+    lazyConnect: true,
+    maxRetriesPerRequest: 3,
+    enableReadyCheck: true,
+    keepAlive: 30000,
+    connectTimeout: 10000,
+    tls: tls ? { rejectUnauthorized: false } : undefined,
+    retryStrategy: (times) => Math.min(times * 200, 5000),
+    reconnectOnError: (err) => {
+      const targetErrors = ['READONLY', 'ECONNRESET', 'ETIMEDOUT'];
+      return targetErrors.some((e) => err.message.includes(e));
+    },
+  });
+})();
+// Wire the ioredis instance into the existing RedisEventStore so progress
+// events, heartbeats and checkpoints survive container restarts.
+initRedisEventStore(adaptIORedis(redisClient));
+console.log('[WORKER] Redis Event Store initialised with ioredis adapter');
+
 
 let workerStarted = false;
 let workerHealthy = false;
@@ -181,6 +209,7 @@ async function processJob(): Promise<void> {
 
     const btrInput: SecondsPrecisionInput = {
       sessionId: session.id,
+      jobId: job.id, // Enables checkpoint/resume for long-running pipelines
       dateOfBirth,
       tentativeTime,
       latitude: session.latitude,
@@ -199,13 +228,14 @@ async function processJob(): Promise<void> {
       jobId: job.id,
     });
 
-    // BUG-FIX: Heartbeat every 15s to prevent zombie job detection during long BTR runs
+    // INDUSTRY-STANDARD: Heartbeat via Redis TTL (not DB) to avoid Neon
+    // connection timeouts during long-running AI pipeline stages.
+    // Redis SET with EX automatically expires if worker crashes, enabling
+    // fast detection of orphaned jobs by the queue health monitor.
     const heartbeatInterval = setInterval(() => {
-      updateJobProgress({
-        jobId: job.id,
-        currentStage: 'btr_processing',
-        progressPercent: 0, // BUG-FIX NOTE: set to 0 to avoid overwriting real pipeline progress
-      }).catch((err) => console.warn('[WORKER] Heartbeat update failed:', err));
+      redisClient
+        .set(`btr:heartbeat:${job.sessionId}`, Date.now().toString(), 'EX', 60)
+        .catch((err) => console.warn('[WORKER] Redis heartbeat failed:', err));
     }, 15_000);
 
     let result: SecondsPrecisionResult;

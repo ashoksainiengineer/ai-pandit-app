@@ -96,6 +96,7 @@ export interface BTROutput {
 
 export interface SecondsPrecisionInput {
   sessionId: string;
+  jobId?: string; // Optional: enables checkpoint/resume for long-running jobs
   dateOfBirth: string;
   tentativeTime: string;
   latitude: number;
@@ -112,7 +113,6 @@ export interface SecondsPrecisionInput {
   };
   abortSignal?: AbortSignal;
 }
-
 export interface SecondsPrecisionResult {
   rectifiedTime: string;
   accuracy: number;

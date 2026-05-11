@@ -155,6 +155,16 @@ vi.mock('../../lib/jobs/artifact-storage.js', () => ({
     persistArtifactReference: vi.fn(),
 }));
 
+vi.mock('../../lib/redis-event-store.js', () => {
+    const mockStore = {
+        storeContext: vi.fn().mockResolvedValue(undefined),
+        getContext: vi.fn().mockResolvedValue(null),
+        isAvailable: vi.fn().mockReturnValue(true),
+    };
+    return {
+        getRedisEventStore: vi.fn(() => mockStore),
+    };
+});
 import {
     addToQueue,
     getQueuePosition,
@@ -363,11 +373,13 @@ describe('Queue Manager', () => {
     });
 
     describe('heartbeat', () => {
-        it('should update updatedAt timestamp', async () => {
-            setMockResults([[]]); // For the update call
+        it('should store heartbeat in Redis', async () => {
+            const { getRedisEventStore } = await import('../../lib/redis-event-store.js');
             await heartbeat('heart-sess');
-            const updateCall = (db.update as any).mock.results[0].value.set.mock.calls[0][0];
-            expect(updateCall.updatedAt).toBeDefined();
+            const storeContext = vi.mocked(getRedisEventStore()).storeContext;
+            expect(storeContext).toHaveBeenCalledWith('heart-sess', expect.objectContaining({
+                heartbeatAt: expect.any(Number),
+            }));
         });
     });
 

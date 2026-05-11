@@ -18,7 +18,7 @@ import {
 import { logger } from '../utils/logger.js';
 import { safeJsonParse } from './utils/safe-json-parse.js';
 import type { CandidateScore, ProgressStep, AIThinkingData, AIContextData, ProgressData } from '@ai-pandit/shared';
-export type { CandidateScore, ProgressStep, AIThinkingData, AIContextData, ProgressData };
+import { getRedisEventStore } from './redis-event-store.js';
 
 // Analysis Pipeline Steps
 export const ANALYSIS_STEPS: Omit<ProgressStep, 'status'>[] = [
@@ -469,24 +469,33 @@ export class ProgressTracker {
                 return;
             }
 
-            // Throttled DB Writes
-            // Database round-trips are expensive. We only flush if:
-            // 1. It's a major flush (includeThinking = true)
-            // Throttle regular saves (non-thinking checkpoints) to 10s to reduce DB load
-            if (!includeThinking && Date.now() - this.lastSaveTime < 10000) {
+            // Throttled persistence
+            const now = Date.now();
+            const throttleMs = includeThinking ? 0 : 5000;
+            if (now - this.lastSaveTime < throttleMs) {
                 return;
             }
 
-            this.lastSaveTime = Date.now();
+            this.lastSaveTime = now;
 
-            // Data persistence with volatile reasoning
-            // We persist everything except AI thinking logs (stageHistory and lastAIThinking)
-            // as per user request for "No permanent reasoning store".
+            // ── HOT PATH: Minor updates go to Redis (fast, no DB connection needed) ──
+            if (!includeThinking) {
+                const redisStore = getRedisEventStore();
+                const dbProgress = { ...this.progress };
+                delete dbProgress.lastAIThinking;
+
+                await redisStore.storeContext(this.sessionId, {
+                    currentStep: this.progress.currentStep,
+                    percentage: this.progress.percentage,
+                    liveMessage: this.progress.liveMessage,
+                    estimatedTimeRemaining: this.progress.estimatedTimeRemaining,
+                    lastUpdate: now,
+                });
+                return; // Skip DB write entirely
+            }
+
+            // ── COLD PATH: Major checkpoints (stage boundaries) hit the DB ──
             const dbProgress = { ...this.progress };
-
-            // Data persistence
-            // We now PERSIST stageHistory (Reasoning Logs) as per "Industry Standard" request.
-            // But we still strip `lastAIThinking` as it's a transient UI state, not a permanent log.
 
             // 🗑️ STRIP ONLY TRANSIENT UI STATE
             delete dbProgress.lastAIThinking;
@@ -496,12 +505,10 @@ export class ProgressTracker {
             // 💾 Size Limit Check: Truncate if too huge
             const MAX_DB_SIZE = 500000;
             if (progressJson.length > MAX_DB_SIZE) {
-                // If calculation logs are huge, prune them first
                 if (dbProgress.calculationLogs && dbProgress.calculationLogs.length > 200) {
                     dbProgress.calculationLogs = dbProgress.calculationLogs.slice(-200);
                     progressJson = JSON.stringify(dbProgress);
                 }
-                // If still too large, prune candidate scores
                 if (progressJson.length > MAX_DB_SIZE && dbProgress.candidateScores && dbProgress.candidateScores.length > 500) {
                     dbProgress.candidateScores = dbProgress.candidateScores.slice(-500);
                     progressJson = JSON.stringify(dbProgress);
@@ -516,12 +523,15 @@ export class ProgressTracker {
                 .where(eq(sessions.id, this.sessionId));
         } catch (error) {
             logger.error('Failed to save progress', { sessionId: this.sessionId, includeThinking, error });
-            // In test/dev, missing local DB connectivity should not abort the in-memory pipeline.
-            if (shouldPropagatePersistenceFailure(error)) {
-                if (includeThinking) {
-                    throw error;
-                }
+
+            // MINOR UPDATE FAILURE: pipeline must NOT crash because of a progress hiccup.
+            if (!includeThinking) {
                 return;
+            }
+
+            // MAJOR UPDATE FAILURE: only propagate if we're told to.
+            if (shouldPropagatePersistenceFailure(error)) {
+                throw error;
             }
 
             this.persistenceDisabled = true;
@@ -581,27 +591,36 @@ export class ProgressTracker {
  * Prioritizes in-memory state for streaming
  */
 export async function getSessionProgress(sessionId: string): Promise<ProgressData | null> {
-
     // 1. Check In-Memory (Real-time)
     const activeInstance = ProgressTracker.getInstance(sessionId);
     if (activeInstance) {
         return activeInstance.getProgress();
     }
 
-    // 2. Fallback to Database (Persistence)
+    // 2. Check Redis (only source of truth — no DB fallback)
+    const redisStore = getRedisEventStore();
     try {
-        const result = await db.select({ progressData: sessions.progressData })
-            .from(sessions)
-            .where(eq(sessions.id, sessionId))
-            .limit(1);
-
-        if (result.length === 0 || !result[0].progressData) {
-            return null;
+        const context = await redisStore.getContext(sessionId);
+        if (context && typeof context === 'object') {
+            const ctx = context as Partial<ProgressData> & { lastUpdate?: number };
+            const redisProgress: ProgressData = {
+                currentStep: ctx.currentStep ?? 0,
+                totalSteps: ANALYSIS_STEPS.length,
+                percentage: ctx.percentage ?? 0,
+                steps: ANALYSIS_STEPS.map(step => ({
+                    ...step,
+                    status: 'pending' as const,
+                })),
+                lastUpdate: ctx.lastUpdate ? new Date(ctx.lastUpdate).toISOString() : new Date().toISOString(),
+                candidateScores: [],
+                estimatedTimeRemaining: ctx.estimatedTimeRemaining ?? 0,
+                liveMessage: ctx.liveMessage,
+            };
+            return redisProgress;
         }
-
-        try { return safeJsonParse<ProgressData>((result[0].progressData || "{}") as string, null as unknown as ProgressData); } catch (error) { logger.warn('[PROGRESS-TRACKER] Corrupt progress data, returning null', { error }); return null; }
     } catch (error) {
-        logger.error('Failed to get progress', { sessionId, error });
-        return null;
+        logger.warn('[PROGRESS-TRACKER] Redis read failed', { sessionId, error });
     }
+
+    return null;
 }
