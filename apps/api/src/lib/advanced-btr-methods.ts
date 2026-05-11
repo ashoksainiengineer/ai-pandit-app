@@ -4,7 +4,7 @@
 // Includes: Yogini Dasha, Divisional Charts, Physical Traits, Advanced Aspects, Arudha Lagna
 
 import { EphemerisData, ZODIAC_SIGNS, SIGN_LORDS } from '@ai-pandit/shared';
-import { calculateEphemeris } from './ephemeris.js';
+import { calculateEphemeris, calculateEphemerisBatch } from './ephemeris.js';
 import { DAYS_PER_YEAR, addYears } from './utils/time-constants.js';
 
 // TYPES AND CONSTANTS
@@ -1412,9 +1412,9 @@ export async function findAstrologicalBoundaries(
     const [h, m, s] = centerTime.split(':').map(Number);
     const centerTotalSeconds = h * 3600 + m * 60 + s;
 
-    let lastD1 = '';
-    let lastD9 = '';
-    let lastD60 = '';
+    // ── BATCH OPTIMIZATION: Collect all times upfront, call ephemeris once ──
+    const timeStrings: string[] = [];
+    const batchInputs: Array<{ birthDate: string; birthTime: string; latitude: number; longitude: number; timezone: number | string }> = [];
 
     for (let offset = -rangeSeconds; offset <= rangeSeconds; offset += STEP_SECONDS) {
         const currentTotal = centerTotalSeconds + offset;
@@ -1422,9 +1422,24 @@ export async function findAstrologicalBoundaries(
         const curM = Math.floor((currentTotal % 3600) / 60);
         const curS = currentTotal % 60;
         const timeStr = `${String(curH).padStart(2, '0')}:${String(curM).padStart(2, '0')}:${String(curS).padStart(2, '0')}`;
+        timeStrings.push(timeStr);
+        batchInputs.push({ birthDate, birthTime: timeStr, latitude, longitude, timezone });
+    }
 
-        // We need a lightweight calculation here or use the existing one
-        const eph = await calculateEphemeris(birthDate, timeStr, latitude, longitude, timezone);
+    // Single batch call replaces 480 sequential HTTP calls
+    const batchEphemeris = await calculateEphemerisBatch(batchInputs);
+
+    let lastD1 = '';
+    let lastD9 = '';
+    let lastD60 = '';
+
+    for (let i = 0; i < timeStrings.length; i++) {
+        const timeStr = timeStrings[i];
+        const eph = batchEphemeris[i];
+        const offset = (i * STEP_SECONDS) - rangeSeconds;
+
+        if (!eph) continue;
+
         const d1 = eph.ascendant.sign;
         const d9 = calculateD9(eph.ascendant.longitude).sign;
         const d60 = calculateD60(eph.ascendant.longitude).sign;
@@ -1443,7 +1458,8 @@ export async function findAstrologicalBoundaries(
         lastD9 = d9;
         lastD60 = d60;
     }
-return boundaries;
+
+    return boundaries;
 }
 
 // Legacy exports for backward compatibility

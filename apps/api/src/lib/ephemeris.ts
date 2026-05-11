@@ -415,6 +415,70 @@ async function calculateEphemerisWithSkyfield(input: {
 
   return buildEphemerisFromSkyfieldChart(chart);
 }
+/**
+ * Batch ephemeris calculation using Skyfield service.
+ * Converts 100+ sequential HTTP calls into 1-2 batch calls.
+ * Industry standard for high-throughput astrological computation.
+ *
+ * @param inputs Array of {birthDate, birthTime, latitude, longitude, timezone}
+ * @returns Array of EphemerisData in the same order as inputs
+ */
+export async function calculateEphemerisBatch(
+  inputs: Array<{ birthDate: string; birthTime: string; latitude: number; longitude: number; timezone: number | string }>,
+): Promise<EphemerisData[]> {
+  if (inputs.length === 0) return [];
+  if (inputs.length === 1) {
+    const [input] = inputs;
+    return [await calculateEphemeris(input.birthDate, input.birthTime, input.latitude, input.longitude, input.timezone)];
+  }
+
+
+  // Build batch request: convert all (date, time) pairs to UTC timestamps
+  const timestampsUtc: string[] = [];
+  for (const input of inputs) {
+    const utcDate = convertToUTC(input.birthDate, input.birthTime, input.timezone);
+    timestampsUtc.push(utcDate.toISOString().replace('.000Z', 'Z'));
+  }
+
+  const { fetchSkyfieldCharts } = await import('./ephemeris/skyfield-client.js');
+  const batchSize = 250; // Skyfield service max batch size
+  const results: EphemerisData[] = [];
+
+  for (let i = 0; i < timestampsUtc.length; i += batchSize) {
+    const batchTimestamps = timestampsUtc.slice(i, i + batchSize);
+    const batchInputs = inputs.slice(i, i + batchSize);
+
+    logger.info(`[EPHEMERIS] Batch call ${Math.floor(i / batchSize) + 1}/${Math.ceil(timestampsUtc.length / batchSize)}`, {
+      batchSize: batchTimestamps.length,
+      total: timestampsUtc.length,
+    });
+
+    const response = await fetchSkyfieldCharts({
+      timestampsUtc: batchTimestamps,
+      location: {
+        latitude: inputs[0].latitude,
+        longitude: inputs[0].longitude,
+      },
+      ayanamshaMode: 'lahiri',
+      houseSystem: getEphemerisConfig().houseSystem,
+      nodeMode: 'true',
+    });
+
+    // Map charts back to inputs (same order guaranteed by Skyfield service)
+    for (let j = 0; j < response.charts.length; j++) {
+      const chart = response.charts[j];
+      const ephemerisData = buildEphemerisFromSkyfieldChart(chart);
+      results.push(ephemerisData);
+    }
+  }
+
+  logger.info(`[EPHEMERIS] Batch complete`, {
+    totalRequests: inputs.length,
+    batchCalls: Math.ceil(timestampsUtc.length / batchSize),
+  });
+
+  return results;
+}
 
 function calculateEphemerisWithAlgorithmic(input: {
   birthDate: string;

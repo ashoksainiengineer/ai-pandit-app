@@ -14,7 +14,7 @@
  * - btr/stages/ - Individual stage implementations
  */
 
-import { calculateEphemeris, convertToUTC } from './ephemeris.js';
+import { calculateEphemeris, convertToUTC, calculateEphemerisBatch } from './ephemeris.js';
 
 import { calculateVimshottariDasha, getDashaForDate } from './vedic-astrology-engine.js';
 import {
@@ -95,30 +95,65 @@ async function initializeBTRSession(
         let lastSaturnSign = '';
         let lastJupiterSign = '';
 
+        logger.info('[BTR] Calling base ephemeris', { sessionId: input.sessionId, date: input.dateOfBirth, time: input.tentativeTime });
         const baseEph = await calculateEphemeris(input.dateOfBirth, input.tentativeTime, input.latitude, input.longitude, input.timezone);
+        logger.info('[BTR] Base ephemeris returned', { sessionId: input.sessionId, moonSign: baseEph.planets.moon.sign });
         const baseDashas = calculateVimshottariDasha(baseEph.planets.moon.longitude, birthDate);
 
+        let ephemerisCalls = 0;
+
+        // Collect all lifecycle check dates for batch ephemeris
+        const lifecycleInputs: Array<{ birthDate: string; birthTime: string; latitude: number; longitude: number; timezone: number | string }> = [];
+        const lifecycleDates: string[] = [];
         for (let y = startYear; y <= endYear; y++) {
             for (const m of [1, 5, 9] as const) {
                 const checkDateForCycle = `${y}-${String(m).padStart(2, '0')}-01`;
-                const ephShift = await calculateEphemeris(checkDateForCycle, '12:00:00', input.latitude, input.longitude, input.timezone);
-                const currentSatSign = ephShift.planets.saturn.sign;
-                const currentJupSign = ephShift.planets.jupiter.sign;
+                lifecycleInputs.push({
+                    birthDate: checkDateForCycle,
+                    birthTime: '12:00:00',
+                    latitude: input.latitude,
+                    longitude: input.longitude,
+                    timezone: input.timezone,
+                });
+                lifecycleDates.push(checkDateForCycle);
+                if (lifecycleDates.length > 50) break;
+            }
+            if (lifecycleDates.length > 50) break;
+        }
 
-                if (currentSatSign !== lastSaturnSign || currentJupSign !== lastJupiterSign) {
-                    const dashaCycle = getDashaForDate(baseDashas, new Date(checkDateForCycle));
-                    globalLifecycle.push({
-                        date: checkDateForCycle,
-                        event: `TRANSIT INGRESS: Saturn in ${currentSatSign} | Jupiter in ${currentJupSign}`,
-                        dasha: dashaCycle ? `${dashaCycle.mahadasha}-${dashaCycle.antardasha}` : 'N/A'
-                    });
-                    lastSaturnSign = currentSatSign;
-                    lastJupiterSign = currentJupSign;
-                }
-                if (globalLifecycle.length > 50) break;
+        logger.info(`[BTR] Batch fetching lifecycle ephemeris for ${lifecycleInputs.length} dates`);
+        const batchStart = Date.now();
+        const lifecycleEphemeris = await calculateEphemerisBatch(lifecycleInputs);
+        logger.info(`[BTR] Lifecycle batch complete`, {
+            dates: lifecycleInputs.length,
+            durationMs: Date.now() - batchStart,
+        });
+
+        for (let idx = 0; idx < lifecycleEphemeris.length; idx++) {
+            const ephShift = lifecycleEphemeris[idx];
+            const checkDateForCycle = lifecycleDates[idx];
+            ephemerisCalls++;
+            const currentSatSign = ephShift.planets.saturn.sign;
+            const currentJupSign = ephShift.planets.jupiter.sign;
+
+            // Periodic progress pulse so the frontend knows we're alive
+            if (ephemerisCalls % 10 === 0) {
+                await progress.updateMessage(`Checking planetary transits: ${ephemerisCalls} epochs processed`);
+            }
+
+            if (currentSatSign !== lastSaturnSign || currentJupSign !== lastJupiterSign) {
+                const dashaCycle = getDashaForDate(baseDashas, new Date(checkDateForCycle));
+                globalLifecycle.push({
+                    date: checkDateForCycle,
+                    event: `TRANSIT INGRESS: Saturn in ${currentSatSign} | Jupiter in ${currentJupSign}`,
+                    dasha: dashaCycle ? `${dashaCycle.mahadasha}-${dashaCycle.antardasha}` : 'N/A'
+                });
+                lastSaturnSign = currentSatSign;
+                lastJupiterSign = currentJupSign;
             }
             if (globalLifecycle.length > 50) break;
         }
+        logger.info(`[BTR] Lifecycle complete`, { sessionId: input.sessionId, ephemerisCalls, globalLifecycleItems: globalLifecycle.length });
     } catch (e) {
         logger.warn('Global lifecycle calculation failed', { error: e instanceof Error ? e.message : String(e) });
     }

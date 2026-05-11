@@ -13,7 +13,7 @@ import {
 } from '../../time-offset-manager.js';
 import { ProgressTracker } from '../../progress-tracker.js';
 import { emitCalculationLog } from '../../session-events.js';
-import { cleanup } from '../../ephemeris.js';
+import { cleanup, calculateEphemerisBatch } from '../../ephemeris.js';
 import { throwIfCancelled } from '../../cancellation-manager.js';
 import { buildCandidateDataPackage } from '../data-package-builder.js';
 import { StageResult } from '@ai-pandit/shared';
@@ -81,17 +81,41 @@ export async function stage1ExhaustiveDataGeneration(
     tentativeTime: input.tentativeTime,
   });
 
+  // Batch all ephemeris calls upfront: 100+ sequential HTTP calls → 1-2 batch calls
+  logger.info(`[STAGE1] Starting batch ephemeris for ${finalCandidates.length} candidates`);
+  const batchStart = Date.now();
+  const batchInputs = finalCandidates.map(raw => ({
+    birthDate: raw.candidateDate || input.dateOfBirth,
+    birthTime: raw.time,
+    latitude: input.latitude,
+    longitude: input.longitude,
+    timezone: input.timezone,
+  }));
+  const batchEphemeris = await calculateEphemerisBatch(batchInputs);
+  logger.info(`[STAGE1] Batch ephemeris complete`, {
+    candidates: finalCandidates.length,
+    durationMs: Date.now() - batchStart,
+  });
+
   // Process sequentially to control memory and support cancellation
   const BATCH_SIZE = 10;
   for (let i = 0; i < finalCandidates.length; i += BATCH_SIZE) {
     await throwIfCancelled(input.sessionId, input.abortSignal);
     const batch = finalCandidates.slice(i, i + BATCH_SIZE);
 
-    for (const raw of batch) {
+    for (let bi = 0; bi < batch.length; bi++) {
+      const raw = batch[bi];
+      const ephIndex = i + bi;
       const pkg = await buildCandidateDataPackage(raw.time, raw.offsetMinutes, input, {
         includeFullData: false, dashaDepth: 2, candidate: raw,
+        precomputedEphemeris: batchEphemeris[ephIndex],
       });
       processed++;
+
+      // Keep frontend alive during slow ephemeris calls
+      if (processed % 5 === 0) {
+        await progress.updateMessage(`Ephemeris: ${processed}/${total} (${raw.time})`);
+      }
 
       await progress.addCandidateScore({
         time: raw.time, score: 0, stage: 1,

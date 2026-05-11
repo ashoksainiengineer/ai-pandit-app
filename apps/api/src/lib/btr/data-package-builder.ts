@@ -8,6 +8,17 @@
  */
 
 import { calculateEphemeris, calculateJulianDay, calculateSunrise, convertToUTC } from '../ephemeris.js';
+
+// ── Sunrise Cache: same date = same sunrise across all candidates ──
+const sunriseCache = new Map<string, Date>();
+async function getCachedSunrise(dateStr: string, latitude: number, longitude: number, timezone: number | string): Promise<Date> {
+  const cacheKey = `${dateStr}:${latitude}:${longitude}:${timezone}`;
+  const cached = sunriseCache.get(cacheKey);
+  if (cached) return cached;
+  const result = await calculateSunrise(dateStr, latitude, longitude, timezone);
+  sunriseCache.set(cacheKey, result);
+  return result;
+}
 import {
   calculateAllVargas,
   calculateAshtakavarga,
@@ -72,8 +83,8 @@ export interface PackageBuildOptions {
   lifecycleShifts?: NonNullable<CandidateDataPackage['lifecycleShifts']>;
   includeDivisionalCharts?: string[];
   candidate?: CandidateTime;
+  precomputedEphemeris?: EphemerisData;
 }
-
 /**
  * Builds a comprehensive data package for a candidate birth time
  */
@@ -93,7 +104,7 @@ export async function buildCandidateDataPackage(
 
   const candidateDate = candidate?.candidateDate || input.dateOfBirth;
   const birthDate = convertToUTC(candidateDate, time, input.timezone);
-  const ephemeris = await loadEphemeris(candidateDate, time, input);
+  const ephemeris = await loadEphemeris(candidateDate, time, input, options.precomputedEphemeris);
   const moonLong = ephemeris.planets.moon.longitude;
 
   // Build Dasha sequences
@@ -177,7 +188,7 @@ export async function buildCandidateDataPackage(
 
   // 🔱 PROJECT MAHAKALA PRECISION ANCHORS
   try {
-    const sunriseDate = await calculateSunrise(candidateDate, input.latitude, input.longitude, input.timezone);
+    const sunriseDate = await getCachedSunrise(candidateDate, input.latitude, input.longitude, input.timezone);
     const candidateUTC = birthDate;
 
     // Ensure vedicSignals is initialized
@@ -303,8 +314,8 @@ function validateDataPackage(pkg: CandidateDataPackage): string[] {
 /**
  * Load and enrich ephemeris data
  */
-async function loadEphemeris(candidateDate: string, time: string, input: SecondsPrecisionInput): Promise<EphemerisData> {
-  const ephemeris = await calculateEphemeris(
+async function loadEphemeris(candidateDate: string, time: string, input: SecondsPrecisionInput, precomputed?: EphemerisData): Promise<EphemerisData> {
+  const ephemeris = precomputed ?? await calculateEphemeris(
     candidateDate,
     time,
     input.latitude,
