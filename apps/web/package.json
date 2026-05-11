@@ -55,7 +55,7 @@
     "@types/uuid": "^9.0.8",
     "@vitejs/plugin-react": "^5.1.4",
     "@vitest/coverage-v8": "^4.0.18",
-    "@welldone-software/why-did-you-render": "^8.0.3",
+    "@welldone-software/why-did-you-render": "^10.0.1",
     "autoprefixer": "^10.4.19",
     "dotenv": "^16.4.5",
     "drizzle-kit": "^0.18.1",
