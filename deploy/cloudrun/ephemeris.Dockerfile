@@ -5,6 +5,14 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     EPHEMERIS_DATA_DIR=/app/data \
     EPHEMERIS_KERNEL_FILE=de440s.bsp \
     EPHEMERIS_LOAD_KERNEL_ON_STARTUP=true
+    PYTHONUNBUFFERED=1 \
+    EPHEMERIS_DATA_DIR=/app/data \
+    EPHEMERIS_KERNEL_FILE=de440s.bsp \
+    EPHEMERIS_LOAD_KERNEL_ON_STARTUP=true \
+    PORT=8080
+
+# Create non-root user for security
+RUN groupadd -r appuser && useradd -r -g appuser appuser
 
 WORKDIR /app
 
@@ -23,6 +31,18 @@ RUN python -c "from skyfield.api import Loader; l = Loader('/app/data'); l('de44
 COPY services/ephemeris/app /app/app
 RUN pip install --no-cache-dir --no-deps .
 
-EXPOSE 8080
+# Switch to non-root user
+RUN chown -R appuser:appuser /app
+USER appuser
 
-CMD ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8080}"]
+EXPOSE ${PORT:-8000}
+
+# Health check for Cloud Run
+HEALTHCHECK --interval=30s --timeout=10s --retries=3 --start-period=60s \
+  CMD python -c "import urllib.request, os; port=os.environ.get('PORT','8000'); urllib.request.urlopen(f'http://localhost:{port}/health', timeout=5)" || exit 1
+HEALTHCHECK --interval=30s --timeout=10s --retries=3 --start-period=60s \
+  CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8080/health', timeout=5)" || exit 1
+
+# Shell form to respect Cloud Run PORT env var (default 8000)
+CMD uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8080"]
