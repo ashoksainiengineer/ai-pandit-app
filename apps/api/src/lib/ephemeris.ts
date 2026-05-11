@@ -25,7 +25,7 @@ const DEFAULT_EPHEMERIS_CONFIG: ResolvedEphemerisConfig = {
   provider: 'algorithmic',
   serviceUrl: 'http://localhost:8000',
   allowAlgorithmicFallback: true,
-  houseSystem: 'placidus',
+  houseSystem: 'whole_sign',
   strictMode: false,
 };
 
