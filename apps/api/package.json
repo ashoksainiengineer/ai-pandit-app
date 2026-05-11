@@ -76,16 +76,16 @@
         "@types/swagger-ui-express": "^4.1.8",
         "@typescript-eslint/eslint-plugin": "^7.0.0",
         "@typescript-eslint/parser": "^7.0.0",
-        "@vitest/coverage-v8": "^4.0.18",
+        "@vitest/coverage-v8": "^4.1.5",
         "@vitest/ui": "^4.0.18",
-        "drizzle-kit": "^0.18.1",
+        "drizzle-kit": "^0.31.10",
         "eslint": "^8.57.0",
         "eslint-plugin-security": "^1.7.1",
         "nyc": "14.1.1",
         "supertest": "^7.2.2",
         "tsx": "^4.7.0",
         "typescript": "^5.4.5",
-        "vitest": "^4.0.18"
+        "vitest": "^4.1.5"
     },
     "engines": {
         "node": ">=20.0.0"

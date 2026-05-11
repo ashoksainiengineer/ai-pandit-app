@@ -66,8 +66,8 @@
     "cleanup:artifacts": "sh ./scripts/cleanup-artifact-images.sh"
   },
   "devDependencies": {
-    "@axe-core/playwright": "^4.11.1",
-    "@playwright/test": "^1.58.2",
+    "@axe-core/playwright": "^4.11.3",
+    "@playwright/test": "^1.59.1",
     "@stryker-mutator/core": "^9.6.1",
     "@stryker-mutator/typescript-checker": "^9.6.1",
     "@stryker-mutator/vitest-runner": "^9.6.1",
@@ -76,8 +76,8 @@
     "lint-staged": "^15.4.3",
     "nyc": "^18.0.0",
     "react-is": "^18.3.1",
-    "snyk": "^1.1295.4",
-    "turbo": "^2.0.0"
+    "snyk": "^1.1304.2",
+    "turbo": "^2.9.12"
   },
   "lint-staged": {
     "*.{ts,tsx}": [
