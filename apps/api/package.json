@@ -54,7 +54,7 @@
         "@ai-pandit/shared": "*",
         "@clerk/backend": "^2.33.3",
         "@clerk/clerk-react": "5.61.6",
-        "@google-cloud/storage": "^5.20.4",
+        "@google-cloud/storage": "^7.19.0",
         "cors": "^2.8.5",
         "dotenv": "^16.6.1",
         "drizzle-orm": "^0.45.1",
