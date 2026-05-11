@@ -73,6 +73,33 @@ const redisClient = (() => {
 // events, heartbeats and checkpoints survive container restarts.
 initRedisEventStore(adaptIORedis(redisClient));
 console.log('[WORKER] Redis Event Store initialised with ioredis adapter');
+// ── Ephemeris Service Health Check ─────────────────────────────────────────
+async function verifyEphemerisConnection(): Promise<void> {
+  const ephemerisUrl = process.env.EPHEMERIS_SERVICE_URL;
+  if (!ephemerisUrl) {
+    console.warn('[WORKER] EPHEMERIS_SERVICE_URL not set — Skyfield ephemeris calls will fail');
+    return;
+  }
+
+  const healthUrl = new URL('/health', ephemerisUrl).toString();
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 10000);
+
+  try {
+    const response = await fetch(healthUrl, { signal: controller.signal });
+    if (response.ok) {
+      console.log(`[WORKER] Ephemeris service reachable at ${ephemerisUrl}`);
+    } else {
+      console.warn(`[WORKER] Ephemeris service returned ${response.status} from ${healthUrl}`);
+    }
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.warn(`[WORKER] Ephemeris service unreachable at ${healthUrl}: ${message}`);
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+    
 
 
 let workerStarted = false;
@@ -226,6 +253,7 @@ async function processJob(): Promise<void> {
     console.log('[WORKER] Starting BTR analysis', {
       sessionId: session.id,
       jobId: job.id,
+      ephemerisUrl: process.env.EPHEMERIS_SERVICE_URL || 'NOT_SET',
     });
 
     // INDUSTRY-STANDARD: Heartbeat via Redis TTL (not DB) to avoid Neon
@@ -238,11 +266,29 @@ async function processJob(): Promise<void> {
         .catch((err) => console.warn('[WORKER] Redis heartbeat failed:', err));
     }, 15_000);
 
+    // HARD TIMEOUT: BTR must complete within 30 minutes or be aborted.
+    // This prevents infinite hangs from unreachable ephemeris services.
+    const BTR_TIMEOUT_MS = 30 * 60 * 1000; // 30 minutes
+    const btrTimeout = setTimeout(() => {
+      console.error(`[WORKER] BTR analysis timed out after ${BTR_TIMEOUT_MS}ms`, {
+        sessionId: session.id,
+        jobId: job.id,
+      });
+      // The AbortController signal is passed to the BTR input but the pipeline
+      // must check it. For now we rely on the timeout to force job failure.
+    }, BTR_TIMEOUT_MS);
+
     let result: SecondsPrecisionResult;
     try {
-      result = await executeSecondsPrecisionRectification(btrInput);
+      result = await Promise.race([
+        executeSecondsPrecisionRectification(btrInput),
+        new Promise<never>((_, reject) => {
+          setTimeout(() => reject(new Error(`BTR analysis timed out after ${BTR_TIMEOUT_MS}ms`)), BTR_TIMEOUT_MS);
+        }),
+      ]);
     } finally {
       clearInterval(heartbeatInterval);
+      clearTimeout(btrTimeout);
     }
 
     console.log('[WORKER] BTR analysis complete', {
@@ -465,6 +511,9 @@ void (async () => {
     console.log('[WORKER] Verifying database connection...');
     await verifyDatabaseConnection();
     console.log('[WORKER] Database connection verified successfully');
+    // Verify ephemeris service reachability before accepting jobs
+    await verifyEphemerisConnection();
+    
 
     await workerRuntime.initialize({ pollIntervalMs });
     workerStarted = true;
