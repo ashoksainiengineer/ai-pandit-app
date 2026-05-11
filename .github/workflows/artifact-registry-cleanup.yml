@@ -19,7 +19,7 @@ jobs:
       ARTIFACT_REGISTRY_REPO: ${{ vars.ARTIFACT_REGISTRY_REPO || 'ai-pandit' }}
       KEEP_PER_PACKAGE: 3
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Authenticate to Google Cloud (OIDC)
         uses: google-github-actions/auth@v2
