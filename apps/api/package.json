@@ -79,7 +79,7 @@
         "@vitest/coverage-v8": "^4.0.18",
         "@vitest/ui": "^4.0.18",
         "drizzle-kit": "^0.18.1",
-        "eslint": "^8.57.0",
+        "eslint": "^10.3.0",
         "eslint-plugin-security": "^1.7.1",
         "nyc": "14.1.1",
         "supertest": "^7.2.2",
