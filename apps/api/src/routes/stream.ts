@@ -224,10 +224,15 @@ router.get(['/', '/:sessionId'], authMiddleware, async (req: AuthenticatedReques
 
         currentStatus = session[0].status || 'pending';
 
+        // 🔍 DIAGNOSTIC: Trace session status at SSE connect time (cancelled-by-user investigation)
+        logger.info(`[SSE:CONNECT] Session ${sessionId} DB status="${currentStatus}" err="${session[0].errorMessage?.substring(0, 100) || 'none'}" updatedAt=${session[0].updatedAt} tick=${Date.now()}`);
+
         // Handle terminal states — do NOT open SSE for sessions that are done
         // NOTE: cancelSession() sets status to 'failed' with errorMessage 'Cancelled by user'
         const terminalStates = ['cancelled', 'error', 'failed', 'complete'];
         if (terminalStates.includes(currentStatus)) {
+            // 🔍 DIAGNOSTIC: Terminal state guard triggered — trace race with requeue
+            logger.warn(`[SSE:TERMINAL_GUARD] Session ${sessionId} status="${currentStatus}" err="${session[0].errorMessage?.substring(0, 100) || 'none'}" — sending terminal_state. Check [REQUEUE] and [MARK_AS_FAILED] logs for race.`);
             logger.info(`[SSE] Session ${sessionId} is in terminal state: ${currentStatus}`, {
                 errorMessage: session[0].errorMessage?.substring(0, 200),
                 updatedAt: session[0].updatedAt

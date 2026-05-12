@@ -288,8 +288,39 @@ async function requeueAnalysisSession(req: AuthenticatedRequest, res: Response, 
                 .where(eq(sessions.id, sessionId))
         );
 
+        // 🔍 DIAGNOSTIC: Trace requeue steps for cancelled-by-user race
+        logger.info(`[REQUEUE:STEP1] Session ${sessionId} status reset to pending tick=${Date.now()} prevStatus="${previousStatus}"`);
+
         // 2. Clear event buffers and abort zombie engine
         await flushSessionTrash(sessionId);
+
+        // 🔍 DIAGNOSTIC: Log after flushSessionTrash to trace timing
+        logger.info(`[REQUEUE:STEP2] Session ${sessionId} flushSessionTrash done tick=${Date.now()}`);
+
+        // 🔒 BUG-FIX: Brief delay to allow stale abort handlers from the old pipeline
+        // to propagate before we verify. Prevents race where flushSessionTrash's abort
+        // triggers handleProcessingException → markAsFailed AFTER our verification passes.
+        await sleep(500);
+
+        // Re-verify: if stale abort re-marked as failed, re-reset to pending
+        const reCheck = await executeWithRetry(() =>
+            db.select({ status: sessions.status, errorMessage: sessions.errorMessage })
+                .from(sessions)
+                .where(eq(sessions.id, sessionId))
+                .limit(1)
+        );
+        if (reCheck.length > 0 && reCheck[0].status === 'failed') {
+            logger.warn(`[REQUEUE:FIXUP] Session ${sessionId} status reverted to 'failed' after flush — re-resetting to pending`, {
+                errorMessage: reCheck[0].errorMessage?.substring(0, 100),
+                tick: Date.now(),
+            });
+            await executeWithRetry(() =>
+                db.update(sessions)
+                    .set({ status: 'pending', errorMessage: null, updatedAt: now })
+                    .where(eq(sessions.id, sessionId))
+            );
+        }
+        logger.info(`[REQUEUE:STEP2b] Session ${sessionId} re-check passed tick=${Date.now()}`);
 
         // 2.5 — CRITICAL: Reset the latest job status to 'queued' so the worker can claim it
         // Without this, requeued sessions are NEVER picked up because the worker
@@ -349,6 +380,8 @@ async function requeueAnalysisSession(req: AuthenticatedRequest, res: Response, 
                 .limit(1)
         );
 
+        // 🔍 DIAGNOSTIC: Log verification result
+        logger.warn(`[REQUEUE:VERIFY] Session ${sessionId} verified status="${verifySession[0]?.status || 'missing'}" err="${verifySession[0]?.errorMessage?.substring(0, 100) || 'none'}" tick=${Date.now()}. status!=pending → requeue fails.`);
         if (verifySession.length === 0 || verifySession[0].status !== 'pending') {
             logger.error('[REQUEUE] Status verification failed', {
                 sessionId,

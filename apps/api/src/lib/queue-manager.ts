@@ -470,6 +470,9 @@ export async function markAsFailed(
       ))
   );
 
+  // 🔍 DIAGNOSTIC: Trace markAsFailed transitions for cancelled-by-user race
+  logger.warn(`[MARK_AS_FAILED] Session ${sessionId} rowsAffected=${getRowsAffected(updateResult)} error="${error?.substring(0, 100)}" tick=${Date.now()}. rowsAffected=0 means WHERE status='processing' prevented overwrite.`);
+
   const rowsAffected = getRowsAffected(updateResult);
   if (rowsAffected === 0) {
     logger.warn('Skipped failed transition due to non-processing state', { sessionId, error });
@@ -488,6 +491,8 @@ export async function markAsFailed(
 
 export async function flushSessionTrash(sessionId: string): Promise<void> {
   try {
+    // 🔍 DIAGNOSTIC: Check if old pipeline is still active before abort
+    logger.info(`[FLUSH_TRASH] Session ${sessionId} isInActiveProcessing=${activeProcessingIds.has(sessionId)} tick=${Date.now()}. true=old pipeline alive; abort will trigger CancellationError chain.`);
     logger.info('Flushing technical trash and aborting session', { sessionId });
 
     abortSessionController(sessionId);
@@ -820,6 +825,8 @@ async function handleQueueIterationError(error: unknown): Promise<void> {
 // Session Processing
 
 async function analyzeSessionAsync(sessionId: string): Promise<void> {
+  // 🔍 DIAGNOSTIC: Trace when worker picks up (potentially requeued) session
+  logger.warn(`[WORKER:START] analyzeSessionAsync session=${sessionId} tick=${Date.now()}. If between REQUEUE:VERIFY and SSE:CONNECT, worker may race with frontend.`);
   logger.debug('analyzeSessionAsync entered', { sessionId });
   try {
     logger.debug('analyzeSessionAsync querying DB', { sessionId });
@@ -1024,6 +1031,34 @@ async function serializeAndComplete(
 
 async function handleProcessingException(error: unknown, sessionId: string): Promise<void> {
   if (isCancellationError(error)) {
+    // 🔒 BUG-FIX: Check current DB status before markAsFailed to prevent stale
+    // abort from requeue's flushSessionTrash from overwriting a 'pending' session.
+    // Scenario: old pipeline catches abort → handleProcessingException → markAsFailed
+    // BUT requeue already reset status to 'pending'. Guard prevents the overwrite.
+    let currentStatus = 'unknown';
+    try {
+      const row = await db.select({ status: sessions.status })
+        .from(sessions)
+        .where(eq(sessions.id, sessionId))
+        .limit(1);
+      currentStatus = row[0]?.status || 'unknown';
+    } catch {
+      // DB read failed — proceed with markAsFailed conservatively
+      currentStatus = 'unknown';
+    }
+
+    if (currentStatus === 'pending') {
+      // Session was already requeued — this CancellationError is a stale abort from
+      // the requeue's flushSessionTrash. Clean up but DO NOT overwrite the pending status.
+      logger.warn(`[CANCEL_SKIP] Session ${sessionId} cancellation detected but DB status is 'pending' — ignoring stale abort from requeue`, {
+        tick: Date.now(),
+      });
+      cleanupController(sessionId);
+      // Still emit error for any active SSE listeners, but they'll reconnect
+      emitError(sessionId, 'Analysis cancelled by user', 'cancelled');
+      return;
+    }
+
     logger.info('Session processing cancelled', { sessionId });
     cleanupController(sessionId);
     emitError(sessionId, 'Analysis cancelled by user', 'cancelled');
