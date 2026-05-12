@@ -121,12 +121,13 @@ export function useLifeEvents({ lifeEvents, updateEvents }: Step3Props) {
                 isCustom: true
             };
             setCustomCategories(prev => [...prev, newCategory]);
-            addEvent(data.label, '📌', newCategory.id, data.importance as ImportanceLevel, true);
+            addEvent(data.label, newCategory.icon, newCategory.id, data.importance as ImportanceLevel, true);
         } else {
-            addEvent(data.label, '📌', data.categoryId, data.importance as ImportanceLevel, true);
+            const existingCategory = getCategoryById(allCategories, data.categoryId);
+            addEvent(data.label, existingCategory?.icon || '📅', data.categoryId, data.importance as ImportanceLevel, true);
         }
         setIsCustomModalOpen(false);
-    }, [addEvent]);
+    }, [addEvent, allCategories]);
 
     // Update event with proper state handling
     const updateEvent = useCallback((id: string, updates: Partial<LifeEvent>) => {

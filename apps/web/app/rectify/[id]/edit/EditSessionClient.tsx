@@ -11,8 +11,8 @@ import { waitForAnalysisSessionReady } from '@/lib/analysis-session-readiness';
 import { logger } from '@/lib/secure-logger';
 
 import Step1BirthDetails from '@/components/rectify/Step1BirthDetails';
-import Step3LifeEvents from '@/components/rectify/Step3LifeEvents';
-import Step4Review from '@/components/rectify/Step4Review';
+import Step2LifeEvents from '@/components/rectify/Step2LifeEvents';
+import Step3Review from '@/components/rectify/Step3Review';
 import Layout from '@/components/Layout';
 
 import { SecurityBadge } from '@/components/rectify/SecurityBadge';
@@ -325,14 +325,14 @@ export function EditSessionClient({ sessionId, initialData }: EditSessionClientP
                             />
                         )}
                         {step === 2 && (
-                            <Step3LifeEvents
+                            <Step2LifeEvents
                                 lifeEvents={lifeEvents}
                                 updateEvents={setLifeEvents}
                                 offsetConfig={offsetConfig}
                             />
                         )}
                         {step === 3 && birthData && (
-                            <Step4Review
+                            <Step3Review
                                 data={birthData}
                                 events={lifeEvents}
                                 spouseData={spouseData}

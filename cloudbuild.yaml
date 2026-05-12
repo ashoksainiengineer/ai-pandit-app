@@ -142,7 +142,6 @@ steps:
           --min-instances 0 \
           --max-instances 2 \
           --set-secrets NEON_DATABASE_URL=neon-database-url:latest,REDIS_URL=redis-url:latest,AI_API_KEY=ai-api-key:latest,ENCRYPTION_SECRET=encryption-secret:latest,CLERK_SECRET_KEY=clerk-secret-key:latest \
-          --set-secrets NEON_DATABASE_URL=neon-database-url:latest,REDIS_URL=redis-url:latest,AI_API_KEY=ai-api-key:latest,ENCRYPTION_SECRET=encryption-secret:latest,CLERK_SECRET_KEY=clerk-secret-key:latest \
           --set-env-vars NODE_ENV=production,APP_REGION=${_REGION},CLOUD_RUN_REGION=${_REGION},JOB_EXECUTION_MODE=external_worker,USE_ASYNC_JOB_PIPELINE=true,USE_NEW_STREAM_PATH=true,AI_BASE_URL=https://api.deepseek.com,AI_MODEL=deepseek-v4-flash,EPHEMERIS_PROVIDER=skyfield,EPHEMERIS_ALLOW_ALGORITHMIC_FALLBACK=false,EPHEMERIS_SERVICE_URL=${_EPHEMERIS_SERVICE_URL},EPHEMERIS_SERVICE_TIMEOUT_MS=15000,EPHEMERIS_BATCH_SIZE=250,EPHEMERIS_HOUSE_SYSTEM=placidus,FRONTEND_URL=${_FRONTEND_URL},ALLOWED_ORIGINS=${_FRONTEND_URL},WORKER_POLL_INTERVAL_MS=2000,JOB_SYNC_POLL_INTERVAL_MS=2000,REDIS_TLS=true
 
   # Deploy Worker to Cloud Run using pre-built image

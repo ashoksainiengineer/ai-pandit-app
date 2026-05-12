@@ -4,7 +4,7 @@ import React from 'react';
 import dynamic from 'next/dynamic';
 import type { LifeEvent, TimeOffsetConfig } from '@/lib/types';
 
-const Step3LifeEvents = dynamic(() => import('@/components/rectify/Step3LifeEvents'), {
+const Step2LifeEvents = dynamic(() => import('@/components/rectify/Step2LifeEvents'), {
     loading: () => <div className="animate-pulse bg-[var(--prism-canvas)] h-96 rounded-xl" />,
     ssr: false
 });
@@ -21,7 +21,7 @@ export default function LifeEventsEditor({
     onUpdateEvents,
 }: LifeEventsEditorProps) {
     return (
-        <Step3LifeEvents
+        <Step2LifeEvents
             lifeEvents={lifeEvents}
             updateEvents={onUpdateEvents}
             offsetConfig={offsetConfig}

@@ -52,4 +52,8 @@ ENV WORKER_POLL_INTERVAL_MS=2000
 ENV NODE_OPTIONS=--max-old-space-size=1024
 ENV DB_POOL_MAX=3
 
+# Health check for Cloud Run
+HEALTHCHECK --interval=30s --timeout=10s --retries=3 --start-period=60s \
+  CMD wget -q -O- http://localhost:8080/live || exit 1
+
 CMD ["node", "apps/worker/dist/apps/worker/src/worker.js"]

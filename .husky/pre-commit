@@ -1,3 +1,31 @@
-echo "🔍 Running pre-commit checks..."
-npx lint-staged --allow-empty 2>/dev/null || true
-echo "✅ Pre-commit complete. CI will catch any remaining issues."
+#!/bin/sh
+# Pre-commit hook to prevent committing sensitive files
+# Install: npm install husky --save-dev && npx husky install
+
+# Block .env files (except .env.*.example templates)
+if git diff --cached --name-only | grep -qE '^\.env(\.local|\.production|\.test|\.development)?$|^apps/.*/\.env'; then
+  echo "❌ ERROR: Attempting to commit .env file with potential secrets."
+  echo "   Only .env.*.example files are allowed in git."
+  echo "   If you meant to commit an example file, rename it to .env.example or .env.local.example"
+  exit 1
+fi
+
+# Block files with common secret patterns
+if git diff --cached --name-only | grep -qE '\.(key|pem|p12|pfx)$'; then
+  echo "❌ ERROR: Attempting to commit key/certificate file."
+  echo "   Add to .gitignore and store in Secret Manager instead."
+  exit 1
+fi
+
+# Check for hardcoded secrets in staged TypeScript/JavaScript files
+STAGED_FILES=$(git diff --cached --name-only | grep -E '\.(ts|tsx|js|mjs)$' || true)
+if [ -n "$STAGED_FILES" ]; then
+  # Check for common secret patterns
+  if git diff --cached --name-only | xargs git diff --cached --no-ext-diff 2>/dev/null | grep -qE 'sk_live_[a-zA-Z0-9]{20,}|sk-[a-zA-Z0-9]{32,}|npg_[a-zA-Z0-9]{10,}'; then
+    echo "⚠️  WARNING: Potential secret pattern detected in staged changes."
+    echo "   Review carefully before committing."
+    # Don't block, just warn (false positives are common)
+  fi
+fi
+
+echo "✅ Pre-commit checks passed"

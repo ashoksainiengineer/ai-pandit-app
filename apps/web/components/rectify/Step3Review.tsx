@@ -4,8 +4,10 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { BirthData, LifeEvent, SpouseData, TimeOffsetConfig } from '@/lib/types';
 import { Clock, MapPin, Calendar, User, Globe } from 'lucide-react';
+import { EVENT_CATEGORIES } from '@/lib/events/categories';
+import { getCategoryById } from '@/lib/events/utils';
 
-interface Step4ReviewProps {
+interface Step3ReviewProps {
   data: BirthData;
   events: LifeEvent[];
   spouseData?: SpouseData;
@@ -16,6 +18,11 @@ interface Step4ReviewProps {
 }
 
 // ── Tiny helpers ────────────────────────────────────────────────────────────
+
+const getCategoryIcon = (categoryId: string): string => {
+  const cat = getCategoryById(EVENT_CATEGORIES, categoryId);
+  return cat?.icon || '📅';
+};
 
 const imp = (level: string) => {
   const m: Record<string, string> = {
@@ -43,9 +50,9 @@ const coord = (v: number | undefined | null) =>
 
 // ── Component ───────────────────────────────────────────────────────────────
 
-export default function Step4Review({
+export default function Step3Review({
   data, events, spouseData, onSubmit, isSubmitting, onEdit, offsetConfig,
-}: Step4ReviewProps) {
+}: Step3ReviewProps) {
   const showSpouse = !!(spouseData?.name || spouseData?.dateOfBirth || spouseData?.birthTime || spouseData?.birthPlace);
 
   return (
@@ -178,7 +185,7 @@ export default function Step4Review({
                     <td className="px-4 py-3 text-xs text-[var(--prism-slate)] tabular-nums">{i + 1}</td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-1.5">
-                        <span className="text-sm">{event.icon || '📌'}</span>
+                        <span className="text-sm">{getCategoryIcon(event.category)}</span>
                         <span className="text-sm font-medium text-[var(--prism-ink)]">{event.eventType}</span>
                         {event.isCustom && (
                           <span className="text-[10px] text-[var(--prism-slate)] ml-1">· custom</span>

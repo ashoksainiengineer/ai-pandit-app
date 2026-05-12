@@ -23,6 +23,11 @@ function getCategoryColor(categories: EventCategory[], categoryId: string): stri
     return cat?.color || '#184131';
 }
 
+function getCategoryIcon(categories: EventCategory[], categoryId: string): string {
+    const cat = getCategoryById(categories, categoryId);
+    return cat?.icon || '📅';
+}
+
 function getEventDecade(event: LifeEvent): number | null {
     if (!event.eventDate || !isValidDateString(event.eventDate)) return null;
     const year = parseInt(parseDateParts(event.eventDate).year, 10);
@@ -133,6 +138,7 @@ export function EventTimeline({
                 <div className="space-y-1">
                     {eventsWithDividers.map(({ event, showDivider, decadeLabel }, index) => {
                         const catColor = getCategoryColor(allCategories, event.category);
+                        const catIcon = getCategoryIcon(allCategories, event.category);
                         const isCritical = event.importance === 'critical';
                         const dateInfo = formatTimelineDate(event);
 
@@ -201,7 +207,7 @@ export function EventTimeline({
                                         {/* Icon + Title + Badges */}
                                         <div className="flex items-center gap-2.5">
                                             <span className="text-lg flex-shrink-0">
-                                                {event.icon || '📌'}
+                                                {catIcon}
                                             </span>
                                             <span className="text-sm font-semibold text-black">
                                                 {event.eventType}

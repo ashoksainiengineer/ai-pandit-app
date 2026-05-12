@@ -14,9 +14,9 @@ const { getCacheStats, clearSessionCache } = await import('/home/ashoksainiengin
 console.log('══════════════════════════════════════════════════════════════════');
 console.log('FULL BTR PIPELINE TEST - REAL AI API CALLS');
 console.log('══════════════════════════════════════════════════════════════════');
-console.log(`AI Model: ${process.env.AI_MODEL}`);
-console.log(`AI Base URL: ${process.env.AI_BASE_URL}`);
-console.log(`Ephemeris: ${process.env.EPHEMERIS_PROVIDER}`);
+console.log(`AI Model: ${process.env.AI_MODEL ? 'configured' : 'not set'}`);
+console.log(`AI Base URL: ${process.env.AI_BASE_URL ? 'configured' : 'not set'}`);
+console.log(`Ephemeris: ${process.env.EPHEMERIS_PROVIDER || 'skyfield'}`);
 console.log('');
 
 const testResults = {

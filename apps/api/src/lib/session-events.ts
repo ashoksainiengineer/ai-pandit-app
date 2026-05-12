@@ -6,7 +6,7 @@ import { EventEmitter } from 'events';
 import crypto from 'crypto';
 import { appendJobEvent, getLatestJobForSession } from '@ai-pandit/db/jobs';
 import { logger } from '../utils/logger.js';
-import { getRedisEventStore, type RedisClient } from './redis-event-store.js';
+import { getRedisEventStore, type RedisClient, type RedisEventStore } from './redis-event-store.js';
 import type {
     ProgressEvent,
     AIThinkingEvent,
@@ -99,7 +99,11 @@ class SessionEventManager {
 
     // ═══ REDIS BACKUP STORE ═══
     // Redis-backed persistent storage for crash recovery
-    private redisStore = getRedisEventStore();
+    // Use getter to always resolve the current global singleton
+    // (initRedisEventStore() may replace it after module load).
+    private get redisStore(): RedisEventStore {
+        return getRedisEventStore();
+    }
     private useRedis: boolean = true; // Always use Redis when available
 
     constructor() {

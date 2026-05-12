@@ -13,7 +13,7 @@ import BirthDataForm from '@/components/rectify/BirthDataForm';
 import LifeEventsEditor from '@/components/rectify/LifeEventsEditor';
 import { useRectifyForm } from '@/hooks/use-rectify-form';
 
-const Step4Review = dynamic(() => import('@/components/rectify/Step4Review'), {
+const Step3Review = dynamic(() => import('@/components/rectify/Step3Review'), {
     loading: () => <div className="animate-pulse bg-[var(--prism-canvas)] h-96 rounded-xl" />,
     ssr: false
 });
@@ -52,7 +52,7 @@ function RectifyPageContent() {
                             />
                         )}
                         {form.step === 3 && (
-                            <Step4Review
+                            <Step3Review
                                 data={form.birthData}
                                 events={form.lifeEvents}
                                 spouseData={form.spouseData}

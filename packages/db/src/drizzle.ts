@@ -65,8 +65,10 @@ function ensureInit(): void {
     connectionString,
     // BUG-FIX: Ensure pool max is at least 1 (DB_POOL_MAX=0 would hang all queries)
     max: Math.max(1, Number(process.env.DB_POOL_MAX || 10)),
-    idleTimeoutMillis: 30000,
-    connectionTimeoutMillis: 10000,
+    idleTimeoutMillis: 300000,
+    connectionTimeoutMillis: 30000,
+    keepAlive: true,
+    keepAliveInitialDelayMillis: 10000,
     ssl: shouldUseSsl(connectionString)
       ? { rejectUnauthorized: process.env.NODE_ENV === 'development' ? false : true }
       : undefined,

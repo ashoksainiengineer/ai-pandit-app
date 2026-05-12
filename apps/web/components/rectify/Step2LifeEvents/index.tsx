@@ -13,7 +13,7 @@ import EventSelector from '@/components/events/EventSelector';
 import CustomEventModal from '@/components/events/CustomEventModal';
 import WhyEventsMatter from '../WhyEventsMatter';
 
-export default function Step3LifeEventsIndex(props: Step3Props) {
+export default function Step2LifeEventsIndex(props: Step3Props) {
     const [mounted, setMounted] = useState(false);
     useEffect(() => setMounted(true), []);
 

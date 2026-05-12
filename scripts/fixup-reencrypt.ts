@@ -1,7 +1,10 @@
 import { createEncryption } from '@ai-pandit/shared';
 import pg from 'pg';
 
-const SECRET = 'f8e7d6c5b4a3928170654433221100ffeeddccbbaa99887766554433221100ff';
+const SECRET = process.env.ENCRYPTION_SECRET || '';
+if (!SECRET || SECRET.length < 32) {
+  throw new Error('ENCRYPTION_SECRET env var required (min 32 chars)');
+}
 const UID = '7e66f9cb-dd2f-4287-bf0b-d7e74b2a3b18';
 const SID = 'b06c3a81-b58a-4eba-89a3-2f8a1a178d29';
 const crypto = createEncryption(SECRET);
@@ -92,7 +95,7 @@ const events = [
 // ── Run ──────────────────────────────────────────────────────────────────────
 
 async function main() {
-  console.log(`🔐 Re-encrypting with clean secret (${SECRET.length} chars, no \\n)\n`);
+  console.log(`🔐 Re-encrypting with clean secret (key configured: ${SECRET ? 'yes' : 'no'})\n`);
 
   const client = new pg.Client({
     connectionString: process.env.NEON_DATABASE_URL || process.env.DATABASE_URL!,
