@@ -46,6 +46,7 @@ export async function stage1ExhaustiveDataGeneration(
      input.offsetConfig.preset === 'seconds-30' ? 5 :
      input.offsetConfig.preset === 'seconds-6' ? 1 : 30);
 
+  logger.info('[STAGE1] Searching for astrological boundaries (sign/nakshatra transitions)...', { offsetMinutes });
   const boundaries = await findAstrologicalBoundaries(
     input.dateOfBirth, input.tentativeTime, offsetMinutes,
     input.latitude, input.longitude, input.timezone
@@ -91,7 +92,7 @@ export async function stage1ExhaustiveDataGeneration(
     longitude: input.longitude,
     timezone: input.timezone,
   }));
-  const batchEphemeris = await calculateEphemerisBatch(batchInputs);
+  const batchEphemeris = await calculateEphemerisBatch(batchInputs, 'whole_sign');
   logger.info(`[STAGE1] Batch ephemeris complete`, {
     candidates: finalCandidates.length,
     durationMs: Date.now() - batchStart,

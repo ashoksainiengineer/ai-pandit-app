@@ -1412,7 +1412,7 @@ export async function findAstrologicalBoundaries(
     const [h, m, s] = centerTime.split(':').map(Number);
     const centerTotalSeconds = h * 3600 + m * 60 + s;
 
-    // ── BATCH OPTIMIZATION: Collect all times upfront, call ephemeris once ──
+    // ── BATCH OPTIMIZATION: Collect all times upfront, call ephemeris in chunks ──
     const timeStrings: string[] = [];
     const batchInputs: Array<{ birthDate: string; birthTime: string; latitude: number; longitude: number; timezone: number | string }> = [];
 
@@ -1420,14 +1420,25 @@ export async function findAstrologicalBoundaries(
         const currentTotal = centerTotalSeconds + offset;
         const curH = Math.floor(currentTotal / 3600) % 24;
         const curM = Math.floor((currentTotal % 3600) / 60);
-        const curS = currentTotal % 60;
+        const curS = Math.floor(currentTotal % 60);
         const timeStr = `${String(curH).padStart(2, '0')}:${String(curM).padStart(2, '0')}:${String(curS).padStart(2, '0')}`;
         timeStrings.push(timeStr);
         batchInputs.push({ birthDate, birthTime: timeStr, latitude, longitude, timezone });
     }
 
-    // Single batch call replaces 480 sequential HTTP calls
-    const batchEphemeris = await calculateEphemerisBatch(batchInputs);
+    console.log(`[BOUNDARY-SCAN] Scanning ${batchInputs.length} points for D1/D9/D60 transitions...`);
+    
+    // Split into smaller chunks to prevent timeouts and memory spikes
+    const CHUNK_SIZE = 500;
+    const batchEphemeris: EphemerisData[] = [];
+    
+    for (let i = 0; i < batchInputs.length; i += CHUNK_SIZE) {
+        const chunk = batchInputs.slice(i, i + CHUNK_SIZE);
+        console.log(`[BOUNDARY-SCAN] Processing chunk ${i / CHUNK_SIZE + 1} with ${chunk.length} inputs...`);
+        const chunkResults = await calculateEphemerisBatch(chunk, 'whole_sign');
+        console.log(`[BOUNDARY-SCAN] Chunk ${i / CHUNK_SIZE + 1} returned ${chunkResults.length} ephemeris results.`);
+        batchEphemeris.push(...chunkResults);
+    }
 
     let lastD1 = '';
     let lastD9 = '';

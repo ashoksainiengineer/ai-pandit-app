@@ -73,6 +73,15 @@ const redisClient = (() => {
 // events, heartbeats and checkpoints survive container restarts.
 initRedisEventStore(adaptIORedis(redisClient));
 console.log('[WORKER] Redis Event Store initialised with ioredis adapter');
+console.log({ 
+  event: 'worker_startup_context', 
+  cwd: process.cwd(), 
+  importMetaUrl: import.meta.url,
+  env: { 
+    NODE_ENV: process.env.NODE_ENV,
+    JOB_EXECUTION_MODE: process.env.JOB_EXECUTION_MODE
+  }
+});
 // ── Ephemeris Service Health Check ─────────────────────────────────────────
 async function verifyEphemerisConnection(): Promise<void> {
   const ephemerisUrl = process.env.EPHEMERIS_SERVICE_URL;
@@ -83,7 +92,7 @@ async function verifyEphemerisConnection(): Promise<void> {
 
   const healthUrl = new URL('/health', ephemerisUrl).toString();
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 10000);
+  const timeout = setTimeout(() => controller.abort(), 30000);
 
   try {
     const response = await fetch(healthUrl, { signal: controller.signal });
@@ -117,9 +126,28 @@ let activeCount = 0;
  * the module path (which would bring API source files into the worker compilation).
  * The generic type parameter provides the expected shape at the call site.
  */
+import { existsSync } from 'node:fs';
+
 async function apiDynamicImport<T>(relativePath: string): Promise<T> {
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-  return import(relativePath) as Promise<T>;
+  const resolvedPath = new URL(relativePath, import.meta.url).pathname;
+  const exists = existsSync(resolvedPath);
+  console.log({ event: 'dynamic_import_attempt', relativePath, resolvedPath, exists });
+  
+  if (!exists) {
+    console.error({ event: 'dynamic_import_file_missing', resolvedPath });
+    throw new Error(`Dynamic import failed: file missing at ${resolvedPath}`);
+  }
+
+  try {
+    const module = await import(relativePath);
+    console.log({ event: 'dynamic_import_success', relativePath });
+    return module as T;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    const stack = error instanceof Error ? error.stack : '';
+    console.error({ event: 'dynamic_import_error', relativePath, resolvedPath, error: message, stack });
+    throw error;
+  }
 }
 
 async function gracefulShutdown(signal: 'SIGTERM' | 'SIGINT'): Promise<void> {
@@ -197,6 +225,7 @@ async function processJob(): Promise<void> {
     if (!session.lifeEvents) {
       throw new Error('lifeEvents data is missing — cannot process without life events');
     }
+    console.log({ event: 'job_processing_start', jobId: job.id, sessionId: job.sessionId });
 
     // Decrypt and parse session fields using the shared encryption instance
     const lifeEvents = decryptSessionJsonField(
@@ -229,10 +258,12 @@ async function processJob(): Promise<void> {
         ? rawOffset
         : { preset: '1hour' };
 
+    console.log({ event: 'worker_import_start', jobId: job.id });
     const { executeSecondsPrecisionRectification } =
       await apiDynamicImport<{
         executeSecondsPrecisionRectification: (input: SecondsPrecisionInput) => Promise<SecondsPrecisionResult>;
       }>('../../api/src/lib/seconds-precision-btr.js');
+    console.log({ event: 'worker_import_success', jobId: job.id });
 
     const btrInput: SecondsPrecisionInput = {
       sessionId: session.id,

@@ -39,11 +39,14 @@ import { throwIfCancelled, isCancellationError } from './cancellation-manager.js
 import { emitStageStats } from './session-events.js';
 import { _enhanceCandidateWithPrecisionData, _generatePrecisionAIPrompt } from './btr-precision-integrator.js';
 import { _getMinifiedEphemeris } from './utils/index.js';
-let logAnalysisContainerAction: (stage: number | string, message: string, data: Record<string, unknown>) => void = () => {};
-let clearDebugLog: () => void = () => {};
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-ignore debug-logger may be excluded from build
-try { ({ logAnalysisContainerAction, clearDebugLog } = await import('../utils/debug-logger.js')); } catch (err) { logger.warn('[BTR] Failed to import debug-logger — continuing without debug hooks', { error: String(err) }); }
+// Inline debug logging utilities to avoid ESM import issues in worker container
+const DEBUG_LOG_FILE = './logs/debug-analysis.log';
+const logAnalysisContainerAction = (stage: number | string, context: string, payload: unknown) => {
+    try {
+        console.log(`[DEBUG-BTR] Stage ${stage} - ${context}:`, JSON.stringify(payload).slice(0, 500));
+    } catch (e) {}
+};
+const clearDebugLog = () => {};
 
 // Import from modular BTR components
 import {
@@ -123,7 +126,7 @@ async function initializeBTRSession(
 
         logger.info(`[BTR] Batch fetching lifecycle ephemeris for ${lifecycleInputs.length} dates`);
         const batchStart = Date.now();
-        const lifecycleEphemeris = await calculateEphemerisBatch(lifecycleInputs);
+        const lifecycleEphemeris = await calculateEphemerisBatch(lifecycleInputs, 'whole_sign');
         logger.info(`[BTR] Lifecycle batch complete`, {
             dates: lifecycleInputs.length,
             durationMs: Date.now() - batchStart,
@@ -174,12 +177,6 @@ async function initializeBTRSession(
 }
 
 
-/**
- * Main BTR processing function - 6 stage tournament for birth time rectification
- *
- * @param input - BTR input parameters including birth data and life events
- * @returns Final rectified birth time with accuracy metrics
- */
 /**
  * Main BTR processing function - 6 stage tournament for birth time rectification
  *

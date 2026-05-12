@@ -3,23 +3,24 @@ RUN apk add --no-cache libc6-compat
 WORKDIR /app
 
 FROM base AS builder
+# Copy root config files
 COPY package.json package-lock.json turbo.json ./
+
+# Copy all workspace package.json files to cache npm ci
+COPY apps/api/package.json ./apps/api/
+COPY apps/worker/package.json ./apps/worker/
+COPY apps/web/package.json ./apps/web/
+COPY packages/db/package.json ./packages/db/
+COPY packages/shared/package.json ./packages/shared/
+COPY packages/worker-runtime/package.json ./packages/worker-runtime/
+
+# Install dependencies (cached unless package.json changes)
+RUN npm ci --include=dev --loglevel=error
+
+# Now copy the rest of the source code
 COPY apps ./apps
 COPY packages ./packages
 COPY .dockerignore ./.dockerignore
-
-ENV NODE_ENV=development
-ENV NEON_DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:5432/postgres
-ENV DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:5432/postgres
-ENV CLERK_SECRET_KEY=build_clerk_secret_key_placeholder
-ENV ENCRYPTION_SECRET=build_encryption_secret_32_chars_minimum_placeholder
-ENV NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_Y2xlcmsuZXhhbXBsZS5hcHAk
-ENV NEXT_PUBLIC_BACKEND_URL=http://localhost:8080
-ENV AI_API_KEY=build_ai_key_placeholder
-ENV JOB_EXECUTION_MODE=external_worker
-ENV WORKER_POLL_INTERVAL_MS=2000
-
-RUN npm ci --include=dev --loglevel=error
 RUN npm --workspace @ai-pandit/shared run build \
  && npm --workspace @ai-pandit/db run build \
  && npm --workspace @ai-pandit/worker-runtime run build \

@@ -26,8 +26,8 @@ case "$SERVICE_KIND" in
   api)
     SERVICE_NAME="${API_SERVICE_NAME:-api-service}"
     DOCKERFILE="deploy/cloudrun/api.Dockerfile"
-    MEMORY="${API_MEMORY:-8Gi}"
-    CPU="${API_CPU:-2}"
+    MEMORY="${API_MEMORY:-4Gi}"
+    CPU="${API_CPU:-1}"
     CONCURRENCY="${API_CONCURRENCY:-20}"
     MIN_INSTANCES="${API_MIN_INSTANCES:-0}"
     MAX_INSTANCES="${API_MAX_INSTANCES:-2}"
@@ -55,8 +55,8 @@ case "$SERVICE_KIND" in
   worker)
     SERVICE_NAME="${WORKER_SERVICE_NAME:-worker-service}"
     DOCKERFILE="deploy/cloudrun/worker.Dockerfile"
-    MEMORY="${WORKER_MEMORY:-12Gi}"
-    CPU="${WORKER_CPU:-4}"
+    MEMORY="${WORKER_MEMORY:-8Gi}"
+    CPU="${WORKER_CPU:-2}"
     CONCURRENCY="${WORKER_CONCURRENCY:-1}"
     MIN_INSTANCES="${WORKER_MIN_INSTANCES:-0}"
     MAX_INSTANCES="${WORKER_MAX_INSTANCES:-1}"

@@ -425,6 +425,7 @@ async function calculateEphemerisWithSkyfield(input: {
  */
 export async function calculateEphemerisBatch(
   inputs: Array<{ birthDate: string; birthTime: string; latitude: number; longitude: number; timezone: number | string }>,
+  overrideHouseSystem?: 'whole_sign' | 'equal' | 'placidus'
 ): Promise<EphemerisData[]> {
   if (inputs.length === 0) return [];
   if (inputs.length === 1) {
@@ -460,7 +461,7 @@ export async function calculateEphemerisBatch(
         longitude: inputs[0].longitude,
       },
       ayanamshaMode: 'lahiri',
-      houseSystem: getEphemerisConfig().houseSystem,
+      houseSystem: overrideHouseSystem || getEphemerisConfig().houseSystem,
       nodeMode: 'true',
     });
 

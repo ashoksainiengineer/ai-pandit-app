@@ -2,10 +2,13 @@ import { logger } from '../utils/logger.js';
 import { config } from '../config/index.js';
 import { AIServiceError } from '../errors/index.js';
 import type { AIResponse } from '@ai-pandit/shared';
-let logAnalysisContainerAction: (stage: number, message: string, data: Record<string, unknown>) => void = () => {};
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-ignore debug-logger may be excluded from build
-try { ({ logAnalysisContainerAction } = await import('../utils/debug-logger.js')); } catch (err) { logger.warn('[AI-STREAM] Failed to import debug-logger — continuing without debug hooks', { error: String(err) }); }
+// Inline debug logging to avoid ESM import issues
+const logAnalysisContainerAction = (stage: number | string, context: string, payload: unknown) => {
+    if (process.env.NODE_ENV !== 'development') return;
+    try {
+        console.log(`[DEBUG-AI] Stage ${stage} - ${context}`);
+    } catch (e) {}
+};
 import { thinkingPersistence } from './btr/thinking-persistence.js';
 import { emitAIThinking } from './session-events.js';
 import {

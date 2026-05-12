@@ -53,25 +53,29 @@ export class SkyfieldServiceError extends CalculationError {
 
 async function parseJsonResponse(response: Response): Promise<unknown> {
   const contentType = response.headers.get('content-type') || '';
+  const url = response.url;
+  
   try {
     return await response.json();
   } catch (error) {
-    // Try to capture the actual response body for debugging
     let bodyPreview = '';
     try {
       const text = await response.clone().text();
-      bodyPreview = text.slice(0, 500);
+      bodyPreview = text.slice(0, 1000);
     } catch {
       bodyPreview = '<unreadable>';
     }
+
     logger.error('[SKYFIELD] Non-JSON response from ephemeris service', {
       status: response.status,
       statusText: response.statusText,
       contentType,
+      url,
       bodyPreview,
     });
+
     throw new SkyfieldServiceError(
-      `Skyfield service returned a non-JSON response (status: ${response.status}, content-type: ${contentType}, body: ${bodyPreview.slice(0, 200)})`,
+      `Skyfield service returned a non-JSON response (status: ${response.status}, url: ${url}, type: ${contentType}, body: ${bodyPreview.slice(0, 300)}...)`,
       response.status,
       error
     );

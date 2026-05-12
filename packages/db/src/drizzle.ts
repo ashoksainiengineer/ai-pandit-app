@@ -242,7 +242,7 @@ export async function verifyDatabaseConnection(): Promise<void> {
   if (isBuildPhase || isTest) return;
 
   try {
-    await executeWithTimeout(() => pool.query('SELECT 1'), 10000);
+    await executeWithTimeout(() => pool.query('SELECT 1'), 30000);
   } catch (error) {
     if (process.env.NODE_ENV === 'production') {
       throw error;

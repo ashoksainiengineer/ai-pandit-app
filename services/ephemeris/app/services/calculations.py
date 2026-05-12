@@ -605,27 +605,49 @@ def calculate_chart_raw(timestamp_utc: str, request: SingleEphemerisRequest) -> 
 calculate_chart = _cached_calculate_chart
 
 
+import multiprocessing
+
+_batch_executor = None
+
+def _init_process_worker():
+    from app.services.runtime import runtime
+    # Force fresh load in child process to prevent mmap corruption
+    runtime._kernel = None
+    runtime._timescale = None
+    runtime.ensure_loaded()
+
+def get_batch_executor():
+    global _batch_executor
+    if _batch_executor is None:
+        import os
+        # 'spawn' is safest for Skyfield mmap array serialization across processes
+        ctx = multiprocessing.get_context("spawn")
+        max_workers = min(10, os.cpu_count() or 4)
+        _batch_executor = concurrent.futures.ProcessPoolExecutor(
+            max_workers=max_workers,
+            mp_context=ctx,
+            initializer=_init_process_worker
+        )
+    return _batch_executor
+
 def calculate_batch(request: BatchEphemerisRequest) -> BatchChartResponse:
-    max_workers = min(len(request.timestampsUtc), 10)  # cap at 10 concurrent
-
-    with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
-        futures = [
-            executor.submit(
-                calculate_chart,
-                timestamp,
-                SingleEphemerisRequest(
-                    timestampUtc=timestamp,
-                    location=request.location,
-                    ayanamshaMode=request.ayanamshaMode,
-                    houseSystem=request.houseSystem,
-                    nodeMode=request.nodeMode,
-                    topocentricMoon=request.topocentricMoon,
-                ),
-            )
-            for timestamp in request.timestampsUtc
-        ]
-        charts = [f.result() for f in futures]
-
+    executor = get_batch_executor()
+    futures = [
+        executor.submit(
+            calculate_chart_raw,
+            timestamp,
+            SingleEphemerisRequest(
+                timestampUtc=timestamp,
+                location=request.location,
+                ayanamshaMode=request.ayanamshaMode,
+                houseSystem=request.houseSystem,
+                nodeMode=request.nodeMode,
+                topocentricMoon=request.topocentricMoon,
+            ),
+        )
+        for timestamp in request.timestampsUtc
+    ]
+    charts = [f.result() for f in futures]
     return BatchChartResponse(charts=charts)
 
 
