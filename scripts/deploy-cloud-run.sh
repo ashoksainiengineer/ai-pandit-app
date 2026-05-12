@@ -21,7 +21,11 @@ fi
 
 BUILD_ARGS=""
 SECRET_VARS=""
-EPHEMERIS_SERVICE_URL="${EPHEMERIS_SERVICE_URL:-https://ephemeris-service-624056173858.asia-southeast1.run.app}"
+# Dynamically fetch the URL of the ephemeris service if not provided
+if [ -z "${EPHEMERIS_SERVICE_URL:-}" ]; then
+  echo "Attempting to discover ephemeris-service URL..."
+  EPHEMERIS_SERVICE_URL=$(gcloud run services describe ephemeris-service --region="${REGION}" --project="${PROJECT_ID}" --format='value(status.url)' 2>/dev/null || echo "")
+fi
 
 case "$SERVICE_KIND" in
   api)
