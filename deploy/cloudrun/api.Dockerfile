@@ -20,7 +20,6 @@ RUN npm ci --include=dev --loglevel=error
 # Now copy the rest of the source code
 COPY apps ./apps
 COPY packages ./packages
-COPY .dockerignore ./.dockerignore
 RUN npm --workspace @ai-pandit/shared run build \
  && npm --workspace @ai-pandit/db run build \
  && npm --workspace @ai-pandit/worker-runtime run build \

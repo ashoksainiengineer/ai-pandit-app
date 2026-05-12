@@ -15,7 +15,6 @@ RUN npm ci --include=dev --loglevel=error
 # Copy source
 COPY apps/web ./apps/web
 COPY packages ./packages
-COPY .dockerignore ./.dockerignore
 
 ARG NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_Y2xlcmsuZXhhbXBsZS5hcHAk
 ARG NEXT_PUBLIC_BACKEND_URL=https://api.example.com
