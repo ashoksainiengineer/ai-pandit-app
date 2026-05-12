@@ -168,6 +168,7 @@ vi.mock('../../lib/session-events.js', () => ({
         getNextSeq: vi.fn(() => 1),
         logEvent: vi.fn(),
         getEventsSince: vi.fn(() => []),
+        subscribeToSession: vi.fn(async () => {}),
     },
 }));
 

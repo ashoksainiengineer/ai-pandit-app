@@ -1,7 +1,7 @@
 {
     "name": "@ai-pandit/api",
     "version": "2.0.0",
-    "description": "AI Pandit BTR Engine - Vedic Astrology Birth Time Rectification",
+    "description": "AI Pandit API - High-performance Vedic astrology calculation and analysis engine.",
     "type": "module",
     "main": "dist/server.js",
     "scripts": {

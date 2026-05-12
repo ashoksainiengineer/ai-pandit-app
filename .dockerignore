@@ -1,58 +1,68 @@
-node_modules
-.git
-.next
+# --- Dependencies ---
+**/node_modules
+.pnp
+.pnp.js
+
+# --- Build Artifacts ---
 dist
+.next
+.turbo
+out
+build
 coverage
-*.log
+.nyc_output
+*.tsbuildinfo
+*.js.map
+
+# --- Secrets & Environment ---
 .env
 .env.*
-services/ephemeris/.venv
-local/
+!.env.example
+secrets/
+*.key
+*.pem
+*.pfx
 
-# Downloaded reference assets (not used in API/worker builds)
-apps/web/public/dia-assets/
-
-# Documentation
-docs/
-*.md
-
-# Design specs
-design-spec-dia-browser.md
-
-# Test files not needed for production builds
-e2e/
-tests/
-playwright.config.ts
-playwright.visual.config.ts
-vitest.config.ts
-vitest.workspace.ts
-stryker.config.mjs
-
-# CI/CD configs not needed in container builds
-.github/
+# --- Source Control & CI/CD ---
+.git
+.github
+.gitignore
+.dockerignore
 cloudbuild.yaml
+.travis.yml
+.circleci
 
-# Scripts not needed in container
-scripts/
-
-# IDE
+# --- IDE & System ---
 .vscode/
 .idea/
+.project
+.classpath
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
 
-# Temporary files
+# --- Logs & Temp ---
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
 tmp/
 temp/
 *.tmp
 
-# OS files
-.DS_Store
-Thumbs.db
-.git
-.next
-dist
-coverage
-*.log
-.env
-.env.*
+# --- Project Specific ---
+apps/web/public/dia-assets/
 services/ephemeris/.venv
 local/
+scratch/
+debug/
+e2e/test-results/
+playwright-report/
+docs/
+*.md
+requeue-job.js
+verify-*.ts
+test-*.ts
+debug-*.ts

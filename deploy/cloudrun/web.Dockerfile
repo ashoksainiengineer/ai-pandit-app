@@ -4,7 +4,16 @@ WORKDIR /app
 
 FROM base AS builder
 COPY package.json package-lock.json turbo.json ./
-COPY apps ./apps
+
+# Copy package.json files for caching
+COPY apps/web/package.json ./apps/web/
+COPY packages/db/package.json ./packages/db/
+COPY packages/shared/package.json ./packages/shared/
+
+RUN npm ci --include=dev --loglevel=error
+
+# Copy source
+COPY apps/web ./apps/web
 COPY packages ./packages
 COPY .dockerignore ./.dockerignore
 
@@ -23,7 +32,6 @@ ENV NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=${NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}
 ENV NEXT_PUBLIC_BACKEND_URL=${NEXT_PUBLIC_BACKEND_URL}
 ENV NEXT_PUBLIC_APP_URL=${NEXT_PUBLIC_APP_URL}
 
-RUN npm ci --include=dev --loglevel=error
 RUN npm --workspace @ai-pandit/shared run build \
  && npm --workspace @ai-pandit/db run build \
  && npm --workspace @ai-pandit/web run build

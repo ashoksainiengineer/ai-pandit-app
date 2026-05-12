@@ -1,7 +1,7 @@
 {
   "name": "@ai-pandit/web",
   "version": "1.0.0",
-  "description": "AI-Powered Birth Time Rectification Engine",
+  "description": "AI Pandit Dashboard - Interactive real-time dashboard for Birth Time Rectification.",
   "private": true,
   "engines": {
     "node": ">=20.19.0"

@@ -1,6 +1,7 @@
 {
   "name": "@ai-pandit/worker",
   "version": "1.0.0",
+  "description": "AI Pandit Worker - Distributed background job processor for BTR analysis.",
   "private": true,
   "type": "module",
   "scripts": {

@@ -500,6 +500,9 @@ router.get(['/', '/:sessionId'], authMiddleware, async (req: AuthenticatedReques
 
 
     const emitter = sessionEvents.getEmitter(sessionId);
+    // 📡 Cross-Process Bridge: Subscribe to Redis events for this session
+    // This allows events from workers on other containers to reach this SSE stream.
+    void sessionEvents.subscribeToSession(sessionId);
 
     const eventHandler = (event: SessionEvent) => {
         sendSequencedEvent(sseRes, sessionId, event);

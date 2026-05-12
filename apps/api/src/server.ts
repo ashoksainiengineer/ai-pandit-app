@@ -17,6 +17,9 @@ import { logger } from './utils/logger.js';
 import { performanceMiddleware, requestIdMiddleware, tracingMiddleware } from './middleware/request-id.js';
 import { errorHandlerMiddleware, notFoundHandler, setupUncaughtExceptionHandlers } from './middleware/error-handler-new.js';
 import { getEphemerisProviderStatus, initEphemerisProvider } from './lib/ephemeris.js';
+import { Redis as IORedis } from 'ioredis';
+import { sessionEvents } from './lib/session-events.js';
+import { adaptIORedis } from './lib/redis-adapter.js';
 
 type StartupState = {
     initializing: boolean;
@@ -59,6 +62,36 @@ async function initializeStartupDependencies(): Promise<void> {
         startupState.dbReady = true;
         startupState.dbError = null;
         logger.info('[STARTUP] Database ready');
+
+        // ── Redis Event Store Initialization ─────────────────────────────────
+        if (config.queue.redis?.url && process.env.NODE_ENV !== 'test') {
+            try {
+                const redisUrl = config.queue.redis.url;
+                const tls = config.queue.redis.tls;
+                const redisOptions = {
+                    lazyConnect: true,
+                    maxRetriesPerRequest: 3,
+                    enableReadyCheck: true,
+                    keepAlive: 30000,
+                    connectTimeout: 10000,
+                    tls: tls ? { rejectUnauthorized: false } : undefined,
+                    retryStrategy: (times: number) => Math.min(times * 200, 5000),
+                };
+
+                // Command client for publishing/writing
+                const redisClient = new IORedis(redisUrl, redisOptions);
+                // Dedicated subscriber client (ioredis blocks command client during SUBSCRIBE)
+                const redisSubscriber = new IORedis(redisUrl, redisOptions);
+
+                sessionEvents.enableRedis(
+                    adaptIORedis(redisClient),
+                    adaptIORedis(redisSubscriber)
+                );
+                logger.info('[STARTUP] Redis event bridge initialized (Distributed Mode)');
+            } catch (err) {
+                logger.error('[STARTUP] Failed to initialize Redis event bridge', { error: String(err) });
+            }
+        }
 
         if (config.features.useAsyncJobPipeline) {
             const { recoverInterruptedJobsOnStartup: _recoverInterruptedJobs } = await import('./lib/metrics-reporter.js');
@@ -274,8 +307,18 @@ async function bootstrap() {
     void initializeStartupDependencies();
 
     // Graceful shutdown
-    const shutdown = () => {
+    const shutdown = async () => {
         logger.info('SIGTERM/SIGINT received. Starting graceful shutdown...');
+        
+        // ── Redis Bridge Cleanup ───────────────────────────────────────────
+        try {
+            const { sessionEvents } = await import('./lib/session-events.js');
+            logger.info('[SHUTDOWN] Closing Redis connections...');
+            await sessionEvents.shutdown();
+        } catch (err) {
+            logger.warn('[SHUTDOWN] Redis cleanup failed', { error: String(err) });
+        }
+
         httpServer.close(() => {
             logger.info('HTTP server closed. Exiting process.');
             process.exit(0);

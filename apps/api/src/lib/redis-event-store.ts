@@ -409,6 +409,52 @@ export class RedisEventStore {
       return null;
     }
   }
+  
+  // ═══════════════════════════════════════════════════════════════════════════
+  // PUB/SUB BRIDGE (Cross-Process Sync)
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  /**
+   * Publish an event to a session-specific channel
+   */
+  async publishEvent(sessionId: string, event: unknown): Promise<void> {
+    if (!this.isAvailable()) {
+      return;
+    }
+
+    try {
+      const channel = `session:events:${sessionId}`;
+      await this.redis!.publish(channel, JSON.stringify(event));
+    } catch (error) {
+      logger.error('[RedisEventStore] Failed to publish event', { sessionId, error });
+    }
+  }
+
+  /**
+   * Subscribe to a session-specific channel
+   */
+  async subscribeToSession(
+    sessionId: string,
+    callback: (event: unknown) => void
+  ): Promise<void> {
+    if (!this.isAvailable()) {
+      return;
+    }
+
+    try {
+      const channel = `session:events:${sessionId}`;
+      await this.redis!.subscribe(channel, (message) => {
+        try {
+          const event = JSON.parse(message);
+          callback(event);
+        } catch (error) {
+          logger.error('[RedisEventStore] Failed to parse subscribed message', { sessionId, error });
+        }
+      });
+    } catch (error) {
+      logger.error('[RedisEventStore] Failed to subscribe to session', { sessionId, error });
+    }
+  }
 
   // ═══════════════════════════════════════════════════════════════════════════
   // GARBAGE COLLECTION

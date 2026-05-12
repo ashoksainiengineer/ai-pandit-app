@@ -9,7 +9,6 @@ COPY package.json package-lock.json turbo.json ./
 # Copy all workspace package.json files to cache npm ci
 COPY apps/api/package.json ./apps/api/
 COPY apps/worker/package.json ./apps/worker/
-COPY apps/web/package.json ./apps/web/
 COPY packages/db/package.json ./packages/db/
 COPY packages/shared/package.json ./packages/shared/
 COPY packages/worker-runtime/package.json ./packages/worker-runtime/
@@ -18,14 +17,17 @@ COPY packages/worker-runtime/package.json ./packages/worker-runtime/
 RUN npm ci --include=dev --loglevel=error
 
 # Now copy the rest of the source code
-COPY apps ./apps
+COPY apps/api ./apps/api
+COPY apps/worker ./apps/worker
 COPY packages ./packages
 COPY .dockerignore ./.dockerignore
+
 RUN npm --workspace @ai-pandit/shared run build \
  && npm --workspace @ai-pandit/db run build \
  && npm --workspace @ai-pandit/worker-runtime run build \
  && npm --workspace @ai-pandit/api run build \
  && npm --workspace @ai-pandit/worker run build
+
 RUN npm prune --omit=dev
 
 FROM node:20-alpine AS runner

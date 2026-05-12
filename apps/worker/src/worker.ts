@@ -130,8 +130,20 @@ import { existsSync } from 'node:fs';
 
 async function apiDynamicImport<T>(relativePath: string): Promise<T> {
   const resolvedPath = new URL(relativePath, import.meta.url).pathname;
-  const exists = existsSync(resolvedPath);
-  console.log({ event: 'dynamic_import_attempt', relativePath, resolvedPath, exists });
+  let exists = existsSync(resolvedPath);
+  let finalPath = relativePath;
+
+  // tsx/dev mode fallback: if .js is requested but doesn't exist, try .ts
+  if (!exists && relativePath.endsWith('.js')) {
+    const tsPath = resolvedPath.replace(/\.js$/, '.ts');
+    if (existsSync(tsPath)) {
+      exists = true;
+      finalPath = relativePath.replace(/\.js$/, '.ts');
+      console.log({ event: 'dynamic_import_dev_fallback', original: relativePath, fallback: finalPath });
+    }
+  }
+
+  console.log({ event: 'dynamic_import_attempt', relativePath, finalPath, resolvedPath, exists });
   
   if (!exists) {
     console.error({ event: 'dynamic_import_file_missing', resolvedPath });
@@ -139,8 +151,8 @@ async function apiDynamicImport<T>(relativePath: string): Promise<T> {
   }
 
   try {
-    const module = await import(relativePath);
-    console.log({ event: 'dynamic_import_success', relativePath });
+    const module = await import(finalPath);
+    console.log({ event: 'dynamic_import_success', finalPath });
     return module as T;
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
@@ -168,6 +180,9 @@ async function gracefulShutdown(signal: 'SIGTERM' | 'SIGINT'): Promise<void> {
 
     // Disconnect Redis queue client
     await queueClient.disconnect();
+
+    // Disconnect Redis event store client
+    await redisClient.quit().catch(() => {});
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     console.error('[WORKER] Graceful shutdown encountered an error:', message);

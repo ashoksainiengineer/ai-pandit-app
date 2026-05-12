@@ -1,30 +1,26 @@
-# AI-Pandit — PROPRIETARY SOFTWARE
-# All rights reserved. No license granted.
-#
-# Global owners - all files require review from these owners
-* @ashoksainiengineer
+# AI-Pandit Code Owners
+# Standard industry format for managing repository reviews
 
-# Backend code - API and worker services
-apps/api/ @ashoksainiengineer
-apps/worker/ @ashoksainiengineer
-packages/db/ @ashoksainiengineer
-packages/shared/ @ashoksainiengineer
-packages/worker-runtime/ @ashoksainiengineer
+# Catch-all
+*       @ashoksainiengineer
 
-# Frontend code - Next.js web app
-apps/web/ @ashoksainiengineer
+# Apps
+/apps/api/      @ashoksainiengineer
+/apps/web/      @ashoksainiengineer
+/apps/worker/   @ashoksainiengineer
 
-# Infrastructure and deployment
-deploy/ @ashoksainiengineer
-scripts/ @ashoksainiengineer
-.github/workflows/ @ashoksainiengineer
+# Packages
+/packages/db/   @ashoksainiengineer
+/packages/shared/ @ashoksainiengineer
+/packages/worker-runtime/ @ashoksainiengineer
 
-# Services - Ephemeris
-services/ephemeris/ @ashoksainiengineer
+# Infrastructure & Services
+/services/ephemeris/ @ashoksainiengineer
+/deploy/        @ashoksainiengineer
+/.github/       @ashoksainiengineer
+/scripts/       @ashoksainiengineer
 
-# Critical configuration files
-package.json @ashoksainiengineer
-package-lock.json @ashoksainiengineer
-turbo.json @ashoksainiengineer
-Dockerfile @ashoksainiengineer
-cloudbuild.yaml @ashoksainiengineer
+# Configuration
+/turbo.json     @ashoksainiengineer
+/package.json   @ashoksainiengineer
+/package-lock.json @ashoksainiengineer

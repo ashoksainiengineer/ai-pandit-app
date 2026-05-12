@@ -96,6 +96,9 @@ class SessionEventManager {
     private eventSequences: Map<string, number> = new Map();
     // Per-session ordered event log for reconnection replay
     private eventLogs: Map<string, SequencedEvent[]> = new Map();
+    // 📡 Redis Pub/Sub subscriptions for cross-process sync
+    private redisSubscriber: RedisClient | null = null;
+    private subscribedSessions: Set<string> = new Set();
 
     // ═══ REDIS BACKUP STORE ═══
     // Redis-backed persistent storage for crash recovery
@@ -114,8 +117,11 @@ class SessionEventManager {
     /**
      * Enable Redis for persistent event storage
      */
-    enableRedis(redis: RedisClient): void {
+    enableRedis(redis: RedisClient, subscriber?: RedisClient): void {
         this.redisStore.setRedisClient(redis);
+        if (subscriber) {
+            this.redisSubscriber = subscriber;
+        }
         this.useRedis = true;
         logger.info('[SessionEventManager] Redis event storage enabled');
     }
@@ -218,6 +224,16 @@ class SessionEventManager {
         const emitter = this.emitters.get(sessionId);
         if (emitter) {
             emitter.emit('event', event);
+        }
+
+        // 2.1 Cross-Process Bridge: Publish to Redis
+        // Skip pings and high-volume raw chunks (batching handled via bufferThinking)
+        const skipBridgeTypes = ['ping', 'connected', 'ai_thinking_chunk'];
+        if (this.useRedis && this.redisStore.isAvailable() && !skipBridgeTypes.includes(eventType)) {
+            // Internal prevent-loop flag: don't re-publish events that we just received from Redis
+            if (!(event as any)._fromBridge) {
+                void this.redisStore.publishEvent(sessionId, event);
+            }
         }
 
         // 3. Update persistent buffers for fresh connects
@@ -404,6 +420,49 @@ class SessionEventManager {
         // Last-Event-ID cleanup
         this.eventSequences.delete(sessionId);
         this.eventLogs.delete(sessionId);
+        this.subscribedSessions.delete(sessionId);
+    }
+
+    /**
+     * Subscribe to cross-process Redis events for a session.
+     * Essential for worker-to-API event bridging in distributed environments.
+     */
+    async subscribeToSession(sessionId: string): Promise<void> {
+        if (!this.redisSubscriber || !this.useRedis) return;
+        if (this.subscribedSessions.has(sessionId)) return;
+
+        this.subscribedSessions.add(sessionId);
+        await this.redisStore.subscribeToSession(sessionId, (event: any) => {
+            // Tag event to prevent infinite publishing loops
+            event._fromBridge = true;
+            this.emit(sessionId, event as SessionEvent);
+        });
+        logger.info(`[SessionEventManager] Subscribed to Redis events for ${sessionId.slice(0, 8)}`);
+    }
+
+    /**
+     * Gracefully close all Redis connections and release global resources.
+     * Essential for clean shutdowns and preventing connection leaks.
+     */
+    async shutdown(): Promise<void> {
+        logger.info('[SessionEventManager] Cleaning up resources...');
+        this.subscribedSessions.clear();
+        
+        const tasks: Promise<void>[] = [];
+        
+        if (this.redisSubscriber) {
+            // Check for quit method on the underlying client
+            const subscriber = (this.redisSubscriber as any)._client || this.redisSubscriber;
+            if (typeof (subscriber as any).quit === 'function') {
+                tasks.push((subscriber as any).quit());
+            }
+            this.redisSubscriber = null;
+        }
+        
+        await Promise.all(tasks).catch(err => {
+            logger.error('[SessionEventManager] Error during cleanup', err);
+        });
+        logger.info('[SessionEventManager] Cleanup complete');
     }
 
     /**
