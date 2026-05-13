@@ -210,10 +210,12 @@ upsert_vercel_env() {
 }
 
 load_env_file() {
-  while IFS= read -r ASSIGNMENT; do
-    if [ -n "$ASSIGNMENT" ]; then
-      # BUG-FIX: Use safe export instead of eval to prevent shell injection
-      export "$ASSIGNMENT" 2>/dev/null || true
+  while IFS='=' read -r KEY VALUE; do
+    if [ -n "$KEY" ]; then
+      # Remove leading/trailing single quotes from value if present
+      VALUE=$(echo "$VALUE" | sed "s/^'//;s/'$//")
+      export "$KEY=$VALUE"
+    fi
   done <<EOF
 $(ENV_PATH="$ENV_FILE" node <<'EOF'
 const fs = require('fs');
@@ -239,8 +241,7 @@ for (const line of lines) {
     value = value.slice(1, -1);
   }
 
-  const escapedValue = value.replace(/'/g, `'\\''`);
-  process.stdout.write(`${key}='${escapedValue}'\n`);
+  process.stdout.write(`${key}=${value}\n`);
 }
 EOF
 )
@@ -294,6 +295,8 @@ if has_target vercel; then
   require_value AI_BASE_URL "${AI_BASE_URL:-}"
   require_value AI_MODEL "${AI_MODEL:-}"
   require_value EPHEMERIS_SERVICE_URL "${EPHEMERIS_SERVICE_URL:-}"
+  require_value AI_PARALLEL_CONCURRENCY "${AI_PARALLEL_CONCURRENCY:-}"
+  require_value AI_STAGE2_MAX_TOKENS "${AI_STAGE2_MAX_TOKENS:-}"
 fi
 
 if [ "$APPLY_CHANGES" = "true" ]; then
@@ -366,6 +369,10 @@ if has_target vercel; then
   upsert_vercel_env AI_BASE_URL "$AI_BASE_URL" production
   upsert_vercel_env AI_MODEL "$AI_MODEL" production
   upsert_vercel_env EPHEMERIS_SERVICE_URL "$EPHEMERIS_SERVICE_URL" production
+  upsert_vercel_env AI_PARALLEL_CONCURRENCY "$AI_PARALLEL_CONCURRENCY" production
+  upsert_vercel_env AI_STAGE2_MAX_TOKENS "$AI_STAGE2_MAX_TOKENS" production
+  upsert_vercel_env AI_STAGE4_MAX_TOKENS "$AI_STAGE4_MAX_TOKENS" production
+  upsert_vercel_env AI_STAGE6_MAX_TOKENS "$AI_STAGE6_MAX_TOKENS" production
 fi
 
 echo ""

@@ -173,12 +173,19 @@ export class ProgressTracker {
         // BUT update lastActive for GC
         _activeInstances.set(this.sessionId, this);
 
-        // 💓 DEBOUNCED DB PULSE: Keep session alive in DB during long AI streaming
-        // Only update DB every 30 seconds to save IO but prevent stale cleanup (30 mins)
+        // 💓 DEBOUNCED DB & REDIS PULSE: Keep session alive during long AI streaming
+        // Only update DB every 30 seconds to save IO, but update Redis context frequently
         const now = Date.now();
         if (now - this.lastPulseTime > 30000) {
             this.lastPulseTime = now;
-            this.saveProgress(true).catch(err => logger.warn('Heartbeat pulse failed', { error: (err as Error)?.message || err })); // Persist progress explicitly
+            this.saveProgress(true).catch(err => logger.warn('Heartbeat pulse failed', { error: (err as Error)?.message || err }));
+        }
+
+        // 🧠 SYNC THINKING TO REDIS: Ensure polling fallback can see the reasoning
+        // We do this every 2 seconds to avoid overloading Redis while maintaining "live" feel
+        if (now - this.lastSaveTime > 2000) {
+            const redisStore = getRedisEventStore();
+            redisStore.storeThinking(this.sessionId, candidateTime, { stage, text: updatedLog }).catch(() => {});
         }
     }
 
@@ -597,12 +604,31 @@ export async function getSessionProgress(sessionId: string): Promise<ProgressDat
         return activeInstance.getProgress();
     }
 
-    // 2. Check Redis (only source of truth — no DB fallback)
+    // 2. Check Redis (distributed state)
     const redisStore = getRedisEventStore();
     try {
-        const context = await redisStore.getContext(sessionId);
+        const [context, thinking] = await Promise.all([
+            redisStore.getContext(sessionId),
+            redisStore.getThinking(sessionId)
+        ]);
+
         if (context && typeof context === 'object') {
             const ctx = context as Partial<ProgressData> & { lastUpdate?: number };
+            
+            // Reconstruct thinking state for the latest candidate
+            let lastAIThinking: AIThinkingData | undefined = undefined;
+            const thinkingEntries = Array.from(thinking.entries());
+            if (thinkingEntries.length > 0) {
+                // Find most recently updated thinking entry or just the first one
+                const [ct, data] = thinkingEntries[0];
+                lastAIThinking = {
+                    stage: data.stage,
+                    candidateTime: ct,
+                    chunks: [],
+                    fullText: data.text
+                };
+            }
+
             const redisProgress: ProgressData = {
                 currentStep: ctx.currentStep ?? 0,
                 totalSteps: ANALYSIS_STEPS.length,
@@ -615,6 +641,10 @@ export async function getSessionProgress(sessionId: string): Promise<ProgressDat
                 candidateScores: [],
                 estimatedTimeRemaining: ctx.estimatedTimeRemaining ?? 0,
                 liveMessage: ctx.liveMessage,
+                lastAIThinking,
+                stageHistory: Object.fromEntries(
+                    thinkingEntries.map(([ct, data]) => [data.stage, data.text])
+                )
             };
             return redisProgress;
         }

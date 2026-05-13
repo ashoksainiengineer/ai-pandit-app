@@ -124,6 +124,7 @@ export async function callAIWithStream(
                 }
             }
 
+            logger.info('🔱 Sending fetch request to AI', { sessionId, stage, model: configLocal.model, url: `${AI_CONFIG.baseUrl}/chat/completions` });
             const response = await fetch(`${AI_CONFIG.baseUrl}/chat/completions`, {
                 method: 'POST',
                 headers: {
@@ -137,6 +138,8 @@ export async function callAIWithStream(
                 body: JSON.stringify(requestBody),
                 signal: controller.signal,
             });
+
+            logger.info('🔱 AI Response headers received', { sessionId, stage, status: response.status, ok: response.ok });
 
             clearTimeout(timeoutId);
 
@@ -162,8 +165,10 @@ export async function callAIWithStream(
 
             const reader = response.body?.getReader();
             if (!reader) {
+                logger.error('🔱 Failed to get reader from response body', { sessionId, stage });
                 throw new AIServiceError('No response body');
             }
+            logger.info('🔱 Stream reader acquired', { sessionId, stage });
 
             const decoder = new TextDecoder();
             let fullContent = '';
@@ -173,20 +178,25 @@ export async function callAIWithStream(
             let lastEmitTime = Date.now();
 
             let idleTimeoutId = setTimeout(() => {
-                logger.error('🔱 AI Stream idle timeout reached (60s without chunks). Aborting socket.', { sessionId, stage });
+                logger.error('🔱 AI Stream idle timeout reached (1200s without chunks). Aborting socket.', { sessionId, stage });
                 controller.abort();
-            }, 60000);
+            }, 1200000);
 
+            let chunkCount = 0;
             try {
                 while (true) {
+                    chunkCount++;
+                    if (chunkCount % 200 === 0) {
+                        logger.info(`🔱 Receiving stream chunk ${chunkCount}...`, { sessionId, stage });
+                    }
                     const { done, value } = await reader.read();
 
                     clearTimeout(idleTimeoutId);
                     if (!done) {
                         idleTimeoutId = setTimeout(() => {
-                            logger.error('🔱 AI Stream idle timeout reached (60s without chunks). Aborting socket.', { sessionId, stage });
+                            logger.error('🔱 AI Stream idle timeout reached (1200s without chunks). Aborting socket.', { sessionId, stage });
                             controller.abort();
-                        }, 60000);
+                        }, 1200000);
                     }
 
                     if (done) break;
