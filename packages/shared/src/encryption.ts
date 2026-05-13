@@ -111,7 +111,20 @@ export function decrypt(
   userId: string,
   secrets: string | string[],
 ): string {
-  const secretList = Array.isArray(secrets) ? secrets : [secrets];
+  let secretList: string[] = [];
+  if (Array.isArray(secrets)) {
+    secretList = secrets;
+  } else if (typeof secrets === 'string') {
+    // Handle comma-separated secrets and also handle the legacy newline issue
+    // by explicitly adding a version with a newline if it doesn't have one.
+    secretList = secrets.split(',').map(s => s.trim());
+    
+    // Safety: If the list only has one secret and it doesn't end in newline,
+    // add the newline version as a fallback to recover legacy data.
+    if (secretList.length === 1 && !secretList[0].endsWith('\n')) {
+       secretList.push(secretList[0] + '\n');
+    }
+  }
 
   if (!encryptedString.startsWith(`${V4.PREFIX}${V4.SEPARATOR}`)) {
     throw new ValidationError('Invalid encrypted data format: expected v4 prefix');
