@@ -277,6 +277,13 @@ async function processJob(): Promise<void> {
       ? crypto.parseField(session.spouseData, session.userId)
       : undefined;
 
+    if (!dateOfBirth || !tentativeTime || !session.latitude || !session.longitude || session.timezone === undefined) {
+      throw new Error(
+        `Invalid session data: dateOfBirth=${dateOfBirth}, tentativeTime=${tentativeTime}, ` +
+        `latitude=${session.latitude}, longitude=${session.longitude}, timezone=${session.timezone}`
+      );
+    }
+
     // ── Build BTR input ─────────────────────────────────────────────────────
     await updateJobProgress({
       jobId: job.id,
@@ -336,9 +343,7 @@ async function processJob(): Promise<void> {
         .catch((err) => console.warn('[WORKER] Redis heartbeat failed:', err));
     }, 15_000);
 
-    // HARD TIMEOUT: BTR must complete within 30 minutes or be aborted.
-    // This prevents infinite hangs from unreachable ephemeris services.
-    const BTR_TIMEOUT_MS = 30 * 60 * 1000; // 30 minutes
+    const BTR_TIMEOUT_MS = 45 * 60 * 1000;
     const timeoutPromise = new Promise<never>((_, reject) => {
       activeJobTimeout = setTimeout(() => {
         console.error(`[WORKER] BTR analysis timed out after ${BTR_TIMEOUT_MS}ms`, {
@@ -356,6 +361,14 @@ async function processJob(): Promise<void> {
         executeSecondsPrecisionRectification(btrInput),
         timeoutPromise,
       ]);
+    } catch (error) {
+      if (error instanceof Error && error.message.includes('timed out')) {
+        console.error(`[WORKER] BTR timed out after ${BTR_TIMEOUT_MS}ms — job will be retried`, {
+          sessionId: session.id,
+          jobId: job.id,
+        });
+      }
+      throw error;
     } finally {
       clearInterval(heartbeatInterval);
       if (activeJobTimeout) {
@@ -378,7 +391,7 @@ async function processJob(): Promise<void> {
       progressPercent: 95,
     });
 
-    await executeWithRetry(() =>
+    const sessionUpdateResult = await executeWithRetry(() =>
       db
         .update(sessions)
         .set({
@@ -390,25 +403,34 @@ async function processJob(): Promise<void> {
           completedAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
         })
-        .where(
-          and(
-            eq(sessions.id, session.id),
-            eq(sessions.status, 'processing'),
-          ),
-        ),
+        .where(eq(sessions.id, session.id))
+        .returning(),
     );
 
-    // ── Complete job ────────────────────────────────────────────────────────
-    await completeJob({
-      jobId: job.id,
-      resultJson: {
-        rectifiedTime: result.rectifiedTime,
-        accuracy: result.accuracy,
-        confidence: result.confidence,
-      },
-    });
+    if (sessionUpdateResult.length === 0) {
+      console.error('[WORKER] CRITICAL: Session update returned 0 rows', {
+        sessionId: session.id,
+        jobId: job.id,
+      });
+      throw new Error('Session update failed — session may have been cancelled or deleted');
+    }
 
-    console.log({ event: 'job_completed', jobId: job.id, sessionId: job.sessionId });
+    // ── Complete job ────────────────────────────────────────────────────────
+    try {
+      await completeJob({
+        jobId: job.id,
+        resultJson: {
+          rectifiedTime: result.rectifiedTime,
+          accuracy: result.accuracy,
+          confidence: result.confidence,
+        },
+      });
+      console.log({ event: 'job_completed', jobId: job.id, sessionId: job.sessionId });
+    } catch (completeError) {
+      const completeMessage = completeError instanceof Error ? completeError.message : String(completeError);
+      console.error({ event: 'job_complete_failed', jobId: job.id, error: completeMessage });
+      throw new Error(`Job completion failed: ${completeMessage}`);
+    }
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     console.error({ event: 'job_failed', jobId: job.id, sessionId: job.sessionId, error: message });
