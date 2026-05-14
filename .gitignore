@@ -35,6 +35,8 @@ build/
 .env.test
 secrets/
 config/secrets/
+.gcp-service-account-key.json
+.gcp-*.json
 *.key
 *.pem
 *.pfx
@@ -143,3 +145,4 @@ tmp_*.js
 requeue_debug.txt
 diabrowser-*
 extract-diabrowser.js
+.vercel

@@ -29,13 +29,8 @@
         "test:coverage": "vitest run --coverage"
     },
     "dependencies": {
-        "@clerk/clerk-react": "5.61.6",
-        "@google-cloud/storage": "5.20.4",
-        "@stryker-mutator/core": "9.6.1",
-        "dotenv": "^16.4.5",
+        "@ai-pandit/shared": "*",
         "drizzle-orm": "^0.45.1",
-        "next": "15.5.15",
-        "nyc": "14.1.1",
         "pg": "^8.20.0"
     },
     "devDependencies": {

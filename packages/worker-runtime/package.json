@@ -14,7 +14,9 @@
         "typecheck": "tsc --noEmit",
         "test": "vitest run"
     },
-    "dependencies": {},
+    "dependencies": {
+        "@ai-pandit/db": "*"
+    },
     "devDependencies": {
         "@types/node": "^20.0.0",
         "typescript": "^5.4.5",
