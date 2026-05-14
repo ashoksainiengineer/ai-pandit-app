@@ -3,6 +3,8 @@ import path from 'path';
 import { logger } from '../../utils/logger.js';
 import { safeJsonParse } from '../utils/safe-json-parse.js';
 
+const DATA_CAPTURE_ENABLED = process.env.BTR_DATA_CAPTURE_ENABLED === 'true';
+
 interface EphemerisData {
   timestamp: string;
   sessionId: string;
@@ -107,6 +109,7 @@ class BTRDataCapture {
     round?: number,
     batch?: number
   ): void {
+    if (!DATA_CAPTURE_ENABLED) return;
     try {
       const dir = this.getPath(sessionId, stage, round, batch);
       const ephemerisData: EphemerisData = {
@@ -141,6 +144,7 @@ class BTRDataCapture {
     round?: number,
     batch?: number
   ): void {
+    if (!DATA_CAPTURE_ENABLED) return;
     try {
       const dir = this.getPath(sessionId, stage, round, batch);
       
@@ -214,6 +218,7 @@ ${userPrompt}
     round?: number,
     batch?: number
   ): void {
+    if (!DATA_CAPTURE_ENABLED) return;
     try {
       const dir = this.getPath(sessionId, stage, round, batch);
       
@@ -290,6 +295,7 @@ ${content}
     candidateTimes: string[],
     survivorsExpected: number
   ): void {
+    if (!DATA_CAPTURE_ENABLED) return;
     try {
       const dir = this.getPath(sessionId, stage, round, batch);
       

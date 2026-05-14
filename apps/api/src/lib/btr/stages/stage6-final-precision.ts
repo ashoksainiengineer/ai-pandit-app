@@ -396,6 +396,7 @@ export async function stage6FinalPrecision(
                 userPrompt,
                 {
                     candidateTime: `R1-B${i + 1}`,
+                    abortSignal: input.abortSignal,
                     progressTracker: progress,
                     maxTokens: config.ai.stage6MaxTokens,
                     model: config.ai.reasonerModel,
@@ -613,6 +614,7 @@ Consensus Range: ${Math.min(...validEnhanced.map(c => c.precision?.consensus.ove
         prompt,
         {
             candidateTime: 'FINAL VERDICT',
+            abortSignal: input.abortSignal,
             progressTracker: progress,
             timeoutMs: 120000,
             maxTokens: config.ai.stage6MaxTokens, // Driven by AI_STAGE6_MAX_TOKENS

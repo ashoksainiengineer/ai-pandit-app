@@ -149,6 +149,7 @@ export async function stage4DeepAnalysis(
                 userPrompt,
                 {
                     candidateTime: `R${roundNumber}-B${i + 1}`,
+                    abortSignal: input.abortSignal,
                     progressTracker: progress,
                     maxTokens: config.ai.stage4MaxTokens,
                     model: config.ai.reasonerModel,
@@ -284,6 +285,7 @@ export async function stage4DeepAnalysis(
             prompt,
             {
                 candidateTime: 'Deep Final',
+                abortSignal: input.abortSignal,
                 progressTracker: progress,
                 maxTokens: config.ai.stage4MaxTokens, // Driven by AI_STAGE4_MAX_TOKENS
                 model: config.ai.reasonerModel,

@@ -20,7 +20,7 @@ import { extractBatchSurvivors } from '../extractors/index.js';
 import { CandidateDataPackage, StageResult, TournamentRound } from '@ai-pandit/shared';
 import { logger } from '../../../utils/logger.js';
 import { config } from '../../../config/index.js';
-import { getMinifiedEphemerisInline, getFullEphemerisPayload } from './_utils.js';
+import { getMinifiedEphemerisInline } from './_utils.js';
 import { getOffsetMinutes } from '../utils.js';
 import { buildCandidateReferenceMap } from '../candidate-reference.js';
 import { btrDataCapture } from '../data-capture.js';
@@ -119,40 +119,57 @@ export async function stage2BatchTournament(
                 batchTimes.map(c => c.time),
                 survivorsPerBatch
             );
-            
-            // Save ephemeris data for each candidate in batch
-            for (const candidate of batchEnriched) {
-                btrDataCapture.saveEphemeris(
+
+            const memBefore = process.memoryUsage();
+            if (memBefore.heapUsed > 150 * 1024 * 1024) {
+                logger.warn('[STAGE-2] High memory before data capture, skipping', {
+                    heapUsedMB: Math.round(memBefore.heapUsed / 1024 / 1024),
+                    batch: i + 1,
+                });
+            } else {
+                btrDataCapture.saveBatchMetadata(
                     input.sessionId,
                     2,
-                    candidate.time,
-                    {
-                        planets: candidate.planets,
-                        houses: candidate.houseLords,
-                        lagna: candidate.ascendant,
-                        vimshottariDasha: candidate.vimshottariDasha,
-                        vargas: candidate.vargaDegrees,
-                        transits: candidate.transitData
-                    },
                     roundNumber,
-                    i + 1
+                    i + 1,
+                    batchTimes.map(c => c.time),
+                    survivorsPerBatch
                 );
-                
-                // Save prompt
-                btrDataCapture.savePrompt(
-                    input.sessionId,
-                    2,
-                    candidate.time,
-                    systemPrompt,
-                    userPrompt,
-                    {
-                        candidateCount: batchEnriched.length,
-                        eventCount: input.lifeEvents.length,
-                        spouseDataPresent: !!input.spouseData,
-                    },
-                    roundNumber,
-                    i + 1
-                );
+
+                // Save ephemeris data for each candidate in batch
+                for (const candidate of batchEnriched) {
+                    btrDataCapture.saveEphemeris(
+                        input.sessionId,
+                        2,
+                        candidate.time,
+                        {
+                            planets: candidate.planets,
+                            houses: candidate.houseLords,
+                            lagna: candidate.ascendant,
+                            vimshottariDasha: candidate.vimshottariDasha,
+                            vargas: candidate.vargaDegrees,
+                            transits: candidate.transitData
+                        },
+                        roundNumber,
+                        i + 1
+                    );
+
+                    // Save prompt
+                    btrDataCapture.savePrompt(
+                        input.sessionId,
+                        2,
+                        candidate.time,
+                        systemPrompt,
+                        userPrompt,
+                        {
+                            candidateCount: batchEnriched.length,
+                            eventCount: input.lifeEvents.length,
+                            spouseDataPresent: !!input.spouseData,
+                        },
+                        roundNumber,
+                        i + 1
+                    );
+                }
             }
             
             const response = await _callAIWithStream(
@@ -162,6 +179,7 @@ export async function stage2BatchTournament(
                 userPrompt,
                 {
                     candidateTime: `R${roundNumber}-B${i + 1}`,
+                    abortSignal: input.abortSignal,
                     progressTracker: progress,
                     maxTokens: config.ai.stage2MaxTokens,
                     model: config.ai.model,
@@ -238,7 +256,6 @@ export async function stage2BatchTournament(
                     stage: 2,
                     batch: i + 1,
                     minifiedEph: getMinifiedEphemerisInline(candidate),
-                    fullEph: getFullEphemerisPayload(candidate)
                 });
                 emitDecision(input.sessionId, {
                     stage: 2,
@@ -254,8 +271,17 @@ export async function stage2BatchTournament(
             return batchSurvivors;
         });
 
-        const results = await _executeAIInParallel(tasks, config.ai.parallelConcurrency, config.ai.parallelStaggerMs);
+        await _executeAIInParallel(tasks, config.ai.parallelConcurrency, config.ai.parallelStaggerMs);
         if (global.gc) global.gc();
+
+        const memAfter = process.memoryUsage();
+        if (memAfter.heapUsed > 200 * 1024 * 1024) {
+          logger.warn('[STAGE-2] High memory usage after round', {
+            heapUsedMB: Math.round(memAfter.heapUsed / 1024 / 1024),
+            rssMB: Math.round(memAfter.rss / 1024 / 1024),
+          });
+          if (global.gc) global.gc();
+        }
 
         // Read lightweight survivors from map (heavy batchEnriched already GC'd)
         let nextCandidates: CandidateTime[] = [];
@@ -268,6 +294,7 @@ export async function stage2BatchTournament(
         // If candidates are very close (within specified threshold), keep both if one is a survivor
         const clusterThreshold = config.btr.clusterThreshold; // minutes
         const additionalSurvivors: CandidateTime[] = [];
+        const additionalSurvivorIds = new Set<string>();
         for (const s of nextCandidates) {
             const nearby = currentCandidates.filter(c =>
                 !nextCandidates.some(nc => getCandidateIdentity(nc) === getCandidateIdentity(c)) &&
@@ -276,7 +303,12 @@ export async function stage2BatchTournament(
             // Pick the CLOSEST nearby candidate (sorted by offset distance)
             if (nearby.length > 0) {
                 nearby.sort((a, b) => Math.abs(a.offsetMinutes - s.offsetMinutes) - Math.abs(b.offsetMinutes - s.offsetMinutes));
-                additionalSurvivors.push(nearby[0]);
+                const chosen = nearby[0];
+                const chosenId = getCandidateIdentity(chosen);
+                if (!additionalSurvivorIds.has(chosenId)) {
+                    additionalSurvivorIds.add(chosenId);
+                    additionalSurvivors.push(chosen);
+                }
             }
         }
         nextCandidates = [...nextCandidates, ...additionalSurvivors];
@@ -358,49 +390,55 @@ export async function stage2BatchTournament(
 
             const systemPrompt = 'You are the SUPREME VEDIC ASTROLOGER. Tournament analysis: prune based on astrological alignment.';
             const userPrompt = getBatchPrompt(batchEnriched, input.lifeEvents, i + 1, batches.length, roundSurvivorsPerBatch, input.spouseData, offsetMinutes);
-            
-            // Save batch metadata
-            btrDataCapture.saveBatchMetadata(
-                input.sessionId,
-                2,
-                roundNumber,
-                i + 1,
-                batchTimes.map(c => c.time),
-                roundSurvivorsPerBatch
-            );
-            
-            // Save ephemeris and prompts for each candidate
-            for (const candidate of batchEnriched) {
-                btrDataCapture.saveEphemeris(
+
+            const memBefore = process.memoryUsage();
+            if (memBefore.heapUsed > 150 * 1024 * 1024) {
+                logger.warn('[STAGE-2] High memory before data capture, skipping', {
+                    heapUsedMB: Math.round(memBefore.heapUsed / 1024 / 1024),
+                    batch: i + 1,
+                });
+            } else {
+                btrDataCapture.saveBatchMetadata(
                     input.sessionId,
                     2,
-                    candidate.time,
-                    {
-                        planets: candidate.planets,
-                        houses: candidate.houseLords,
-                        lagna: candidate.ascendant,
-                        vimshottariDasha: candidate.vimshottariDasha,
-                        vargas: candidate.vargaDegrees,
-                        transits: candidate.transitData
-                    },
                     roundNumber,
-                    i + 1
+                    i + 1,
+                    batchTimes.map(c => c.time),
+                    roundSurvivorsPerBatch
                 );
-                
-                btrDataCapture.savePrompt(
-                    input.sessionId,
-                    2,
-                    candidate.time,
-                    systemPrompt,
-                    userPrompt,
-                    {
-                        candidateCount: batchEnriched.length,
-                        eventCount: input.lifeEvents.length,
-                        spouseDataPresent: !!input.spouseData,
-                    },
-                    roundNumber,
-                    i + 1
-                );
+
+                for (const candidate of batchEnriched) {
+                    btrDataCapture.saveEphemeris(
+                        input.sessionId,
+                        2,
+                        candidate.time,
+                        {
+                            planets: candidate.planets,
+                            houses: candidate.houseLords,
+                            lagna: candidate.ascendant,
+                            vimshottariDasha: candidate.vimshottariDasha,
+                            vargas: candidate.vargaDegrees,
+                            transits: candidate.transitData
+                        },
+                        roundNumber,
+                        i + 1
+                    );
+
+                    btrDataCapture.savePrompt(
+                        input.sessionId,
+                        2,
+                        candidate.time,
+                        systemPrompt,
+                        userPrompt,
+                        {
+                            candidateCount: batchEnriched.length,
+                            eventCount: input.lifeEvents.length,
+                            spouseDataPresent: !!input.spouseData,
+                        },
+                        roundNumber,
+                        i + 1
+                    );
+                }
             }
             
             const response = await _callAIWithStream(
@@ -410,6 +448,7 @@ export async function stage2BatchTournament(
                 userPrompt,
                 {
                     candidateTime: `R${roundNumber}-B${i + 1}`,
+                    abortSignal: input.abortSignal,
                     progressTracker: progress,
                     maxTokens: config.ai.stage2MaxTokens,
                     model: config.ai.model,
@@ -480,7 +519,6 @@ export async function stage2BatchTournament(
                     stage: 2,
                     batch: i + 1,
                     minifiedEph: getMinifiedEphemerisInline(candidate),
-                    fullEph: getFullEphemerisPayload(candidate)
                 });
                 emitDecision(input.sessionId, {
                     stage: 2,
@@ -501,6 +539,16 @@ export async function stage2BatchTournament(
 
         const results = await _executeAIInParallel(tasks, config.ai.parallelConcurrency, config.ai.parallelStaggerMs);
         if (global.gc) global.gc();
+
+        const memAfter2 = process.memoryUsage();
+        if (memAfter2.heapUsed > 200 * 1024 * 1024) {
+          logger.warn('[STAGE-2] High memory usage after tournament round', {
+            heapUsedMB: Math.round(memAfter2.heapUsed / 1024 / 1024),
+            rssMB: Math.round(memAfter2.rss / 1024 / 1024),
+          });
+          if (global.gc) global.gc();
+        }
+
         await progress.updateSubProgress(batches.length, batches.length);
 
         // Read lightweight survivors from map (heavy batchEnriched already GC'd)
