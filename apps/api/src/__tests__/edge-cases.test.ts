@@ -1,3 +1,4 @@
+import crypto from "node:crypto";
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import request from 'supertest';
 import { createApp } from '../server.js';
@@ -14,6 +15,7 @@ describe('Edge Case & Error Handling Tests', () => {
 
   beforeAll(async () => {
     const [user] = await db.insert(users).values({
+      id: crypto.randomUUID(),
       externalId: `edge_test_${testTimestamp}`,
       email: `edge_test_${testTimestamp}@test.com`,
       fullName: 'Edge Case Test User',

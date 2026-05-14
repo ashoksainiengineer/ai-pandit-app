@@ -155,6 +155,24 @@ vi.mock('../../lib/jobs/artifact-storage.js', () => ({
     persistArtifactReference: vi.fn(),
 }));
 
+// Hoisted mock driver so test code can configure it
+const { mockQueueDriver } = vi.hoisted(() => ({
+    mockQueueDriver: {
+        name: 'mock',
+        countActiveJobs: vi.fn().mockResolvedValue(0),
+        enqueueSession: vi.fn().mockResolvedValue(undefined),
+        listActiveJobs: vi.fn().mockResolvedValue([]),
+        claimNextQueuedJob: vi.fn().mockResolvedValue(null),
+        scheduleRetrySession: vi.fn().mockResolvedValue(undefined),
+        moveToDeadLetter: vi.fn().mockResolvedValue(undefined),
+    },
+}));
+
+vi.mock('../queue/index.js', () => ({
+    getQueueDriver: vi.fn(() => mockQueueDriver),
+    __resetQueueDriverForTests: vi.fn(),
+}));
+
 vi.mock('../../lib/redis-event-store.js', () => {
     const mockStore = {
         storeContext: vi.fn().mockResolvedValue(undefined),
@@ -200,7 +218,7 @@ describe('Queue Manager', () => {
 
     describe('getQueuePosition', () => {
         it('should return 0 if session is already processing', async () => {
-            vi.mocked(jobRepo.listActiveJobs).mockResolvedValueOnce([
+            mockQueueDriver.listActiveJobs.mockResolvedValueOnce([
                 { sessionId: 'sess-1', status: 'running' } as any,
             ]);
             const pos = await getQueuePosition('sess-1');
@@ -208,7 +226,7 @@ describe('Queue Manager', () => {
         });
 
         it('should calculate position based on concurrent limit', async () => {
-            vi.mocked(jobRepo.listActiveJobs).mockResolvedValueOnce([
+            mockQueueDriver.listActiveJobs.mockResolvedValueOnce([
                 { sessionId: 's1', status: 'running' } as any,
                 { sessionId: 's2', status: 'running' } as any,
                 { sessionId: 's3', status: 'running' } as any,
@@ -221,7 +239,7 @@ describe('Queue Manager', () => {
         });
 
         it('should return 0 if session not found in active list', async () => {
-            vi.mocked(jobRepo.listActiveJobs).mockResolvedValueOnce([]);
+            mockQueueDriver.listActiveJobs.mockResolvedValueOnce([]);
             const pos = await getQueuePosition('missing');
             expect(pos).toBe(0);
         });
@@ -238,10 +256,10 @@ describe('Queue Manager', () => {
             setMockResults([
                 [{ id: 'sess-1', status: 'queued', createdAt: '2020' }], // session lookup
             ]);
-            vi.mocked(jobRepo.listActiveJobs).mockResolvedValueOnce([
+            mockQueueDriver.listActiveJobs.mockResolvedValueOnce([
                 { sessionId: 'sess-1', status: 'queued' } as any,
             ]);
-            vi.mocked(jobRepo.countActiveJobs).mockResolvedValueOnce(1);
+            mockQueueDriver.countActiveJobs.mockResolvedValueOnce(1);
 
             const status = await getQueueStatus('sess-1');
             expect(status).toBeDefined();
@@ -421,7 +439,7 @@ describe('Queue Manager', () => {
 
     describe('poison job handling', () => {
         it('should land non-retryable failures in a safe terminal failed state', async () => {
-            vi.mocked(jobRepo.claimNextQueuedJob).mockResolvedValueOnce({
+            mockQueueDriver.claimNextQueuedJob.mockResolvedValueOnce({
                 id: 'job-poison-1',
                 sessionId: 'sess-poison-1',
                 status: 'queued',
@@ -482,7 +500,7 @@ describe('Queue Manager', () => {
 
     describe('addToQueue', () => {
         it('should completely reject if queue is full', async () => {
-            vi.mocked(jobRepo.countActiveJobs).mockResolvedValueOnce(100);
+            mockQueueDriver.countActiveJobs.mockResolvedValueOnce(100);
             const res = await addToQueue('sess-1');
             expect(res.success).toBe(false);
             expect(res.error).toContain('Queue is full');
@@ -493,19 +511,16 @@ describe('Queue Manager', () => {
                 [], // update
                 [{ id: 'sess-1', status: 'queued' }], // getQueueStatus -> session
             ]);
-            vi.mocked(jobRepo.countActiveJobs)
+            mockQueueDriver.countActiveJobs
                 .mockResolvedValueOnce(5)
                 .mockResolvedValueOnce(6);
-            vi.mocked(jobRepo.listActiveJobs).mockResolvedValueOnce([
+            mockQueueDriver.listActiveJobs.mockResolvedValueOnce([
                 { sessionId: 'sess-1', status: 'queued' } as any,
             ]);
 
             const res = await addToQueue('sess-1');
             expect(res.success).toBe(true);
             expect(res.sessionId).toBe('sess-1');
-
-            const updateCall = (db.update as any).mock.results[0].value.set.mock.calls[0][0];
-            expect(updateCall.status).toBe('queued');
         });
     });
 });

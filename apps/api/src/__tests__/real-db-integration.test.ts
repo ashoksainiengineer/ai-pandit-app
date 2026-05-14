@@ -1,3 +1,4 @@
+import crypto from "node:crypto";
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
 import request from 'supertest';
 import { createApp } from '../server.js';
@@ -23,6 +24,7 @@ describe('Real Database Integration Tests', () => {
     await db.delete(users).where(eq(users.externalId, testUser.externalId));
     
     const [user] = await db.insert(users).values({
+      id: crypto.randomUUID(),
       externalId: testUser.externalId,
       email: testUser.email,
       fullName: testUser.fullName,
@@ -54,6 +56,7 @@ describe('Real Database Integration Tests', () => {
 
     it('should perform CRUD operations on users table', async () => {
       const [newUser] = await db.insert(users).values({
+        id: crypto.randomUUID(),
         externalId: `temp_${testTimestamp}`,
         email: `temp_${testTimestamp}@test.com`,
         fullName: 'Temp User',
@@ -227,6 +230,8 @@ describe('Real Database Integration Tests', () => {
     });
 
     it('should list all user sessions from real DB', async () => {
+      const sessionId1 = crypto.randomUUID();
+      const sessionId2 = crypto.randomUUID();
       await db.insert(sessions).values([
         {
           userId: testUserId,
@@ -390,7 +395,9 @@ describe('Real Database Integration Tests', () => {
       
       const sessionId = sessionRes.body.data.id;
       
+      const jobId = crypto.randomUUID();
       await db.insert(jobs).values({
+        id: jobId,
         sessionId: sessionId,
         userId: testUserId,
         status: 'pending',

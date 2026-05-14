@@ -24,6 +24,12 @@ const {
         limit: vi.fn().mockResolvedValue([]),
         update: vi.fn().mockReturnThis(),
         set: vi.fn().mockReturnThis(),
+        insert: vi.fn(() => ({ values: vi.fn().mockResolvedValue(undefined) })),
+        query: {
+            jobs: {
+                findFirst: vi.fn().mockResolvedValue(null),
+            },
+        },
     },
     mockExecuteWithRetry: vi.fn((fn: () => unknown) => fn()),
     mockCreateQueuedBirthRectificationJob: vi.fn(),
@@ -44,11 +50,13 @@ vi.mock('@ai-pandit/db', () => ({
 
 vi.mock('@ai-pandit/db/schema', () => ({
     sessions: { id: 'id', externalId: 'externalId', userId: 'userId', status: 'status' },
+    jobs: { id: 'id', sessionId: 'sessionId', status: 'status', createdAt: 'createdAt' },
     users: {},
 }));
 
 vi.mock('drizzle-orm', () => ({
     eq: vi.fn((...args: unknown[]) => args),
+    desc: vi.fn((col: unknown) => col),
 }));
 
 vi.mock('../../middleware/auth.js', () => ({
@@ -283,9 +291,20 @@ describe('Queue Route', () => {
         });
 
         it('requeues a failed legacy session owned by internal user', async () => {
+            mockAddToQueue.mockResolvedValue({
+                success: true,
+                sessionId: 'legacy-session',
+                position: 1,
+                estimatedWaitSeconds: 60,
+            });
+            mockResolveSessionOwnershipContext.mockResolvedValue({ userId: 'internal_user_id_123', isInternal: true });
+            mockIsSessionOwnedByContext.mockReturnValue(true);
             dbMock.limit
                 .mockResolvedValueOnce([
                     { id: 'legacy-session', externalId: 'legacy_clerk', userId: 'internal_user_id_123', status: 'failed', errorMessage: 'boom' },
+                ])
+                .mockResolvedValueOnce([
+                    { status: 'pending', errorMessage: null },
                 ])
                 .mockResolvedValueOnce([
                     { status: 'pending', errorMessage: null },

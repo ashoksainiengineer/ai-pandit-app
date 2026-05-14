@@ -48,7 +48,11 @@ vi.mock('../redis-event-store.js', () => ({
     getRedisEventStore: vi.fn(() => ({
         storeContext: vi.fn().mockResolvedValue(undefined),
         getContext: vi.fn().mockResolvedValue(null),
+        storeThinking: vi.fn().mockResolvedValue(undefined),
+        getThinking: vi.fn().mockResolvedValue(new Map()),
         isAvailable: vi.fn().mockReturnValue(true),
+        storeCalculationLog: vi.fn().mockResolvedValue(undefined),
+        storeCandidateScore: vi.fn().mockResolvedValue(undefined),
     })),
 }));
 import { ProgressTracker, ANALYSIS_STEPS, getSessionProgress } from '../progress-tracker.js';

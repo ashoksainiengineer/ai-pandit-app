@@ -46,9 +46,13 @@ vi.mock('@ai-pandit/db', () => ({
     select: () => ({ from: mockSelectFromFn }),
     update: () => ({ set: vi.fn().mockReturnValue({ where: mockSetWhereFn }) }),
     delete: () => ({ where: vi.fn() }),
+    insert: () => ({ values: vi.fn().mockResolvedValue(undefined) }),
     query: {
       sessions: {
         findFirst: vi.fn(),
+      },
+      jobs: {
+        findFirst: vi.fn().mockResolvedValue(null),
       },
     },
   },
@@ -63,11 +67,15 @@ vi.mock('@ai-pandit/db/schema', () => ({
     accuracy: 'accuracy', confidence: 'confidence', rectifiedTime: 'rectifiedTime',
     updatedAt: 'updatedAt',
   },
+  jobs: {
+    id: 'id', sessionId: 'sessionId', status: 'status', createdAt: 'createdAt',
+  },
   users: {},
 }));
 
 vi.mock('drizzle-orm', () => ({
   eq: vi.fn((...args: unknown[]) => args),
+  desc: vi.fn((col: unknown) => col),
 }));
 
 vi.mock('../../middleware/auth.js', () => ({
@@ -279,12 +287,13 @@ describe('Queue Integration', () => {
   describe('POST /api/queue/requeue', () => {
     it('should successfully requeue a failed session and return 200', async () => {
       // First call: verify session ownership
+      // Second call: verify status was reset
+      // Subsequent calls (verify): default to pending
       mockSelectLimitFn
         .mockResolvedValueOnce([
           { id: 'session-rq1', externalId: 'test_clerk_id', userId: 'test_user_id', status: 'failed', errorMessage: 'timeout' },
         ])
-        // Second call: verify status was reset
-        .mockResolvedValueOnce([
+        .mockResolvedValue([
           { status: 'pending', errorMessage: null },
         ]);
 
@@ -340,12 +349,12 @@ describe('Queue Integration', () => {
       expect(res.body.error).toMatchObject({ code: 'FORBIDDEN', message: 'Unauthorized' });
     });
 
-    it('should return 503 when queue add fails', async () => {
+    it('should return 500 when queue add fails', async () => {
       mockSelectLimitFn
         .mockResolvedValueOnce([
           { id: 'session-rq2', externalId: 'test_clerk_id', userId: 'test_user_id', status: 'failed', errorMessage: 'oom' },
         ])
-        .mockResolvedValueOnce([
+        .mockResolvedValue([
           { status: 'pending', errorMessage: null },
         ]);
       mockAddToQueueFn.mockResolvedValue({
@@ -371,7 +380,7 @@ describe('Queue Integration', () => {
         .mockResolvedValueOnce([
           { id: 'session-legacy', externalId: 'test_clerk_id', userId: 'test_user_id', status: 'failed', errorMessage: 'crash' },
         ])
-        .mockResolvedValueOnce([
+        .mockResolvedValue([
           { status: 'pending', errorMessage: null },
         ]);
 

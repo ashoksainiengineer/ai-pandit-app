@@ -24,12 +24,14 @@ describe('🛡️ Configuration Integrity Audit', () => {
     });
 
     it('Requirement: Should fail loudly if essential secrets are missing', async () => {
-        // We expect the app to exit or throw an error depending on the environment
-        // In test environment, we expect it to throw an Error from parseEnv()
+        // Config is now lazy — importing the module does NOT trigger env validation.
+        // Validation only runs when a config property is accessed.
+        // We explicitly call ensureEnv() to trigger validation.
 
         try {
-            await import('../config/index.js');
-            // If it doesn't throw, something is wrong with our "Zero-Trust" policy
+            const mod = await import('../config/index.js');
+            // Trigger lazy validation by accessing a property
+            void mod.config.app.nodeEnv;
             throw new Error('Config should have failed but passed');
         } catch (error: any) {
             expect(error.message).toContain('Configuration Validation Failed');

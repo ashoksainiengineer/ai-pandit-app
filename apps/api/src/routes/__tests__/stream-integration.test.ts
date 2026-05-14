@@ -134,6 +134,7 @@ vi.mock('../../config/index.js', () => ({
   config: {
     features: { useNewStreamPath: true },
     app: { nodeEnv: 'test' },
+    ai: { model: 'test-ai-model' },
   },
 }));
 
@@ -156,6 +157,7 @@ vi.mock('../../lib/session-events.js', () => ({
     getNextSeq: vi.fn(() => 1),
     logEvent: vi.fn(),
     getEventsSince: vi.fn(() => []),
+    subscribeToSession: vi.fn(async () => {}),
   },
 }));
 

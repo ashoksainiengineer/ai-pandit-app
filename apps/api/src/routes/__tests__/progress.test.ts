@@ -131,10 +131,10 @@ describe('Progress Route - GET /:sessionId', () => {
         expect(res.status).toBe(404);
     });
 
-    it('should return 403 if session belongs to another user (IDOR protection)', async () => {
+    it('should return 401 if session belongs to another user (IDOR protection)', async () => {
         (db as any).limit.mockResolvedValueOnce([{ id: 'session-1', externalId: 'other_user', userId: 'uid' }]);
         const res = await request(app).get('/api/queue/progress/session-1');
-        expect(res.status).toBe(403);
+        expect(res.status).toBe(401);
     });
 
     it('should fallback to DB session row if queue status is unavailable', async () => {
@@ -144,25 +144,25 @@ describe('Progress Route - GET /:sessionId', () => {
         vi.mocked(getQueueStatus).mockResolvedValueOnce(null);
         const res = await request(app).get('/api/queue/progress/session-1');
         expect(res.status).toBe(200);
-        expect(res.body.status).toBe('queued');
+        expect(res.body.data.status).toBe('queued');
     });
 
     it('should return progress data for owned session', async () => {
         (db as any).limit.mockResolvedValueOnce([{ id: 'session-1', externalId: 'test_clerk_id', userId: 'internal_id' }]);
         const res = await request(app).get('/api/queue/progress/session-1');
         expect(res.status).toBe(200);
-        expect(res.body.sessionId).toBe('session-1');
-        expect(res.body.status).toBe('processing');
-        expect(res.body.progress).toBeDefined();
-        expect(res.body.metadata).toBeDefined();
-        expect(res.body.metadata.fullName).toBeDefined();
+        expect(res.body.data.sessionId).toBe('session-1');
+        expect(res.body.data.status).toBe('processing');
+        expect(res.body.data.progress).toBeDefined();
+        expect(res.body.data.metadata).toBeDefined();
+        expect(res.body.data.metadata.fullName).toBeDefined();
     });
 
     it('should allow progress access for legacy row matched by internal userId', async () => {
         (db as any).limit.mockResolvedValueOnce([{ id: 'legacy-session', externalId: 'legacy_clerk', userId: 'internal_id' }]);
         const res = await request(app).get('/api/queue/progress/legacy-session');
         expect(res.status).toBe(200);
-        expect(res.body.sessionId).toBe('legacy-session');
+        expect(res.body.data.sessionId).toBe('legacy-session');
     });
 
     it('should return default progress if none exists', async () => {
@@ -171,8 +171,8 @@ describe('Progress Route - GET /:sessionId', () => {
         vi.mocked(getSessionProgress).mockResolvedValueOnce(null);
         const res = await request(app).get('/api/queue/progress/session-2');
         expect(res.status).toBe(200);
-        expect(res.body.progress.currentStep).toBe(0);
-        expect(res.body.progress.liveMessage).toContain('queue');
+        expect(res.body.data.progress.currentStep).toBe(0);
+        expect(res.body.data.progress.liveMessage).toContain('queue');
     });
 
     it('should return terminal result payload for completed sessions', async () => {
@@ -200,9 +200,9 @@ describe('Progress Route - GET /:sessionId', () => {
 
         const res = await request(app).get('/api/queue/progress/session-3');
         expect(res.status).toBe(200);
-        expect(res.body.status).toBe('complete');
-        expect(res.body.result?.rectifiedTime).toBe('12:12:12');
-        expect(res.body.rectifiedTime).toBe('12:12:12');
+        expect(res.body.data.status).toBe('complete');
+        expect(res.body.data.result?.rectifiedTime).toBe('12:12:12');
+        expect(res.body.data.rectifiedTime).toBe('12:12:12');
     });
 });
 
@@ -228,7 +228,7 @@ describe('Progress Route - GET /?sessionId=... (Query Param)', () => {
         (db as any).limit.mockResolvedValueOnce([{ id: 'session-1', externalId: 'test_clerk_id', userId: 'uid' }]);
         const res = await request(app).get('/api/queue/progress/?sessionId=session-1');
         expect(res.status).toBe(200);
-        expect(res.body.sessionId).toBe('session-1');
+        expect(res.body.data.sessionId).toBe('session-1');
     });
 
     it('should ignore sid query and require sessionId', async () => {

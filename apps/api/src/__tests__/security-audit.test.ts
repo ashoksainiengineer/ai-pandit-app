@@ -43,18 +43,21 @@ describe('Security Audit Tests', () => {
   describe('Authorization Security', () => {
     it('should prevent user A from accessing user B sessions', async () => {
       const userA = await db.insert(users).values({
+        id: crypto.randomUUID(),
         externalId: `user_a_${testTimestamp}`,
         email: `user_a_${testTimestamp}@test.com`,
         fullName: 'User A',
       } as any).returning();
       
       const userB = await db.insert(users).values({
+        id: crypto.randomUUID(),
         externalId: `user_b_${testTimestamp}`,
         email: `user_b_${testTimestamp}@test.com`,
         fullName: 'User B',
       } as any).returning();
       
       const userBSession = await db.insert(sessions).values({
+        id: crypto.randomUUID(),
         userId: userB[0].id,
         externalId: userB[0].externalId,
         fullName: 'encrypted:User B Session',
@@ -83,6 +86,7 @@ describe('Security Audit Tests', () => {
 
     it('should prevent accessing admin routes without admin role', async () => {
       const regularUser = await db.insert(users).values({
+        id: crypto.randomUUID(),
         externalId: `regular_${testTimestamp}`,
         email: `regular_${testTimestamp}@test.com`,
         fullName: 'Regular User',
@@ -177,6 +181,7 @@ describe('Security Audit Tests', () => {
   describe('Data Encryption Security', () => {
     it('should store sensitive data encrypted', async () => {
       const testUser = await db.insert(users).values({
+        id: crypto.randomUUID(),
         externalId: `encrypt_test_${testTimestamp}`,
         email: `encrypt_test_${testTimestamp}@test.com`,
         fullName: 'Encryption Test',
@@ -185,6 +190,7 @@ describe('Security Audit Tests', () => {
       const plainTextName = 'Sensitive Name';
       
       const session = await db.insert(sessions).values({
+      id: crypto.randomUUID(),
         userId: testUser[0].id,
         externalId: testUser[0].externalId,
         fullName: plainTextName,
