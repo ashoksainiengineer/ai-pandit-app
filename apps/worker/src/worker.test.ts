@@ -120,6 +120,15 @@ vi.mock('dotenv', () => ({ config: vi.fn() }));
 
 vi.mock('@ai-pandit/worker-runtime', () => ({
   createWorkerRuntime: mockCreateWorkerRuntime,
+  createRedisQueueClient: vi.fn(() => ({
+    claimNextJob: vi.fn(),
+    claimNextJobBlocking: vi.fn(),
+    enqueueSession: vi.fn(),
+    disconnect: vi.fn(),
+    isHealthy: vi.fn().mockReturnValue(true),
+    scheduleRetry: vi.fn(),
+    moveToDeadLetter: vi.fn(),
+  })),
 }));
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -287,6 +296,8 @@ describe('Worker Health Server', () => {
       process.env.PORT = '4999';
       process.env.WORKER_POLL_INTERVAL_MS = '2000';
       process.env.WORKER_DRAIN_TIMEOUT_MS = '30000';
+      process.env.ENCRYPTION_SECRET = 'test-secret-at-least-32-chars-long-12345';
+      process.env.REDIS_URL = 'redis://localhost:6379';
 
       // Import worker.ts — vi.mock is already in place so side effects are controlled
       await import('./worker.js');
@@ -299,6 +310,8 @@ describe('Worker Health Server', () => {
       delete process.env.PORT;
       delete process.env.WORKER_POLL_INTERVAL_MS;
       delete process.env.WORKER_DRAIN_TIMEOUT_MS;
+      delete process.env.ENCRYPTION_SECRET;
+      delete process.env.REDIS_URL;
     });
 
     it('should initialize worker runtime on startup', () => {

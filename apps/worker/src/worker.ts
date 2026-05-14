@@ -19,9 +19,16 @@ import { eq, and } from 'drizzle-orm';
 import type { SecondsPrecisionInput, SecondsPrecisionResult } from '@ai-pandit/shared';
 import { createEncryption } from '@ai-pandit/shared';
 import { Redis } from 'ioredis';
-import { initRedisEventStore } from '../../api/src/lib/redis-event-store.js';
-import { adaptIORedis } from '../../api/src/lib/redis-adapter.js';
-
+// ⚠️ LAZY IMPORT: These API modules are imported dynamically (not statically)
+// to avoid triggering API config validation at module load time.
+// Statically importing them causes env var validation to run during test setup.
+async function initApiRedisEventStore(redisClient: import('ioredis').Redis): Promise<void> {
+  const [{ initRedisEventStore }, { adaptIORedis }] = await Promise.all([
+    import('../../api/src/lib/redis-event-store.js') as Promise<{ initRedisEventStore: (client: import('../../api/src/lib/redis-event-store.js').RedisClient) => void }>,
+    import('../../api/src/lib/redis-adapter.js') as Promise<{ adaptIORedis: (redis: import('ioredis').Redis) => import('../../api/src/lib/redis-event-store.js').RedisClient }>,
+  ]);
+  initRedisEventStore(adaptIORedis(redisClient));
+}
 
 // Load environment variables
 config({ path: '.env' });
@@ -71,8 +78,7 @@ const redisClient = (() => {
 })();
 // Wire the ioredis instance into the existing RedisEventStore so progress
 // events, heartbeats and checkpoints survive container restarts.
-initRedisEventStore(adaptIORedis(redisClient));
-console.log('[WORKER] Redis Event Store initialised with ioredis adapter');
+let redisEventsReady = false;
 console.log({ 
   event: 'worker_startup_context', 
   cwd: process.cwd(), 
@@ -83,30 +89,33 @@ console.log({
   }
 });
 // ── Ephemeris Service Health Check ─────────────────────────────────────────
-async function verifyEphemerisConnection(): Promise<void> {
-  const ephemerisUrl = process.env.EPHEMERIS_SERVICE_URL;
-  if (!ephemerisUrl) {
-    console.warn('[WORKER] EPHEMERIS_SERVICE_URL not set — Skyfield ephemeris calls will fail');
-    return;
-  }
+async function verifyEphemerisConnection(): Promise<boolean> {
+   const ephemerisUrl = process.env.EPHEMERIS_SERVICE_URL;
+   if (!ephemerisUrl) {
+     console.warn('[WORKER] EPHEMERIS_SERVICE_URL not set — Skyfield ephemeris calls will fail');
+     return false;
+   }
 
-  const healthUrl = new URL('/health', ephemerisUrl).toString();
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 30000);
+   const healthUrl = new URL('/health', ephemerisUrl).toString();
+   const controller = new AbortController();
+   const timeout = setTimeout(() => controller.abort(), 30000);
 
-  try {
-    const response = await fetch(healthUrl, { signal: controller.signal });
-    if (response.ok) {
-      console.log(`[WORKER] Ephemeris service reachable at ${ephemerisUrl}`);
-    } else {
-      console.warn(`[WORKER] Ephemeris service returned ${response.status} from ${healthUrl}`);
-    }
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    console.warn(`[WORKER] Ephemeris service unreachable at ${healthUrl}: ${message}`);
-  } finally {
-    clearTimeout(timeout);
-  }
+   try {
+     const response = await fetch(healthUrl, { signal: controller.signal });
+     if (response.ok) {
+       console.log(`[WORKER] Ephemeris service reachable at ${ephemerisUrl}`);
+       return true;
+     } else {
+       console.warn(`[WORKER] Ephemeris service returned ${response.status} from ${healthUrl}`);
+       return false;
+     }
+   } catch (error) {
+     const message = error instanceof Error ? error.message : String(error);
+     console.warn(`[WORKER] Ephemeris service unreachable at ${healthUrl}: ${message}`);
+     return false;
+   } finally {
+     clearTimeout(timeout);
+   }
 }
     
 
@@ -117,6 +126,8 @@ let shutdownRequested = false;
 let draining = false;
 let startupError: string | null = null;
 let workerRuntime: WorkerRuntime | null = null;
+let activeJobAbortController: AbortController | null = null;
+let activeJobTimeout: ReturnType<typeof setTimeout> | null = null;
 
 // Active job counter shared between processJob and getActiveCount
 let activeCount = 0;
@@ -171,6 +182,7 @@ async function gracefulShutdown(signal: 'SIGTERM' | 'SIGINT'): Promise<void> {
   draining = true;
   workerHealthy = false;
   console.log(`[WORKER] ${signal} received. Starting graceful shutdown...`);
+  abortActiveJob(`worker shutdown via ${signal}`);
 
   try {
     if (workerRuntime) {
@@ -191,6 +203,17 @@ async function gracefulShutdown(signal: 'SIGTERM' | 'SIGINT'): Promise<void> {
       server.close(() => resolve());
     });
     process.exit(0);
+  }
+}
+
+function abortActiveJob(reason: string): void {
+  if (activeJobTimeout) {
+    clearTimeout(activeJobTimeout);
+    activeJobTimeout = null;
+  }
+
+  if (activeJobAbortController && !activeJobAbortController.signal.aborted) {
+    activeJobAbortController.abort(reason);
   }
 }
 
@@ -272,6 +295,7 @@ async function processJob(): Promise<void> {
       )
         ? rawOffset
         : { preset: '1hour' };
+    activeJobAbortController = new AbortController();
 
     console.log({ event: 'worker_import_start', jobId: job.id });
     const { executeSecondsPrecisionRectification } =
@@ -291,7 +315,7 @@ async function processJob(): Promise<void> {
       lifeEvents: lifeEvents as SecondsPrecisionInput['lifeEvents'],
       offsetConfig: offsetConfig as unknown as SecondsPrecisionInput['offsetConfig'],
       spouseData: spouseData as SecondsPrecisionInput['spouseData'],
-      abortSignal: new AbortController().signal,
+      abortSignal: activeJobAbortController.signal,
     };
 
     // ── Run BTR analysis ────────────────────────────────────────────────────
@@ -315,26 +339,30 @@ async function processJob(): Promise<void> {
     // HARD TIMEOUT: BTR must complete within 30 minutes or be aborted.
     // This prevents infinite hangs from unreachable ephemeris services.
     const BTR_TIMEOUT_MS = 30 * 60 * 1000; // 30 minutes
-    const btrTimeout = setTimeout(() => {
-      console.error(`[WORKER] BTR analysis timed out after ${BTR_TIMEOUT_MS}ms`, {
-        sessionId: session.id,
-        jobId: job.id,
-      });
-      // The AbortController signal is passed to the BTR input but the pipeline
-      // must check it. For now we rely on the timeout to force job failure.
-    }, BTR_TIMEOUT_MS);
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      activeJobTimeout = setTimeout(() => {
+        console.error(`[WORKER] BTR analysis timed out after ${BTR_TIMEOUT_MS}ms`, {
+          sessionId: session.id,
+          jobId: job.id,
+        });
+        abortActiveJob('BTR analysis timeout');
+        reject(new Error(`BTR analysis timed out after ${BTR_TIMEOUT_MS}ms`));
+      }, BTR_TIMEOUT_MS);
+    });
 
     let result: SecondsPrecisionResult;
     try {
       result = await Promise.race([
         executeSecondsPrecisionRectification(btrInput),
-        new Promise<never>((_, reject) => {
-          setTimeout(() => reject(new Error(`BTR analysis timed out after ${BTR_TIMEOUT_MS}ms`)), BTR_TIMEOUT_MS);
-        }),
+        timeoutPromise,
       ]);
     } finally {
       clearInterval(heartbeatInterval);
-      clearTimeout(btrTimeout);
+      if (activeJobTimeout) {
+        clearTimeout(activeJobTimeout);
+        activeJobTimeout = null;
+      }
+      activeJobAbortController = null;
     }
 
     console.log('[WORKER] BTR analysis complete', {
@@ -420,6 +448,11 @@ async function processJob(): Promise<void> {
       console.error({ event: 'fail_job_db_error', jobId: job.id, error: failMessage });
     }
   } finally {
+    if (activeJobTimeout) {
+      clearTimeout(activeJobTimeout);
+      activeJobTimeout = null;
+    }
+    activeJobAbortController = null;
     activeCount -= 1;
   }
 }
@@ -557,8 +590,23 @@ void (async () => {
     console.log('[WORKER] Verifying database connection...');
     await verifyDatabaseConnection();
     console.log('[WORKER] Database connection verified successfully');
-    // Verify ephemeris service reachability before accepting jobs
-    await verifyEphemerisConnection();
+// Verify ephemeris service reachability before accepting jobs
+     const ephemerisHealthy = await verifyEphemerisConnection();
+     if (!ephemerisHealthy) {
+       console.error('[WORKER] Ephemeris service unreachable at startup — refusing to accept jobs until healthy');
+       startupError = 'Ephemeris service unreachable';
+       process.exit(1);
+     }
+
+    try {
+      await initApiRedisEventStore(redisClient);
+      redisEventsReady = true;
+      console.log('[WORKER] Redis Event Store initialised (events will be published to API)');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      redisEventsReady = false;
+      console.warn(`[WORKER] Redis Event Store init failed — progress events will not be published: ${message}`);
+    }
     
 
     await workerRuntime.initialize({ pollIntervalMs });
