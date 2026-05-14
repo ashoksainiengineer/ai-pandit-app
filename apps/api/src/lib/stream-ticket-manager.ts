@@ -1,144 +1,113 @@
-/**
- * Stream Ticket Manager — EventSource Authentication Workaround
- *
- * The browser-native EventSource API does not support custom HTTP headers,
- * making it impossible to send an Authorization: Bearer <token> header for
- * Server-Sent Events connections. This module provides a ticket-based auth
- * pattern as a secure workaround:
- *
- * FULL INTEGRATION FLOW (all actively used):
- *
- *   1. Frontend (use-stream-progress.ts):
- *      Calls POST /api/stream/ticket/:sessionId with a Clerk Bearer token
- *      to obtain a short-lived, single-use stream ticket.
- *
- *   2. Backend route (routes/stream.ts):
- *      The POST /ticket/:sessionId endpoint — guarded by authMiddleware +
- *      session-ownership verification — calls createStreamTicket() to mint
- *      a UUID ticket bound to (externalId, sessionId) with a 2-minute TTL.
- *
- *   3. Frontend opens EventSource (use-stream-progress.ts):
- *      Connects to GET /api/stream/:sessionId?ticket=<ticket> — no
- *      Authorization header (impossible with native EventSource).
- *
- *   4. Auth middleware (middleware/auth.ts):
- *      Detects a stream request with no Authorization header but with a
- *      ?ticket query param, calls consumeStreamTicket() to authenticate
- *      the connection. The ticket is consumed immediately (single-use).
- *
- *   5. SSE handler (routes/stream.ts):
- *      Receives req.externalId and req.sessionId set by the auth middleware,
- *      then performs its own session-ownership verification before opening
- *      the SSE stream.
- *
- * DESIGN NOTES:
- *  - Tickets are single-use (deleted on consume) to prevent replay attacks.
- *  - Tickets expire after 2 minutes (DEFAULT_TTL_MS) to limit window of misuse.
- *  - Tickets are stored in memory only (no persistence), suitable for single-
- *    instance deployments. For multi-instance, a Redis-backed ticket store
- *    would be needed.
- *  - The auth middleware prioritizes Authorization header over ticket:
- *    ticket auth is only attempted when no Bearer token is present AND the
- *    request targets a /stream endpoint.
- *  - getActiveStreamTicketCount() is available for observability/monitoring
- *    but is not currently wired into any metrics dashboard.
- */
-
 import crypto from 'node:crypto';
 import { logger } from '../utils/logger.js';
+import type { RedisClient } from './redis-event-store.js';
 
-interface StreamTicketRecord {
+const DEFAULT_TTL_SECONDS = 120;
+const TICKET_KEY_PREFIX = 'stream-ticket:';
+
+export interface StreamTicketPayload {
   externalId: string;
   sessionId: string;
+}
+
+interface InMemoryTicket extends StreamTicketPayload {
   expiresAtMs: number;
 }
 
-const DEFAULT_TTL_MS = 2 * 60 * 1000;
-const tickets = new Map<string, StreamTicketRecord>();
+let redisClient: RedisClient | null = null;
+let redisAvailable = false;
+const inMemoryTickets = new Map<string, InMemoryTicket>();
+let cleanupInterval: ReturnType<typeof setInterval> | null = null;
 
-function cleanupExpiredTickets(nowMs: number): void {
-  for (const [ticket, record] of tickets.entries()) {
-    if (record.expiresAtMs <= nowMs) {
-      tickets.delete(ticket);
-    }
-  }
+export function initStreamTicketStore(client: RedisClient): void {
+  redisClient = client;
+  redisAvailable = true;
+  logger.info('[StreamTicket] Redis-backed ticket store initialized');
 }
 
-/**
- * Creates a short-lived, single-use stream ticket for EventSource auth.
- *
- * Called from the POST /api/stream/ticket/:sessionId route after the
- * caller has been authenticated via Clerk Bearer token and session
- * ownership has been verified.
- *
- * @param externalId  - The authenticated user's external ID.
- * @param sessionId - The BTR session ID the caller wants to stream.
- * @param ttlMs    - Ticket time-to-live in milliseconds (default: 2 minutes).
- * @returns A UUID ticket string to be passed as ?ticket=<value> to the SSE endpoint.
- */
-export function createStreamTicket(externalId: string, sessionId: string, ttlMs: number = DEFAULT_TTL_MS): string {
-  ensureCleanupTimer();
-  const nowMs = Date.now();
-  cleanupExpiredTickets(nowMs);
+export function isRedisAvailable(): boolean {
+  return redisAvailable && redisClient !== null;
+}
 
+export async function createStreamTicket(
+  externalId: string,
+  sessionId: string,
+  ttlMs: number = DEFAULT_TTL_SECONDS * 1000,
+): Promise<string> {
   const ticket = crypto.randomUUID();
-  tickets.set(ticket, {
+  const payload = JSON.stringify({ externalId, sessionId });
+
+  if (redisClient && redisAvailable) {
+    try {
+      await redisClient.set(`${TICKET_KEY_PREFIX}${ticket}`, payload, DEFAULT_TTL_SECONDS);
+      return ticket;
+    } catch (error) {
+      logger.warn('[StreamTicket] Redis set failed, falling back to in-memory', {
+        error: error instanceof Error ? error.message : String(error),
+      });
+      redisAvailable = false;
+    }
+  }
+
+  ensureCleanupTimer();
+  cleanupExpiredTickets(Date.now());
+  inMemoryTickets.set(ticket, {
     externalId,
     sessionId,
-    expiresAtMs: nowMs + ttlMs,
+    expiresAtMs: Date.now() + ttlMs,
   });
 
   return ticket;
 }
 
-/**
- * Consumes (validates and destroys) a stream ticket.
- *
- * Called from auth middleware (middleware/auth.ts) when a stream request
- * arrives with a ?ticket query param and no Authorization header.
- *
- * The ticket is deleted immediately on first read (single-use semantics)
- * to prevent replay attacks.
- *
- * @param ticket - The UUID ticket string from the ?ticket query parameter.
- * @returns The { externalId, sessionId } payload if valid and unexpired,
- *          or null if the ticket is invalid, expired, or already consumed.
- */
-export function consumeStreamTicket(ticket: string): { externalId: string; sessionId: string } | null {
-  const nowMs = Date.now();
-  const record = tickets.get(ticket);
-  if (!record) return null;
-
-  tickets.delete(ticket); // Single-use ticket
-
-  if (record.expiresAtMs <= nowMs) {
-    return null;
+export async function consumeStreamTicket(ticket: string): Promise<StreamTicketPayload | null> {
+  if (redisClient && redisAvailable) {
+    try {
+      const key = `${TICKET_KEY_PREFIX}${ticket}`;
+      const val = await redisClient.get(key);
+      if (val) {
+        await redisClient.del(key);
+        return JSON.parse(val) as StreamTicketPayload;
+      }
+    } catch (error) {
+      logger.warn('[StreamTicket] Redis get/del failed, checking in-memory fallback', {
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
   }
 
-  return {
-    externalId: record.externalId,
-    sessionId: record.sessionId,
-  };
+  const record = inMemoryTickets.get(ticket);
+  if (!record) return null;
+
+  inMemoryTickets.delete(ticket);
+  if (record.expiresAtMs <= Date.now()) return null;
+
+  return { externalId: record.externalId, sessionId: record.sessionId };
 }
 
-/**
- * Returns the current number of active (unconsumed, unexpired) stream tickets.
- * Available for observability/monitoring; not currently wired to any dashboard.
- * @internal
- */
 export function getActiveStreamTicketCount(): number {
-  return tickets.size;
+  return inMemoryTickets.size;
 }
 
-let _cleanupInterval: ReturnType<typeof setInterval> | null = null;
+export function getTicketStoreMode(): 'redis' | 'memory' {
+  return redisAvailable && redisClient !== null ? 'redis' : 'memory';
+}
+
+function cleanupExpiredTickets(nowMs: number): void {
+  for (const [ticket, record] of inMemoryTickets.entries()) {
+    if (record.expiresAtMs <= nowMs) {
+      inMemoryTickets.delete(ticket);
+    }
+  }
+}
 
 function ensureCleanupTimer(): void {
-  if (!_cleanupInterval) {
-    _cleanupInterval = setInterval(() => {
+  if (!cleanupInterval) {
+    cleanupInterval = setInterval(() => {
       try {
         cleanupExpiredTickets(Date.now());
       } catch (error) {
-        logger.warn('Failed to clean expired stream tickets', { error });
+        logger.warn('[StreamTicket] In-memory cleanup failed', { error });
       }
     }, 60_000).unref();
   }

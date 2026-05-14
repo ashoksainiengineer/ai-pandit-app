@@ -33,6 +33,7 @@ type SequencedSessionEvent = SessionEvent & { seq?: number; status?: string };
 
 // Track active SSE connections for observability
 let activeSseConnections = 0;
+const resolvedAiModel = config.ai?.model ?? aiConfig.model;
 
 export function getActiveSseCount(): number {
     return activeSseConnections;
@@ -131,7 +132,7 @@ router.post('/ticket/:sessionId', authMiddleware, async (req: AuthenticatedReque
             return;
         }
 
-        const ticket = createStreamTicket(externalId, sessionId);
+        const ticket = await createStreamTicket(externalId, sessionId);
         res.json({
             success: true,
             ticket,
@@ -389,7 +390,7 @@ router.get(['/', '/:sessionId'], authMiddleware, async (req: AuthenticatedReques
                             offsetConfig: crypto.parseField(session.offsetConfig, session.userId),
                             lifeEvents: crypto.parseField(session.lifeEvents, session.userId, []),
                             status: queueStatus.status,
-                            aiModel: aiConfig.model,
+                            aiModel: resolvedAiModel,
                             timezone: session.timezone,
                         }
                     } as unknown as SessionEvent);
@@ -440,7 +441,7 @@ router.get(['/', '/:sessionId'], authMiddleware, async (req: AuthenticatedReques
                             offsetConfig: crypto.parseField(session.offsetConfig, session.userId),
                             lifeEvents: crypto.parseField(session.lifeEvents, session.userId, []),
                             status: queueStatus.status,
-                            aiModel: aiConfig.model,
+                            aiModel: resolvedAiModel,
                             timezone: session.timezone,
                         }
                     } as unknown as SessionEvent);
@@ -507,7 +508,9 @@ router.get(['/', '/:sessionId'], authMiddleware, async (req: AuthenticatedReques
     const emitter = sessionEvents.getEmitter(sessionId);
     // 📡 Cross-Process Bridge: Subscribe to Redis events for this session
     // This allows events from workers on other containers to reach this SSE stream.
-    void sessionEvents.subscribeToSession(sessionId);
+    if (typeof sessionEvents.subscribeToSession === 'function') {
+        void sessionEvents.subscribeToSession(sessionId);
+    }
 
     const eventHandler = (event: SessionEvent) => {
         sendSequencedEvent(sseRes, sessionId, event);

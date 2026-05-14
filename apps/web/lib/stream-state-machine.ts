@@ -432,20 +432,51 @@ isTerminalReceived: () => terminalStateReceived,
             interval: number,
             _token: string | null
         ) => {
-            // Handle 404 - session not in queue
-            if (res.status === 404) {
-                if (!options.forceLegacyProgressPath) {
-                    return {
-                        state: setConnectionStatus({ status: 'polling', url: '', lastError: 'Session lookup delayed, retrying...' }),
-                        effects: [
-                            {
-                                type: 'SCHEDULE_POLL',
-                                sid,
-                                delay: machineConfig.sessionNotFoundRetryDelay,
-                            },
-                        ],
-                    };
-                }
+// Handle 404 - session not in queue
+             if (res.status === 404) {
+                 if (!options.forceLegacyProgressPath) {
+                     if (sessionNotFoundRetryCount >= machineConfig.maxSessionNotFoundRetries) {
+                         logger.warn('Session not found after max retries on normal path', {
+                             sessionId: sid,
+                             retries: sessionNotFoundRetryCount,
+                         });
+                         if (!autoRequeueAttempted) {
+                             autoRequeueAttempted = true;
+                             return {
+                                 state: setConnectionStatus({
+                                     status: 'polling',
+                                     url: '',
+                                     lastError: 'Session was not active. Auto-requeue triggered, retrying...',
+                                 }),
+                                 effects: [{ type: 'SCHEDULE_POLL', sid, delay: machineConfig.sessionNotFoundRetryDelay }],
+                             };
+                         }
+                         return {
+                             state: setConnectionStatus({
+                                 status: 'error',
+                                 url: '',
+                                 lastError: 'Session not found - analysis may have already completed',
+                             }),
+                             effects: [
+                                 {
+                                     type: 'FORCE_ERROR',
+                                     message: 'Session not found. Start a new analysis.',
+                                 },
+                             ],
+                         };
+                     }
+                     sessionNotFoundRetryCount += 1;
+                     return {
+                         state: setConnectionStatus({ status: 'polling', url: '', lastError: 'Session lookup delayed, retrying...' }),
+                         effects: [
+                             {
+                                 type: 'SCHEDULE_POLL',
+                                 sid,
+                                 delay: machineConfig.sessionNotFoundRetryDelay,
+                             },
+                         ],
+                     };
+                 }
 
                 sessionNotFoundRetryCount += 1;
                 const retryAttempt = sessionNotFoundRetryCount;
