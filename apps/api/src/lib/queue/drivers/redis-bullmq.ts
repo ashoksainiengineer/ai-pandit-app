@@ -35,7 +35,11 @@ export class RedisBullMqQueueDriver implements QueueDriver {
       tls: config.queue.redis.tls
         ? { rejectUnauthorized: false }
         : undefined,
-      retryStrategy: (times) => Math.min(times * 100, 3000),
+      retryStrategy: (times) => Math.min(times * 200, 5000),
+      reconnectOnError: (err) => {
+        const targetErrors = ['READONLY', 'ECONNRESET', 'ETIMEDOUT'];
+        return targetErrors.some((e) => err.message.includes(e));
+      },
     });
 
     const keyPrefix = config.queue.redis.queueName;
@@ -184,10 +188,54 @@ export class RedisBullMqQueueDriver implements QueueDriver {
     return claimedJob ?? null;
   }
 
-  /**
-   * BUG-FIX: Gracefully disconnect the Redis client and clean up listeners.
-   * Should be called during graceful shutdown to prevent connection leaks.
-   */
+  public async recoverLostQueuedJobs(sessionIds: string[]): Promise<number> {
+    await this.ensureConnected();
+
+    const queuedInRedis = new Set(await this.client.lrange(this.queueKey, 0, -1));
+    const delayedInRedis = new Set(await this.client.zrange(this.delayedKey, 0, -1));
+
+    let recovered = 0;
+    for (const sessionId of sessionIds) {
+      if (queuedInRedis.has(sessionId) || delayedInRedis.has(sessionId)) {
+        continue;
+      }
+
+      await this.client.rpush(this.queueKey, sessionId);
+      recovered++;
+      logger.warn('[QUEUE-RECOVERY] Re-enqueued lost job', { sessionId });
+    }
+
+    if (recovered > 0) {
+      logger.info('[QUEUE-RECOVERY] Recovered lost queued jobs', { recovered, totalChecked: sessionIds.length });
+    }
+
+    return recovered;
+  }
+
+  public async healthCheck(): Promise<{ healthy: boolean; latencyMs: number }> {
+    const start = Date.now();
+    try {
+      await this.client.ping();
+      return { healthy: true, latencyMs: Date.now() - start };
+    } catch {
+      return { healthy: false, latencyMs: Date.now() - start };
+    }
+  }
+
+  public async getQueueMetrics(): Promise<{
+    readyCount: number;
+    delayedCount: number;
+    deadLetterCount: number;
+  }> {
+    await this.ensureConnected();
+    const [readyCount, delayedCount, deadLetterCount] = await Promise.all([
+      this.client.llen(this.queueKey),
+      this.client.zcard(this.delayedKey),
+      this.client.llen(this.deadLetterKey),
+    ]);
+    return { readyCount, delayedCount, deadLetterCount };
+  }
+
   async disconnect(): Promise<void> {
     this.client.removeAllListeners('error');
     await this.client.quit();

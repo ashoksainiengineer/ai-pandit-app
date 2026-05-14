@@ -1,4 +1,4 @@
-export type CircuitDependency = 'ai_provider' | 'database' | 'network' | 'processing';
+export type CircuitDependency = 'ai_provider' | 'database' | 'network' | 'processing' | 'ephemeris';
 
 interface CircuitState {
   consecutiveFailures: number;
@@ -23,6 +23,7 @@ const DEFAULT_OPTIONS: Record<CircuitDependency, CircuitOptions> = {
   database: { threshold: 5, resetMs: 300_000 },
   network: { threshold: 6, resetMs: 120_000 },
   processing: { threshold: 8, resetMs: 120_000 },
+  ephemeris: { threshold: 5, resetMs: 120_000 },
 };
 
 const state: Record<CircuitDependency, CircuitState> = {
@@ -30,6 +31,7 @@ const state: Record<CircuitDependency, CircuitState> = {
   database: { consecutiveFailures: 0, lastFailureAt: 0, openUntil: 0 },
   network: { consecutiveFailures: 0, lastFailureAt: 0, openUntil: 0 },
   processing: { consecutiveFailures: 0, lastFailureAt: 0, openUntil: 0 },
+  ephemeris: { consecutiveFailures: 0, lastFailureAt: 0, openUntil: 0 },
 };
 
 function nowMs(): number {
@@ -92,9 +94,8 @@ export function getCircuitSnapshots(): CircuitSnapshot[] {
 }
 
 export function getBlockingCircuitBreakers(): CircuitSnapshot[] {
-  // Network and processing can degrade locally; only hard-block for AI/DB outages.
   return getCircuitSnapshots().filter((snapshot) =>
-    snapshot.isOpen && (snapshot.dependency === 'ai_provider' || snapshot.dependency === 'database')
+    snapshot.isOpen && (snapshot.dependency === 'ai_provider' || snapshot.dependency === 'database' || snapshot.dependency === 'ephemeris')
   );
 }
 

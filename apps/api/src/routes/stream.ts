@@ -20,6 +20,7 @@ import {
     getPersistedSessionEvents,
     getPersistedSessionEventsSince,
 } from '../lib/jobs/job-event-stream.js';
+import { getRedisEventStore } from '../lib/redis-event-store.js';
 
 const crypto = getApiEncryption();
 
@@ -347,24 +348,22 @@ router.get(['/', '/:sessionId'], authMiddleware, async (req: AuthenticatedReques
     (async () => {
         try {
             if (isReconnect) {
-                // Reconnect path: replay only missed events
-
-                // FIX: Merge both DB-persisted (durable) and memory (all events) sources
-                // DB has low-volume durable events (progress, complete, error, job.*)
-                // Memory has all events including high-volume (ai_thinking, candidate_scores)
                 const dbEvents = config.features.useNewStreamPath
                     ? await getPersistedSessionEventsSince(sessionId, lastSeq)
                     : [];
                 const memoryEvents = sessionEvents.getEventsSince(sessionId, lastSeq);
+                const redisStore = getRedisEventStore();
+                const redisEvents = redisStore.isAvailable()
+                    ? await redisStore.getEventsSince(sessionId, lastSeq)
+                    : [];
 
-                // Merge and deduplicate by sequence number (memory events take precedence for same seq)
                 const eventMap = new Map<number, { seq: number; event: SessionEvent }>();
                 dbEvents.forEach(e => eventMap.set(e.seq, e));
-                memoryEvents.forEach(e => eventMap.set(e.seq, e)); // Overwrite with memory if duplicate
+                redisEvents.forEach(e => eventMap.set(e.seq, { seq: e.seq, event: e.event as SessionEvent }));
+                memoryEvents.forEach(e => eventMap.set(e.seq, e));
 
-                // Sort by sequence number for ordered replay
                 const replayEvents = Array.from(eventMap.values()).sort((a, b) => a.seq - b.seq);
-                logger.info(`[SSE] ♻️ Replaying ${replayEvents.length} missed events (DB: ${dbEvents.length}, Memory: ${memoryEvents.length}) since seq ${lastSeq} for ${sessionId}`);
+                logger.info(`[SSE] ♻️ Replaying ${replayEvents.length} missed events (DB: ${dbEvents.length}, Redis: ${redisEvents.length}, Memory: ${memoryEvents.length}) since seq ${lastSeq} for ${sessionId}`);
 
                 for (const { seq, event } of replayEvents) {
                     sendSequencedEvent(res, sessionId, event, seq);
