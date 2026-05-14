@@ -173,6 +173,19 @@ function checkQueueCapacity(queuedCount: number): QueueSubmitResult | null {
 }
 
 async function enqueueSession(sessionId: string): Promise<void> {
+  const pressure = getMemoryPressureSnapshot();
+  if (pressure.heapUsedGB > QUEUE_CONFIG.memoryCriticalThresholdGB || pressure.rssGB > QUEUE_CONFIG.memoryCriticalThresholdGB) {
+    logger.warn('Memory circuit breaker triggered — rejecting enqueue', {
+      sessionId,
+      heapUsedGB: pressure.heapUsedGB.toFixed(2),
+      rssGB: pressure.rssGB.toFixed(2),
+      thresholdGB: QUEUE_CONFIG.memoryCriticalThresholdGB,
+    });
+    throw new ProcessingError(
+      `Memory circuit breaker triggered: heap=${pressure.heapUsedGB.toFixed(2)}GB, rss=${pressure.rssGB.toFixed(2)}GB, threshold=${QUEUE_CONFIG.memoryCriticalThresholdGB}GB`
+    );
+  }
+
   await executeWithRetry(() =>
     db.update(sessions)
       .set({

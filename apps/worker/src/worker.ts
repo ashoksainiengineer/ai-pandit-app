@@ -173,7 +173,7 @@ async function apiDynamicImport<T>(relativePath: string): Promise<T> {
   }
 }
 
-async function gracefulShutdown(signal: 'SIGTERM' | 'SIGINT'): Promise<void> {
+async function gracefulShutdown(signal: 'SIGTERM' | 'SIGINT' | 'uncaughtException' | 'unhandledRejection'): Promise<void> {
   if (shutdownRequested) {
     return;
   }
@@ -576,6 +576,21 @@ process.on('SIGINT', () => {
   void gracefulShutdown('SIGINT');
 });
 
+process.on('uncaughtException', (error) => {
+  const message = error instanceof Error ? error.stack ?? error.message : String(error);
+  console.error('[WORKER] Uncaught exception — initiating emergency shutdown');
+  console.error(message);
+  workerHealthy = false;
+  void gracefulShutdown('uncaughtException').finally(() => {
+    process.exit(1);
+  });
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('[WORKER] Unhandled rejection at promise', promise, 'reason:', reason);
+  void gracefulShutdown('unhandledRejection');
+});
+
 void (async () => {
   try {
     // Create worker runtime with basic dependencies
@@ -612,6 +627,16 @@ void (async () => {
     await workerRuntime.initialize({ pollIntervalMs });
     workerStarted = true;
     workerHealthy = true;
+
+    try {
+      const { recoverInterruptedJobsOnStartup } = await import('../../api/src/lib/metrics-reporter.js');
+      const recovery = await recoverInterruptedJobsOnStartup();
+      console.log(`[WORKER] Job recovery complete: ${recovery.recoveredJobs} recovered, ${recovery.abandonedAttempts} abandoned`);
+    } catch (recoveryError) {
+      const message = recoveryError instanceof Error ? recoveryError.message : String(recoveryError);
+      console.error(`[WORKER] Job recovery failed (continuing anyway): ${message}`);
+    }
+
     await workerRuntime.runLoop();
     if (shutdownRequested) {
       return;
