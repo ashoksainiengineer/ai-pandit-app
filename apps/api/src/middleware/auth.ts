@@ -128,7 +128,7 @@ export async function authMiddleware(
         //   - routes/stream.ts POST /ticket/:sessionId (ticket creation)
         //   - web/lib/use-stream-progress.ts (frontend ticket acquisition)
         if (!authHeader && isStreamRequest && streamTicket) {
-            const ticketPayload = consumeStreamTicket(streamTicket);
+            const ticketPayload = await consumeStreamTicket(streamTicket);
             if (ticketPayload) {
                 req.externalId = ticketPayload.externalId;
                 req.sessionId = ticketPayload.sessionId;
@@ -162,6 +162,16 @@ export async function authMiddleware(
 
             sendAuthError(res, isStreamRequest, 'Unauthorized: No valid session token', 'UNAUTHORIZED');
             return;
+        }
+
+        // Test mode bypass: accept test_token_* without real Clerk verification
+        // This allows integration tests to run against real DB/Redis without needing
+        // a real Clerk JWT. Test tokens are only accepted in non-production environments.
+        if (process.env.NODE_ENV !== 'production' && token.startsWith('test_token_')) {
+            req.externalId = token;
+            req.userId = token;
+            logger.debug('🔑 [Auth] Test token accepted (bypass)', { tokenPrefix: token.substring(0, 15) });
+            return next();
         }
 
         // Verify token via auth provider (abstracted from specific provider)

@@ -109,6 +109,10 @@ class SessionEventManager {
     }
     private useRedis: boolean = true; // Always use Redis when available
 
+    private redisPublishedCount = 0;
+    private redisReceivedCount = 0;
+    private redisBridgeHealthy = false;
+
     constructor() {
         // Run garbage collection every 10 minutes
         setInterval(() => this.garbageCollect(), 10 * 60 * 1000);
@@ -233,6 +237,7 @@ class SessionEventManager {
             // Internal prevent-loop flag: don't re-publish events that we just received from Redis
             if (!(event as any)._fromBridge) {
                 void this.redisStore.publishEvent(sessionId, event);
+                this.redisPublishedCount++;
             }
         }
 
@@ -433,6 +438,7 @@ class SessionEventManager {
 
         this.subscribedSessions.add(sessionId);
         await this.redisStore.subscribeToSession(sessionId, (event: any) => {
+            this.redisReceivedCount++;
             // Tag event to prevent infinite publishing loops
             event._fromBridge = true;
             this.emit(sessionId, event as SessionEvent);
@@ -463,6 +469,15 @@ class SessionEventManager {
             logger.error('[SessionEventManager] Error during cleanup', err);
         });
         logger.info('[SessionEventManager] Cleanup complete');
+    }
+
+    checkRedisBridgeHealth(): { healthy: boolean; published: number; received: number } {
+        this.redisBridgeHealthy = this.redisPublishedCount > 0 || this.redisReceivedCount > 0;
+        return {
+            healthy: this.redisBridgeHealthy,
+            published: this.redisPublishedCount,
+            received: this.redisReceivedCount,
+        };
     }
 
     /**
