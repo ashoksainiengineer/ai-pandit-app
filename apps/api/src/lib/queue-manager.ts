@@ -1092,26 +1092,68 @@ function releaseWorkerSlot(sessionId: string): void {
 // Cleanup & Utilities
 
 async function purgeExpiredQueueEntries(): Promise<void> {
-  try {
-    const staleThreshold = new Date(Date.now() - QUEUE_CONFIG.staleTimeoutMs).toISOString();
+   try {
+     const staleThreshold = new Date(Date.now() - QUEUE_CONFIG.staleTimeoutMs).toISOString();
 
-    const stale = await executeWithRetry(() =>
-      db.select({ id: sessions.id })
-        .from(sessions)
-        .where(and(
-          eq(sessions.status, 'processing'),
-          lt(sessions.updatedAt, staleThreshold)
-        ))
-    );
+     const stale = await executeWithRetry(() =>
+       db.select({ id: sessions.id })
+         .from(sessions)
+         .where(and(
+           eq(sessions.status, 'processing'),
+           lt(sessions.updatedAt, staleThreshold)
+         ))
+     );
 
-    for (const s of stale) {
-      await markAsFailed(s.id, 'Request timed out');
-      logger.warn('Cleaned up stale request', { sessionId: s.id });
-    }
-  } catch (error) {
-    logger.error('Cleanup stale requests failed', error);
-  }
-}
+     for (const s of stale) {
+       await markAsFailed(s.id, 'Request timed out');
+       logger.warn('Cleaned up stale request', { sessionId: s.id });
+     }
+   } catch (error) {
+     logger.error('Cleanup stale requests failed', error);
+   }
+ }
+
+async function recoverOrphanedSessions(): Promise<number> {
+   try {
+     const orphanedThreshold = new Date(Date.now() - 60_000).toISOString();
+
+     const orphaned = await executeWithRetry(() =>
+       db.select({ id: sessions.id, status: sessions.status, updatedAt: sessions.updatedAt })
+         .from(sessions)
+         .where(and(
+           eq(sessions.status, 'queued'),
+           lt(sessions.updatedAt, orphanedThreshold)
+         ))
+     );
+
+     const queueDriver = getQueueDriver();
+     let recovered = 0;
+     for (const session of orphaned) {
+       try {
+         // Re-enqueue orphaned session — enqueueSession deduplicates via LREM before RPUSH
+         logger.warn('[ORPHAN-RECOVERY] Re-enqueuing orphaned session', {
+           sessionId: session.id,
+           lastUpdated: session.updatedAt,
+         });
+         await queueDriver.enqueueSession(session.id);
+         recovered++;
+       } catch (err) {
+         logger.error('[ORPHAN-RECOVERY] Failed to re-enqueue session', {
+           sessionId: session.id,
+           error: err instanceof Error ? err.message : String(err),
+         });
+       }
+     }
+
+     if (recovered > 0) {
+       logger.info(`[ORPHAN-RECOVERY] Recovered ${recovered} orphaned sessions`);
+     }
+     return recovered;
+   } catch (error) {
+     logger.error('[ORPHAN-RECOVERY] Orphaned session recovery scan failed', error);
+     return 0;
+   }
+ }
 
 export function stopQueueProcessor(): void {
   isProcessorRunning = false;
