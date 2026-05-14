@@ -20,6 +20,7 @@ import { getEphemerisProviderStatus, initEphemerisProvider } from './lib/ephemer
 import { Redis as IORedis } from 'ioredis';
 import { sessionEvents } from './lib/session-events.js';
 import { adaptIORedis } from './lib/redis-adapter.js';
+import { initStreamTicketStore } from './lib/stream-ticket-manager.js';
 
 type StartupState = {
     initializing: boolean;
@@ -78,16 +79,30 @@ async function initializeStartupDependencies(): Promise<void> {
                     retryStrategy: (times: number) => Math.min(times * 200, 5000),
                 };
 
-                // Command client for publishing/writing
-                const redisClient = new IORedis(redisUrl, redisOptions);
-                // Dedicated subscriber client (ioredis blocks command client during SUBSCRIBE)
-                const redisSubscriber = new IORedis(redisUrl, redisOptions);
+// Command client for publishing/writing
+                 const redisClient = new IORedis(redisUrl, redisOptions);
+                 redisClient.on('error', (err) => {
+                     logger.error('[REDIS] Command client error', { error: err.message });
+                 });
+                 // Dedicated subscriber client (ioredis blocks command client during SUBSCRIBE)
+                 const redisSubscriber = new IORedis(redisUrl, redisOptions);
+                 redisSubscriber.on('error', (err) => {
+                     logger.error('[REDIS] Subscriber client error', { error: err.message });
+                 });
 
                 sessionEvents.enableRedis(
                     adaptIORedis(redisClient),
                     adaptIORedis(redisSubscriber)
                 );
+
+                initStreamTicketStore(adaptIORedis(redisClient));
+
                 logger.info('[STARTUP] Redis event bridge initialized (Distributed Mode)');
+
+                setTimeout(() => {
+                    const health = sessionEvents.checkRedisBridgeHealth();
+                    logger.info('[STARTUP] Redis bridge health check', health);
+                }, 5000).unref();
             } catch (err) {
                 logger.error('[STARTUP] Failed to initialize Redis event bridge', { error: String(err) });
             }

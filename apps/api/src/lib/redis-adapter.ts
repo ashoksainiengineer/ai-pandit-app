@@ -99,5 +99,14 @@ export function adaptIORedis(redis: IORedis): RedisClient {
         }
       });
     },
+
+    async ping(): Promise<boolean> {
+      try {
+        const result = await redis.ping();
+        return result === 'PONG';
+      } catch {
+        return false;
+      }
+    },
   };
 }

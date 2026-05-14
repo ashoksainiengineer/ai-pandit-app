@@ -26,6 +26,7 @@ interface RedisClient {
   exists(key: string): Promise<number>;
   publish(channel: string, message: string): Promise<number>;
   subscribe(channel: string, callback: (message: string) => void): Promise<void>;
+  ping(): Promise<boolean>;
 }
 
 // Configuration
