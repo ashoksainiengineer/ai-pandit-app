@@ -166,179 +166,180 @@ export function ensureEnv(): ReturnType<typeof parseEnv> {
   return _cachedEnv;
 }
 
-// Lazy proxy — triggers parseEnv() only on first property access
-const env = new Proxy({} as ReturnType<typeof parseEnv>, {
-    get(_, prop) {
-        return ensureEnv()[prop as keyof ReturnType<typeof parseEnv>];
-},
-});
-
-// Warn on likely provider/model mismatch to catch misconfigured deployments early.
-
 // ═════════════════════════════════════════════════════════════════════════════
-// CONFIGURATION OBJECTS
+// CONFIGURATION OBJECTS — fully lazy
 // ═════════════════════════════════════════════════════════════════════════════
+// These are NOT created at module load time. Instead we export a Proxy that
+// creates each sub-config lazily on first property access. This means
+// `import { config }` will NOT validate env vars — only accessing actual
+// config values will. This is critical for cross-stack compatibility:
+// the worker can import API modules without triggering env validation.
 
-export const appConfig = {
-    nodeEnv: env.NODE_ENV,
-    isProduction: env.NODE_ENV === 'production',
-    isDevelopment: env.NODE_ENV === 'development',
-    isTest: env.NODE_ENV === 'test',
-    backendUrl: env.BACKEND_URL,
-    frontendUrl: env.FRONTEND_URL,
-    allowedOrigins: env.ALLOWED_ORIGINS,
-};
-
-export const serverConfig = {
-    port: env.PORT,
-    requestTimeoutMs: env.REQUEST_TIMEOUT_MS,
-    env: env.NODE_ENV,
-};
-
-export const aiConfig = {
-    apiKey: env.AI_API_KEY,
-    baseUrl: env.AI_BASE_URL,
-    model: env.AI_MODEL,
-    modelReasoner: env.AI_MODEL, // Hardcoded to match AI_MODEL
-    maxTokens: env.AI_MAX_TOKENS,
-    timeoutMs: env.AI_TIMEOUT_MS,
-    reasonerIdentifiers: env.AI_REASONER_IDENTIFIERS.split(','),
-    // Advanced fields removed for extreme simplicity
-    reasoningMode: env.AI_REASONING_MODE,
-    reasoningEffort: 'default' as 'low' | 'medium' | 'high' | 'default', // Hardcoded
-    temperature: 0.7, // Hardcoded
-    retryAttempts: 3, // Hardcoded
-    retryDelayMs: 5000, // Hardcoded
-    stage2MaxTokens: env.AI_STAGE2_MAX_TOKENS,
-    stage4MaxTokens: env.AI_STAGE4_MAX_TOKENS,
-    stage6MaxTokens: env.AI_STAGE6_MAX_TOKENS,
-    parallelConcurrency: env.AI_PARALLEL_CONCURRENCY,
-    parallelStaggerMs: env.AI_PARALLEL_STAGGER_MS,
-    batchSizeMin: env.AI_BATCH_SIZE_MIN,
-    batchSizeMax: env.AI_BATCH_SIZE_MAX,
-    survivalRateBase: env.AI_SURVIVAL_RATE_BASE,
-    survivalElasticityFactor: env.AI_SURVIVAL_ELASTICITY_FACTOR,
-    reasonerModel: env.AI_MODEL,
-};
-
-export const dbConfig = {
-    url: env.RESOLVED_DATABASE_URL,
-    provider: 'postgres',
-};
-
-export const storageConfig = {
-    gcsBucket: env.GCS_BUCKET,
-    artifactPrefix: env.GCS_ARTIFACT_PREFIX,
-    artifactRetentionDays: env.ARTIFACT_RETENTION_DAYS,
-};
-
-export const encryptionConfig = {
-    secret: env.ENCRYPTION_SECRET,
-};
-
-export const securityConfig = {
-    clerkSecretKey: env.CLERK_SECRET_KEY,
-    encryptionSecret: env.ENCRYPTION_SECRET,
-    rateLimitWindowMs: env.RATE_LIMIT_WINDOW_MS,
-    rateLimitMaxRequests: env.RATE_LIMIT_MAX_REQUESTS,
-    // jwtSecret removed - ENCRYPTION_SECRET should not be reused as JWT secret
-};
-
-export const memoryConfig = {
-    heapThresholdGB: env.HEAP_THRESHOLD_GB,
-    rssThresholdGB: env.HEAP_THRESHOLD_GB + 2,
-    pressureThresholdGB: Math.floor(env.HEAP_THRESHOLD_GB * 0.8),
-    criticalThresholdGB: Math.floor(env.HEAP_THRESHOLD_GB * 0.95),
-    gcThresholdGB: 10, // Hardcoded for HF 16GB RAM tier
-};
-
-export const performanceConfig = {
-    maxConcurrentSessions: env.MAX_CONCURRENT_SESSIONS,
-    rssThresholdGB: env.HEAP_THRESHOLD_GB + 2,
-    heapThresholdGB: env.HEAP_THRESHOLD_GB,
-    jobExecutionMode: env.JOB_EXECUTION_MODE,
-    workerPollIntervalMs: env.WORKER_POLL_INTERVAL_MS,
-};
-
-export const config = {
-    app: appConfig,
-    server: serverConfig,
-    ai: aiConfig,
-    db: dbConfig,
-    encryption: encryptionConfig,
-    security: securityConfig,
-    memory: memoryConfig,
-    performance: performanceConfig,
-    btr: {
-        stage2MaxRounds: env.BTR_STAGE2_MAX_ROUNDS,
-        stage4MaxRounds: env.BTR_STAGE4_MAX_ROUNDS,
-        stage6MaxRounds: env.BTR_STAGE6_MAX_ROUNDS,
-        clusterThreshold: env.BTR_CLUSTER_THRESHOLD_MINS,
-        fallbackPromotedScore: 85, // Hardcoded
-        fallbackRejectedScore: 30, // Hardcoded
-    },
-    ephemeris: {
-        provider: env.EPHEMERIS_PROVIDER,
-        strictMode: env.EPHEMERIS_STRICT_MODE,
-        allowAlgorithmicFallback: env.EPHEMERIS_ALLOW_ALGORITHMIC_FALLBACK,
-        serviceUrl: env.EPHEMERIS_SERVICE_URL,
-        serviceTimeoutMs: env.EPHEMERIS_SERVICE_TIMEOUT_MS,
-        batchSize: env.EPHEMERIS_BATCH_SIZE,
-        houseSystem: env.EPHEMERIS_HOUSE_SYSTEM as EphemerisHouseSystem,
-    },
-    timeouts: {
-        requestMs: env.AI_TIMEOUT_MS,
-        aiMs: env.AI_TIMEOUT_MS,
-    },
-    queue: {
-        maxConcurrent: env.MAX_CONCURRENT_SESSIONS,
-        maxActiveJobsPerUser: env.MAX_ACTIVE_JOBS_PER_USER,
-        maxActiveJobsByTier: {
-            free: env.MAX_ACTIVE_JOBS_FREE,
-            pro: env.MAX_ACTIVE_JOBS_PRO,
-            enterprise: env.MAX_ACTIVE_JOBS_ENTERPRISE,
+function lazyProp<T extends object>(fn: () => T): T {
+    let val: T | undefined;
+    const handler: ProxyHandler<object> = {
+        get(_, prop) {
+            if (val === undefined) val = fn();
+            return (val as any)[prop];
         },
-        loadShedQueueDepth: env.LOAD_SHED_QUEUE_DEPTH,
-        pollIntervalMs: env.WORKER_POLL_INTERVAL_MS,
-        recoveryAlertThreshold: env.WORKER_RECOVERY_ALERT_THRESHOLD,
-        syncPollIntervalMs: env.JOB_SYNC_POLL_INTERVAL_MS,
-        maxSize: 100,
-        staleTimeoutMs: 7200000, // 2 Hours hardcoded
-        baseAnalysisTime: 240, // Hardcoded
-        contentionMultiplier: 0.1, // Hardcoded
-        executionMode: env.JOB_EXECUTION_MODE,
-        architecture: 'redis_bullmq' as const,
-        redis: {
-            url: env.REDIS_URL,
-            tls: env.REDIS_TLS,
-            queueName: env.REDIS_QUEUE_NAME,
+        ownKeys() {
+            if (val === undefined) val = fn();
+            return Reflect.ownKeys(val!);
         },
-    },
-    storage: storageConfig,
-    observability: {
-        otelEnabled: env.OTEL_ENABLED,
-        serviceName: env.OTEL_SERVICE_NAME,
-        otlpEndpoint: env.OTEL_EXPORTER_OTLP_ENDPOINT,
-        traceSampleRatio: env.OTEL_TRACE_SAMPLE_RATIO,
-        traceHeaderName: env.TRACE_HEADER_NAME,
-        slo: {
-            windowMs: env.SLO_WINDOW_MS,
-            minSampleSize: env.SLO_MIN_SAMPLE_SIZE,
-            errorRateAlertPercent: env.SLO_ERROR_RATE_ALERT_PERCENT,
-            p95LatencyAlertMs: env.SLO_P95_LATENCY_ALERT_MS,
+        getOwnPropertyDescriptor(_, prop) {
+            if (val === undefined) val = fn();
+            return Object.getOwnPropertyDescriptor(val!, prop);
         },
-    },
-    logging: {
-        level: 'info',
-        format: 'json',
-        redactFields: ['apiKey', 'token', 'secret', 'password', 'authorization', 'externalId'],
-        includeStackTrace: true,
-        prettyPrint: false,
-    },
-    features: {
-        useAsyncJobPipeline: env.USE_ASYNC_JOB_PIPELINE,
-        useNewStreamPath: env.USE_NEW_STREAM_PATH,
-    },
-};
+    };
+    return new Proxy({}, handler) as T;
+}
 
+function buildFullConfig() {
+    const e = ensureEnv();
+    return {
+        app: {
+            nodeEnv: e.NODE_ENV,
+            isProduction: e.NODE_ENV === 'production',
+            isDevelopment: e.NODE_ENV === 'development',
+            isTest: e.NODE_ENV === 'test',
+            backendUrl: e.BACKEND_URL,
+            frontendUrl: e.FRONTEND_URL,
+            allowedOrigins: e.ALLOWED_ORIGINS,
+        },
+        server: {
+            port: e.PORT,
+            requestTimeoutMs: e.REQUEST_TIMEOUT_MS,
+            env: e.NODE_ENV,
+        },
+        ai: {
+            apiKey: e.AI_API_KEY,
+            baseUrl: e.AI_BASE_URL,
+            model: e.AI_MODEL,
+            modelReasoner: e.AI_MODEL,
+            maxTokens: e.AI_MAX_TOKENS,
+            timeoutMs: e.AI_TIMEOUT_MS,
+            reasonerIdentifiers: e.AI_REASONER_IDENTIFIERS.split(','),
+            reasoningMode: e.AI_REASONING_MODE,
+            reasoningEffort: 'default' as 'low' | 'medium' | 'high' | 'default',
+            temperature: 0.7,
+            retryAttempts: 3,
+            retryDelayMs: 5000,
+            stage2MaxTokens: e.AI_STAGE2_MAX_TOKENS,
+            stage4MaxTokens: e.AI_STAGE4_MAX_TOKENS,
+            stage6MaxTokens: e.AI_STAGE6_MAX_TOKENS,
+            parallelConcurrency: e.AI_PARALLEL_CONCURRENCY,
+            parallelStaggerMs: e.AI_PARALLEL_STAGGER_MS,
+            batchSizeMin: e.AI_BATCH_SIZE_MIN,
+            batchSizeMax: e.AI_BATCH_SIZE_MAX,
+            survivalRateBase: e.AI_SURVIVAL_RATE_BASE,
+            survivalElasticityFactor: e.AI_SURVIVAL_ELASTICITY_FACTOR,
+            reasonerModel: e.AI_MODEL,
+        },
+        db: { url: e.RESOLVED_DATABASE_URL, provider: 'postgres' as const },
+        encryption: { secret: e.ENCRYPTION_SECRET },
+        security: {
+            clerkSecretKey: e.CLERK_SECRET_KEY,
+            encryptionSecret: e.ENCRYPTION_SECRET,
+            rateLimitWindowMs: e.RATE_LIMIT_WINDOW_MS,
+            rateLimitMaxRequests: e.RATE_LIMIT_MAX_REQUESTS,
+        },
+        memory: {
+            heapThresholdGB: e.HEAP_THRESHOLD_GB,
+            rssThresholdGB: e.HEAP_THRESHOLD_GB + 2,
+            pressureThresholdGB: Math.floor(e.HEAP_THRESHOLD_GB * 0.8),
+            criticalThresholdGB: Math.floor(e.HEAP_THRESHOLD_GB * 0.95),
+            gcThresholdGB: 10,
+        },
+        performance: {
+            maxConcurrentSessions: e.MAX_CONCURRENT_SESSIONS,
+            rssThresholdGB: e.HEAP_THRESHOLD_GB + 2,
+            heapThresholdGB: e.HEAP_THRESHOLD_GB,
+            jobExecutionMode: e.JOB_EXECUTION_MODE,
+            workerPollIntervalMs: e.WORKER_POLL_INTERVAL_MS,
+        },
+        btr: {
+            stage2MaxRounds: e.BTR_STAGE2_MAX_ROUNDS,
+            stage4MaxRounds: e.BTR_STAGE4_MAX_ROUNDS,
+            stage6MaxRounds: e.BTR_STAGE6_MAX_ROUNDS,
+            clusterThreshold: e.BTR_CLUSTER_THRESHOLD_MINS,
+            fallbackPromotedScore: 85,
+            fallbackRejectedScore: 30,
+        },
+        ephemeris: {
+            provider: e.EPHEMERIS_PROVIDER,
+            strictMode: e.EPHEMERIS_STRICT_MODE,
+            allowAlgorithmicFallback: e.EPHEMERIS_ALLOW_ALGORITHMIC_FALLBACK,
+            serviceUrl: e.EPHEMERIS_SERVICE_URL,
+            serviceTimeoutMs: e.EPHEMERIS_SERVICE_TIMEOUT_MS,
+            batchSize: e.EPHEMERIS_BATCH_SIZE,
+            houseSystem: e.EPHEMERIS_HOUSE_SYSTEM as EphemerisHouseSystem,
+        },
+        timeouts: {
+            requestMs: e.AI_TIMEOUT_MS,
+            aiMs: e.AI_TIMEOUT_MS,
+        },
+        queue: {
+            maxConcurrent: e.MAX_CONCURRENT_SESSIONS,
+            maxActiveJobsPerUser: e.MAX_ACTIVE_JOBS_PER_USER,
+            maxActiveJobsByTier: {
+                free: e.MAX_ACTIVE_JOBS_FREE,
+                pro: e.MAX_ACTIVE_JOBS_PRO,
+                enterprise: e.MAX_ACTIVE_JOBS_ENTERPRISE,
+            },
+            loadShedQueueDepth: e.LOAD_SHED_QUEUE_DEPTH,
+            pollIntervalMs: e.WORKER_POLL_INTERVAL_MS,
+            recoveryAlertThreshold: e.WORKER_RECOVERY_ALERT_THRESHOLD,
+            syncPollIntervalMs: e.JOB_SYNC_POLL_INTERVAL_MS,
+            maxSize: 100,
+            staleTimeoutMs: 7200000,
+            baseAnalysisTime: 240,
+            contentionMultiplier: 0.1,
+            executionMode: e.JOB_EXECUTION_MODE,
+            architecture: 'redis_bullmq' as const,
+            redis: { url: e.REDIS_URL, tls: e.REDIS_TLS, queueName: e.REDIS_QUEUE_NAME },
+        },
+        storage: {
+            gcsBucket: e.GCS_BUCKET,
+            artifactPrefix: e.GCS_ARTIFACT_PREFIX,
+            artifactRetentionDays: e.ARTIFACT_RETENTION_DAYS,
+        },
+        observability: {
+            otelEnabled: e.OTEL_ENABLED,
+            serviceName: e.OTEL_SERVICE_NAME,
+            otlpEndpoint: e.OTEL_EXPORTER_OTLP_ENDPOINT,
+            traceSampleRatio: e.OTEL_TRACE_SAMPLE_RATIO,
+            traceHeaderName: e.TRACE_HEADER_NAME,
+            slo: {
+                windowMs: e.SLO_WINDOW_MS,
+                minSampleSize: e.SLO_MIN_SAMPLE_SIZE,
+                errorRateAlertPercent: e.SLO_ERROR_RATE_ALERT_PERCENT,
+                p95LatencyAlertMs: e.SLO_P95_LATENCY_ALERT_MS,
+            },
+        },
+        logging: {
+            level: 'info' as const,
+            format: 'json' as const,
+            redactFields: ['apiKey', 'token', 'secret', 'password', 'authorization', 'externalId'],
+            includeStackTrace: true,
+            prettyPrint: false,
+        },
+        features: {
+            useAsyncJobPipeline: e.USE_ASYNC_JOB_PIPELINE,
+            useNewStreamPath: e.USE_NEW_STREAM_PATH,
+        },
+    };
+}
+
+export const config: ReturnType<typeof buildFullConfig> = lazyProp(buildFullConfig);
 export default config;
+
+// Individual config exports (lazy — created on first access, not at module load time)
+export const appConfig = lazyProp(() => config.app);
+export const serverConfig = lazyProp(() => config.server);
+export const aiConfig = lazyProp(() => config.ai);
+export const dbConfig = lazyProp(() => config.db);
+export const encryptionConfig = lazyProp(() => config.encryption);
+export const securityConfig = lazyProp(() => config.security);
+export const memoryConfig = lazyProp(() => config.memory);
+export const performanceConfig = lazyProp(() => config.performance);
+export const storageConfig = lazyProp(() => config.storage);

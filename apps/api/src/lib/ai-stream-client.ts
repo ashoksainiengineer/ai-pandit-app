@@ -81,12 +81,17 @@ export async function callAIWithStream(
             const controller = new AbortController();
             const timeoutMs = options?.timeoutMs ?? AI_CONFIG.timeoutMs;
             const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+            let abortHandler: (() => void) | null = null;
 
             if (options?.abortSignal) {
-                options.abortSignal.addEventListener('abort', () => {
+                abortHandler = () => {
                     logger.info('AI call cancelled by user');
                     controller.abort();
-                });
+                };
+                options.abortSignal.addEventListener('abort', abortHandler, { once: true });
+                if (options.abortSignal.aborted) {
+                    abortHandler();
+                }
             }
 
             const isReasonerModel = config.ai.reasonerIdentifiers.some(id => configLocal.model.toLowerCase().includes(id.toLowerCase()));
@@ -253,6 +258,10 @@ export async function callAIWithStream(
                 }
             } finally {
                 clearTimeout(idleTimeoutId);
+                clearTimeout(timeoutId);
+                if (options?.abortSignal && abortHandler) {
+                    options.abortSignal.removeEventListener('abort', abortHandler);
+                }
             }
 
             if (emitBuffer) {
