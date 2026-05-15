@@ -255,9 +255,10 @@ export async function stage4DeepAnalysis(
         // Flatten survivors and accumulate reasoning
         const roundSurvivors: CandidateTime[] = [];
         for (const r of results) {
-            if (r) {
-                roundSurvivors.push(...r.batchSurvivors);
-                if (r.aiContent) allReasoning += (allReasoning ? '\n\n---\n\n' : '') + r.aiContent;
+            if (!r || !Array.isArray(r.batchSurvivors)) continue;
+            roundSurvivors.push(...r.batchSurvivors);
+            if (typeof r.aiContent === 'string' && r.aiContent.length > 0) {
+                allReasoning += (allReasoning ? '\n\n---\n\n' : '') + r.aiContent;
             }
         }
 

@@ -489,9 +489,10 @@ export async function stage6FinalPrecision(
 
         // Accumulate winners and reasoning from results
         for (const r of results) {
-            if (r) {
-                if (r.winner) batchWinners.push(r.winner);
-                if (r.aiContent) roundReasoning += (roundReasoning ? '\n\n---\n\n' : '') + r.aiContent;
+            if (!r) continue;
+            if (r.winner) batchWinners.push(r.winner);
+            if (typeof r.aiContent === 'string' && r.aiContent.length > 0) {
+                roundReasoning += (roundReasoning ? '\n\n---\n\n' : '') + r.aiContent;
             }
         }
         allReasoning += roundReasoning;

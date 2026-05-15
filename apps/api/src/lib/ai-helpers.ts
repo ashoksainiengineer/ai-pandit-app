@@ -97,9 +97,13 @@ export async function executeAIWithBackpressure<T, P>(
   return new Promise((resolve, reject) => {
     const tryNext = async () => {
       if (done && activeCount === 0) {
+        // Build ordered result array from map. The map may have gaps
+        // if a generator yield failed mid-way, so we bound by the
+        // highest seen index rather than map size.
+        const maxIndex = Math.max(...results.keys(), -1);
         const ordered: T[] = [];
-        for (let i = 0; i < results.size; i++) {
-          ordered.push(results.get(i)!);
+        for (let i = 0; i <= maxIndex; i++) {
+          ordered.push(results.get(i) as T);
         }
         resolve(ordered);
         return;
