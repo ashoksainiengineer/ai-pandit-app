@@ -437,13 +437,32 @@ class SessionEventManager {
         if (this.subscribedSessions.has(sessionId)) return;
 
         this.subscribedSessions.add(sessionId);
-        await this.redisStore.subscribeToSession(sessionId, (event: any) => {
-            this.redisReceivedCount++;
-            // Tag event to prevent infinite publishing loops
-            event._fromBridge = true;
-            this.emit(sessionId, event as SessionEvent);
-        });
-        logger.info(`[SessionEventManager] Subscribed to Redis events for ${sessionId.slice(0, 8)}`);
+        // Subscribe directly on the dedicated subscriber client instead of
+        // the command client (redisStore). Using the command client for
+        // Pub/Sub would switch it to subscriber mode and break all regular
+        // Redis operations (set, get, ping, etc.).
+        const channel = `session:events:${sessionId}`;
+        try {
+            await this.redisSubscriber.subscribe(channel, (message: string) => {
+                try {
+                    this.redisReceivedCount++;
+                    const event = JSON.parse(message);
+                    event._fromBridge = true;
+                    this.emit(sessionId, event as SessionEvent);
+                } catch (parseError) {
+                    logger.error('[SessionEventManager] Failed to parse Redis event', {
+                        sessionId: sessionId.slice(0, 8),
+                        error: parseError instanceof Error ? parseError.message : String(parseError),
+                    });
+                }
+            });
+            logger.info(`[SessionEventManager] Subscribed to Redis events for ${sessionId.slice(0, 8)}`);
+        } catch (error) {
+            logger.error('[SessionEventManager] Failed to subscribe to Redis', {
+                sessionId: sessionId.slice(0, 8),
+                error: error instanceof Error ? error.message : String(error),
+            });
+        }
     }
 
     /**
