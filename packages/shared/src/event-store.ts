@@ -267,6 +267,15 @@ export class RedisEventStore {
     }
   }
 
+  async publish(channel: string, message: string): Promise<void> {
+    if (!this.isAvailable()) return;
+    try {
+      await this.redis!.publish(channel, message);
+    } catch (error) {
+      console.error('[RedisEventStore] Failed to publish', { channel, error });
+    }
+  }
+
   async subscribeToSession(
     sessionId: string,
     callback: (event: unknown) => void

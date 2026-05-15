@@ -303,6 +303,22 @@ async function processJob(): Promise<void> {
         : { preset: '1hour' };
     activeJobAbortController = new AbortController();
 
+    // Subscribe to Redis cancel channel so the API can abort this job
+    const cancelChannel = `btr:job:cancel:${job.sessionId}`;
+    let cancelPubSub: import('ioredis').Redis | null = null;
+    try {
+        cancelPubSub = redisClient.duplicate();
+        cancelPubSub.subscribe(cancelChannel).catch(() => {});
+        cancelPubSub.on('message', (ch: string) => {
+            if (ch === cancelChannel) {
+                console.log('[WORKER] Cancel signal received, aborting job', { sessionId: job.sessionId });
+                abortActiveJob('Cancelled by user');
+            }
+        });
+    } catch (cancelSubError) {
+        console.warn('[WORKER] Failed to subscribe to cancel channel; relying on DB poll', { sessionId: job.sessionId, error: String(cancelSubError) });
+    }
+
     console.log({ event: 'worker_import_start', jobId: job.id });
     const { executeSecondsPrecisionRectification } =
       await apiDynamicImport<{
@@ -373,6 +389,13 @@ async function processJob(): Promise<void> {
       if (activeJobTimeout) {
         clearTimeout(activeJobTimeout);
         activeJobTimeout = null;
+      }
+      // Cleanup cancel subscription
+      if (cancelPubSub) {
+        cancelPubSub.unsubscribe(cancelChannel).catch(() => {});
+        cancelPubSub.removeAllListeners('message');
+        cancelPubSub.quit().catch(() => {});
+        cancelPubSub = null;
       }
       activeJobAbortController = null;
     }

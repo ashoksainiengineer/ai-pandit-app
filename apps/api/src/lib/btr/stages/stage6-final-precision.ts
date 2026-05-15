@@ -13,6 +13,7 @@ import { ProgressTracker } from '../../progress-tracker.js';
 import { _callAIWithStream } from '../../ai-client.js';
 import { executeAIWithBackpressure } from '../../ai-helpers.js';
 import { emitAIContext } from '../../session-events.js';
+import { throwIfCancelled } from '../../cancellation-manager.js';
 import { calculateEphemeris } from '../../ephemeris.js';
 import { getDashaForDate } from '../../vedic-astrology-engine.js';
 import type { DashaPeriod } from '../../vedic-astrology-engine.js';
@@ -270,6 +271,7 @@ export async function stage6FinalPrecision(
     let allReasoning = '';
 
     for (const candidate of sortCandidatesByMerit(candidates).slice(0, 7)) {
+        throwIfCancelled(input.sessionId, input.abortSignal);
         try {
             const pkg = await buildCandidateDataPackage(candidate.time, candidate.offsetMinutes, input, {
                 includeFullData: true,

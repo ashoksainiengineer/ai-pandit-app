@@ -598,6 +598,16 @@ export async function cancelSession(sessionId: string): Promise<boolean> {
     await flushSessionTrash(sessionId);
     emitError(sessionId, 'Cancelled by user', 'cancelled');
     await syncJobCancelled(sessionId, activeAttemptIds);
+
+    // Notify external worker via Redis Pub/Sub so it can abort in-flight AI calls
+    try {
+        const redisStore = getRedisEventStore();
+        const cancelChannel = `btr:job:cancel:${sessionId}`;
+        await redisStore.publish(cancelChannel, JSON.stringify({ sessionId, cancelledAt: new Date().toISOString() }));
+        logger.info('[CANCEL] Published cancel notification to Redis', { sessionId, channel: cancelChannel });
+    } catch (pubError) {
+        logger.warn('[CANCEL] Failed to publish cancel notification to Redis', { sessionId, error: String(pubError) });
+    }
     logger.info('Session cancelled by user (Full Wipe Complete)', { sessionId });
     return true;
   } catch (error) {
