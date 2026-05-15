@@ -235,7 +235,7 @@ class SessionEventManager {
         const skipBridgeTypes = ['ping', 'connected', 'ai_thinking_chunk'];
         const redisOk = this.useRedis && this.redisStore.isAvailable();
         // Debug log to trace event flow
-        logger.debug('[EVENT]', {
+        logger.info('[EVENT]', {
             type: eventType,
             sessionId: sessionId?.slice(0, 8),
             useRedis: this.useRedis,
