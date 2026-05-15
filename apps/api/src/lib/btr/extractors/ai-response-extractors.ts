@@ -43,6 +43,78 @@ function findNearestCandidate(hallucinatedTime: string, candidates: string[], th
 }
 
 /**
+ * Strips markdown code block fences (```json ... ```) from AI output.
+ * Groq models frequently wrap JSON responses in markdown code blocks
+ * instead of emitting raw XML tags.
+ */
+function stripMarkdownFences(text: string): string {
+  return text.replace(/```(?:json)?\s*\n?([\s\S]*?)```/gi, '$1').trim();
+}
+
+/**
+ * Attempts to parse a JSON array of {time, score, reason} from text
+ * that may be wrapped in a markdown code block or contain a JSON object
+ * with a FINAL_SCORES key.
+ */
+function parseJsonScores(text: string, candidateTimes: string[]): { time: string; score: number; reason: string }[] | null {
+  const scores: { time: string; score: number; reason: string }[] = [];
+  const clean = stripMarkdownFences(text).trim();
+
+  // Try array format: [{"time": "10:00", "score": 85, "reason": "..."}]
+  const arrayStart = clean.indexOf('[');
+  const arrayEnd = clean.lastIndexOf(']');
+  if (arrayStart !== -1 && arrayEnd > arrayStart) {
+    try {
+      const arr = JSON.parse(clean.substring(arrayStart, arrayEnd + 1));
+      if (Array.isArray(arr) && arr.length > 0 && arr[0].time !== undefined) {
+        for (const item of arr) {
+          if (!item.time) continue;
+          const time = item.time;
+          const nearest = candidateTimes.find(t => t === time || t.includes(time) || time.includes(t))
+            || findNearestCandidate(time, candidateTimes, 30);
+          if (nearest) {
+            const rawScore = Number(item.score);
+            scores.push({
+              time: nearest,
+              score: Number.isFinite(rawScore) ? Math.max(0, Math.min(100, rawScore)) : 50,
+              reason: item.reason ? String(item.reason).trim() : 'JSON extraction',
+            });
+          }
+        }
+        return scores.length > 0 ? scores : null;
+      }
+    } catch { /* fall through */ }
+  }
+
+  // Try object format with FINAL_SCORES key: {"FINAL_SCORES": {"10:00": 85, ...}}
+  try {
+    const obj = JSON.parse(clean);
+    const scoresMap = obj.FINAL_SCORES || obj.final_scores || obj.scores || obj;
+    if (typeof scoresMap === 'object' && !Array.isArray(scoresMap)) {
+      for (const [key, val] of Object.entries(scoresMap)) {
+        const time = key;
+        const nearest = candidateTimes.find(t => t === time || t.includes(time) || time.includes(t))
+          || findNearestCandidate(time, candidateTimes, 120);
+        if (nearest) {
+          const rawScore = typeof val === 'number' ? val : Number((val as any)?.score ?? 50);
+          const reason = (val && typeof val === 'object' && 'reason' in (val as any))
+            ? String((val as any).reason).trim()
+            : 'JSON object extraction';
+          scores.push({
+            time: nearest,
+            score: Number.isFinite(rawScore) ? Math.max(0, Math.min(100, rawScore)) : 50,
+            reason,
+          });
+        }
+      }
+      return scores.length > 0 ? scores : null;
+    }
+  } catch { /* fall through */ }
+
+  return null;
+}
+
+/**
  * Extracts top survivor times and their scores from AI batch analysis response
  */
 export function extractBatchSurvivors(
@@ -141,6 +213,12 @@ export function extractBatchSurvivors(
     }
   }
 
+  // If regex also failed, try JSON from markdown code blocks (Groq format)
+  if (foundPairs.size === 0) {
+    const jsonScores = parseJsonScores(aiContent, candidateTimes);
+    if (jsonScores) return jsonScores;
+  }
+
   // Final mapping for all requested candidates
   for (const time of candidateTimes) {
     const match = foundPairs.get(time);
@@ -161,7 +239,47 @@ export function extractBatchSurvivors(
 /**
  * Extracts final verdict from AI final stage response
  */
+/**
+ * Try to parse a final verdict from markdown-wrapped JSON (Groq format).
+ * Looks for {"FINAL_VERDICT": {...}} or {"time": "...", "accuracy": ..., ...}
+ */
+function parseJsonVerdict(text: string): FinalVerdict | null {
+  const clean = stripMarkdownFences(text);
+  // Try FINAL_VERDICT key first
+  let obj: Record<string, unknown> | null = null;
+
+  // Find the first JSON object in text
+  try {
+    const jsonStart = clean.indexOf('{');
+    const jsonEnd = clean.lastIndexOf('}');
+    if (jsonStart !== -1 && jsonEnd > jsonStart) {
+      obj = JSON.parse(clean.substring(jsonStart, jsonEnd + 1)) as Record<string, unknown>;
+    }
+  } catch { /* fall through */ }
+
+  if (!obj) return null;
+
+  // Support both {"FINAL_VERDICT": {...}} and flat {"time": "...", ...}
+  const verdictObj = (obj.FINAL_VERDICT || obj.final_verdict || obj) as Record<string, unknown>;
+
+  if (typeof verdictObj.time === 'string' && verdictObj.time.trim()) {
+    const rawAccuracy = Number(verdictObj.accuracy ?? obj.accuracy ?? 85);
+    const confidenceRaw = verdictObj.confidence ?? obj.confidence ?? 'MEDIUM';
+    return {
+      time: verdictObj.time.trim(),
+      accuracy: Number.isFinite(rawAccuracy) ? Math.max(0, Math.min(100, rawAccuracy)) : 85,
+      confidence: typeof confidenceRaw === 'number'
+        ? (Number.isFinite(confidenceRaw) ? (confidenceRaw >= 70 ? 'HIGH' : confidenceRaw >= 40 ? 'MEDIUM' : 'LOW') : 'MEDIUM')
+        : (['HIGH', 'MEDIUM', 'LOW'].includes(String(confidenceRaw).toUpperCase()) ? String(confidenceRaw).toUpperCase() as 'HIGH' | 'MEDIUM' | 'LOW' : 'MEDIUM'),
+      margin: Number.isFinite(Number(verdictObj.margin ?? obj.margin ?? 5)) ? Math.max(0, Math.min(120, Number(verdictObj.margin ?? obj.margin ?? 5))) : 5,
+    };
+  }
+
+  return null;
+}
+
 export function extractFinalVerdict(aiContent: string): FinalVerdict | null {
+  // Priority 1: XML tag extraction
   const xmlMatch = aiContent.match(/<FINAL_VERDICT>([\s\S]*?)<\/FINAL_VERDICT>/i);
   if (xmlMatch) {
     try {
@@ -181,10 +299,13 @@ export function extractFinalVerdict(aiContent: string): FinalVerdict | null {
         };
       }
     } catch (e) {
-      // Fall through to regex-based verdict extraction as fallback
       logger.debug('🔴 [EXTRACTOR] FINAL_VERDICT XML parse failed', { error: (e as Error)?.message || e });
     }
   }
+
+  // Priority 2: JSON from markdown code block (Groq format)
+  const jsonVerdict = parseJsonVerdict(aiContent);
+  if (jsonVerdict) return jsonVerdict;
 
   const timeMatch = aiContent.match(/(?:BEST[ _]TIME|RECTIFIED[ _]TIME|BIRTH[ _]TIME|FINAL[ _]TIME|DETERMINED|TIME IS|DETERMINED TO BE)[:\s]*\s*(?:to be\s*)?\[?(\d{2}:\d{2}:\d{2})\]?/i);
   const accuracyMatch = aiContent.match(/(?:ACCURACY|CONFIDENCE[ _]SCORE|SCORE|LEVEL|ACCURACY LEVEL)[:\s]*\s*(\d+)/i);

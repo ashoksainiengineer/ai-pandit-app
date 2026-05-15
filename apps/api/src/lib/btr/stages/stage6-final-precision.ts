@@ -632,8 +632,10 @@ Consensus Range: ${Math.min(...validEnhanced.map(c => c.precision?.consensus.ove
         }
     );
 
-    const aiContent = response.success ? (response.content || response.thinking || '') : '';
-    const verdict = extractFinalVerdict(aiContent);
+    const mergedContent = response.success
+      ? ((response.content || '') + '\n' + (response.thinking || '')).trim()
+      : '';
+    const verdict = extractFinalVerdict(mergedContent);
 
     const resolvedFinalWinner = resolveCandidateByVerdictTime(
         verdict?.time,
@@ -695,8 +697,8 @@ Consensus Range: ${Math.min(...validEnhanced.map(c => c.precision?.consensus.ove
         confidence,
         margin,
         aiReasoning: usedFallbackWinner
-            ? `${aiContent}\n\n[Fallback] Final verdict was not usable. Deterministic finalist fallback winner selected: ${finalTime}.`
-            : aiContent,
+            ? `${mergedContent}\n\n[Fallback] Final verdict was not usable. Deterministic finalist fallback winner selected: ${finalTime}.`
+            : mergedContent,
         thinking: response.thinking,
         boundaryWarnings,
         finalists: finalBatch.map(c => ({

@@ -185,9 +185,11 @@ export async function stage2BatchTournament(
                 );
                 
                 const batchSurvivors: CandidateTime[] = [];
-                const aiContent = response.success ? (response.content || response.thinking || '') : '';
+                const mergedContent = response.success
+                  ? ((response.content || '') + '\n' + (response.thinking || '')).trim()
+                  : '';
                 const referenceMap = buildCandidateReferenceMap(batchTimes);
-                const aiScores = extractBatchSurvivors(aiContent, [...referenceMap.keys()], Math.min(batchTimes.length, survivorsPerBatch));
+                const aiScores = extractBatchSurvivors(mergedContent, [...referenceMap.keys()], Math.min(batchTimes.length, survivorsPerBatch));
 
                 if (response.success) {
                     for (const candidate of batchEnriched) {
@@ -453,9 +455,11 @@ export async function stage2BatchTournament(
                 );
                 
                 const batchSurvivors: CandidateTime[] = [];
-                const aiContent = response.success ? (response.content || response.thinking || '') : '';
+                const mergedContent = response.success
+                  ? ((response.content || '') + '\n' + (response.thinking || '')).trim()
+                  : '';
                 const referenceMap = buildCandidateReferenceMap(batchTimes);
-                const aiScores = extractBatchSurvivors(aiContent, [...referenceMap.keys()], roundSurvivorsPerBatch);
+                const aiScores = extractBatchSurvivors(mergedContent, [...referenceMap.keys()], roundSurvivorsPerBatch);
                 
                 if (response.success) {
                     for (const candidate of batchEnriched) {

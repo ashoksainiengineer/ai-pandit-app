@@ -172,9 +172,14 @@ export async function stage4DeepAnalysis(
                 await progress.updateSubProgress(completedBatches, batches.length + 1);
 
                 const batchSurvivors: CandidateTime[] = [];
-                const aiContent = response.success ? (response.content || response.thinking || '') : '';
+                // Merge content + thinking so extractors can search both.
+                // Groq models often put structured output in content and reasoning
+                // text in the thinking/reasoning field.
+                const mergedContent = response.success
+                  ? ((response.content || '') + '\n' + (response.thinking || '')).trim()
+                  : '';
                 const referenceMap = buildCandidateReferenceMap(batchTimes);
-                const aiScores = extractBatchSurvivors(aiContent, [...referenceMap.keys()], survivorsPerBatch);
+                const aiScores = extractBatchSurvivors(mergedContent, [...referenceMap.keys()], survivorsPerBatch);
                 
                 if (response.success) {
                     for (const candidate of batchEnriched) {
@@ -246,7 +251,7 @@ export async function stage4DeepAnalysis(
                     });
                 }
 
-                return { batchSurvivors, aiContent };
+                return { batchSurvivors, aiContent: mergedContent };
             },
             config.ai.parallelConcurrency,
             config.ai.parallelStaggerMs
@@ -312,11 +317,13 @@ export async function stage4DeepAnalysis(
         // Final verification is complete
         await progress.updateSubProgress(1, 1);
 
-        const aiContent = response.success ? (response.content || response.thinking || '') : '';
-        allReasoning += aiContent;
+        const mergedContent = response.success
+          ? ((response.content || '') + '\n' + (response.thinking || '')).trim()
+          : '';
+        allReasoning += response.success ? (response.thinking || response.content || '') : '';
 
         const referenceMap = buildCandidateReferenceMap(currentCandidates);
-        const aiScores = extractBatchSurvivors(aiContent, [...referenceMap.keys()], baseSurvivorsPerBatch);
+        const aiScores = extractBatchSurvivors(mergedContent, [...referenceMap.keys()], baseSurvivorsPerBatch);
 
         // 🔱 FINAL ROUND FALLBACK: If AI fails or returns empty, preserve everyone (don't eliminate)
         let survivorTimes: string[] = [];
