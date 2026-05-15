@@ -3,7 +3,7 @@
 [![License: Proprietary](https://img.shields.io/badge/License-Proprietary-red.svg)](LICENSE)
 [![Build Status](https://img.shields.io/badge/Build-Passing-brightgreen.svg)](https://github.com/ashoksainiengineer/ai-pandit-app/actions)
 [![Security: AES-256-GCM](https://img.shields.io/badge/Security-AES--256--GCM-blue.svg)](.github/SECURITY.md)
-[![Architecture: Distributed SSE](https://img.shields.io/badge/Architecture-Distributed%20SSE-orange.svg)](docs/architecture.md)
+[![Architecture: Redis Event Bridge](https://img.shields.io/badge/Architecture-Redis%20Event%20Bridge-orange.svg)](docs/architecture.md)
 
 > **⚠️ PROPRIETARY SOFTWARE — ALL RIGHTS RESERVED**
 > This repository is publicly visible for transparency and portfolio purposes only.
@@ -100,7 +100,7 @@ The system processes **life events** as input constraints, cross-references agai
 | **Backend** | Node.js (Express), TypeScript, Drizzle ORM, Zod |
 | **Database** | Neon Postgres (Serverless) |
 | **Cache/Queue**| Upstash Redis (ioredis) |
-| **AI** | DeepSeek (Reasoner/V4 Flash), Groq (Fallback) |
+| **AI** | Groq (GPT-OSS-120B), DeepSeek (Fallback) |
 | **Auth** | Clerk (OAuth/MFA) |
 | **Ephemeris** | Python 3, FastAPI, Skyfield (DE440 Kernel) |
 | **Deployment** | Vercel (Web), Google Cloud Run (API/Worker/Ephemeris) |
