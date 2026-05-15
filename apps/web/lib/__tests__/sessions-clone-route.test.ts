@@ -102,8 +102,8 @@ describe('POST /api/sessions/[id]/clone', () => {
     expect(json.data.id).toBe('new-session-id-123');
     expect(mockInsertValues).toHaveBeenCalledWith(expect.objectContaining({
       id: 'new-session-id-123',
-      externalId: 'clerk_test_user',
-      userId: 'user_internal_1',
+      externalId: 'legacy-clerk-id',
+      userId: 'legacy-user-id',
       status: 'draft',
       analysisResult: null,
     }));

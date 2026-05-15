@@ -1,21 +1,29 @@
 // Debug utilities for Analysis Page
 // Use in browser console: window.debugAnalysis
 
+interface StreamStore {
+  __STREAM_STORE__?: { getState?: () => Record<string, unknown> };
+}
+
+type PerformanceWithMemory = Performance & { memory?: { usedJSHeapSize: number; totalJSHeapSize: number; jsHeapSizeLimit: number } };
+
 export const debugAnalysis = {
   // Log current stream state
   logStreamState: () => {
-    const state = (window as any).__STREAM_STORE__?.getState?.() || {};
+    const state = (window as unknown as StreamStore).__STREAM_STORE__?.getState?.() || {};
+    const ss = state as Record<string, unknown>;
     console.group('📊 Analysis Stream State');
-    console.log('Connection:', state.connectionStatus);
-    console.log('Stage:', state.currentStage);
-    console.log('Progress:', `${state.progress}%`);
-    console.log('Active Stage:', state.activeAIStage);
-    console.log('Candidates by Stage:', Object.keys(state.candidatesByStage || {}).map(stage => ({
+    console.log('Connection:', ss.connectionStatus);
+    console.log('Stage:', ss.currentStage);
+    console.log('Progress:', `${ss.progress}%`);
+    console.log('Active Stage:', ss.activeAIStage);
+    const candidatesByStage = (ss.candidatesByStage || {}) as Record<string, Record<string, unknown>>;
+    console.log('Candidates by Stage:', Object.keys(candidatesByStage).map(stage => ({
       stage,
-      count: Object.keys(state.candidatesByStage[stage] || {}).length
+      count: Object.keys(candidatesByStage[stage] || {}).length
     })));
-    console.log('Total Candidates:', Object.values(state.candidatesByStage || {}).reduce((acc: number, stage: unknown) => 
-      acc + Object.keys(stage as Record<string, unknown>).length, 0
+    console.log('Total Candidates:', Object.values(candidatesByStage).reduce((acc: number, stage) => 
+      acc + Object.keys(stage).length, 0
     ));
     console.log('Store Size:', JSON.stringify(state).length / 1024, 'KB');
     console.groupEnd();
@@ -25,7 +33,8 @@ export const debugAnalysis = {
   // Check memory usage
   checkMemory: () => {
     if ('memory' in performance) {
-      const mem = (performance as any).memory;
+      const mem = (performance as unknown as PerformanceWithMemory).memory;
+      if (!mem) { console.log('Memory API not available'); return; }
       console.group('🧠 Memory Usage');
       console.log('Used JS Heap:', (mem.usedJSHeapSize / 1048576).toFixed(2), 'MB');
       console.log('Total JS Heap:', (mem.totalJSHeapSize / 1048576).toFixed(2), 'MB');
@@ -43,7 +52,7 @@ export const debugAnalysis = {
     const originalFetch = window.fetch;
     
     window.fetch = async (...args) => {
-      const [url, config] = args;
+      const [url] = args;
       if (typeof url === 'string' && url.includes('/api/stream/')) {
         console.log('🔌 SSE Connection attempt:', url);
         events.push({ time: Date.now(), type: 'connect', url });
@@ -59,7 +68,6 @@ export const debugAnalysis = {
   // Check for React render issues
   checkRenders: () => {
     let renderCount = 0;
-    const start = performance.now();
     
     const observer = new PerformanceObserver((list) => {
       for (const entry of list.getEntries()) {
@@ -82,14 +90,16 @@ export const debugAnalysis = {
 
   // Inspect specific candidate
   inspectCandidate: (stage: string, time: string) => {
-    const state = (window as any).__STREAM_STORE__?.getState?.() || {};
-    const candidate = state.candidatesByStage?.[stage]?.[time];
+    const state = (window as unknown as StreamStore).__STREAM_STORE__?.getState?.() || {};
+    const ss = state as Record<string, Record<string, Record<string, unknown>>>;
+    const candidate = ss.candidatesByStage?.[stage]?.[time] as Record<string, unknown> | undefined;
     if (candidate) {
       console.group(`🔍 Candidate: ${time} (Stage: ${stage})`);
-      console.log('Full Text Length:', candidate.fullText?.length || 0);
-      console.log('Last Updated:', new Date(candidate.updatedAt).toLocaleTimeString());
-      console.log('Score:', state.candidateScores?.find((c: { time: string; score?: number }) => c.time === time)?.score || 'N/A');
-      console.log('Preview:', candidate.fullText?.substring(0, 200) + '...');
+      console.log('Full Text Length:', (candidate.fullText as string)?.length || 0);
+      console.log('Last Updated:', new Date(candidate.updatedAt as string).toLocaleTimeString());
+      const scores = (ss.candidateScores || []) as unknown as Array<{ time: string; score?: number }>;
+      console.log('Score:', scores.find((c) => c.time === time)?.score || 'N/A');
+      console.log('Preview:', (candidate.fullText as string)?.substring(0, 200) + '...');
       console.groupEnd();
       return candidate;
     }
@@ -98,16 +108,17 @@ export const debugAnalysis = {
 
   // Get all errors from store
   getErrors: () => {
-    const state = (window as any).__STREAM_STORE__?.getState?.() || {};
+    const state = (window as unknown as StreamStore).__STREAM_STORE__?.getState?.() || {};
+    const ss = state as Record<string, unknown>;
     console.group('❌ Errors');
-    console.log('Connection Error:', state.connectionError);
-    console.log('Stream Error:', state.streamError);
-    console.log('Last Error:', state.lastError);
+    console.log('Connection Error:', ss.connectionError);
+    console.log('Stream Error:', ss.streamError);
+    console.log('Last Error:', ss.lastError);
     console.groupEnd();
     return {
-      connectionError: state.connectionError,
-      streamError: state.streamError,
-      lastError: state.lastError
+      connectionError: ss.connectionError,
+      streamError: ss.streamError,
+      lastError: ss.lastError
     };
   }
 };

@@ -29,13 +29,20 @@
  *    - Why: Real-time Core Web Vitals monitoring
  */
 
+interface DevToolsWindow {
+  __REACT_DEVTOOLS_GLOBAL_HOOK__?: unknown;
+  __REDUX_DEVTOOLS_EXTENSION__?: unknown;
+  __ZUSTAND_DEVTOOLS__?: unknown;
+}
+
 export const extensionSetup = {
   // Check if extensions are installed
   checkExtensions: () => {
+    const devWindow = window as unknown as DevToolsWindow;
     const checks = {
-      react: !!(window as any).__REACT_DEVTOOLS_GLOBAL_HOOK__,
-      redux: !!(window as any).__REDUX_DEVTOOLS_EXTENSION__,
-      zustand: !!(window as any).__ZUSTAND_DEVTOOLS__
+      react: !!devWindow.__REACT_DEVTOOLS_GLOBAL_HOOK__,
+      redux: !!devWindow.__REDUX_DEVTOOLS_EXTENSION__,
+      zustand: !!devWindow.__ZUSTAND_DEVTOOLS__
     };
     
     console.group('🔌 Browser Extensions');
