@@ -506,8 +506,8 @@ interface BhavaChalitDiscrepancy {
 /**
  * Calculate all divisional charts for the given ephemeris data.
  */
-export const calculateAllVargas = (ephemeris: EphemerisData): Record<string, DivisionalChart> => {
-    return generateDivisionalCharts(ephemeris);
+export const calculateAllVargas = (ephemeris: EphemerisData, chartsToCompute?: string[]): Record<string, DivisionalChart> => {
+    return generateDivisionalCharts(ephemeris, chartsToCompute);
 };
 
 /**

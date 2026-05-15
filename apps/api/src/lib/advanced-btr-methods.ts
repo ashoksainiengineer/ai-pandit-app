@@ -462,12 +462,14 @@ export function calculateD150(longitude: number): { sign: string; degree: number
 
 /**
  * Generate complete divisional chart for all planets
+ * @param chartsToCompute - Optional subset of chart types to compute (defaults to all 10)
  */
 export function generateDivisionalCharts(
-    ephemeris: EphemerisData
+    ephemeris: EphemerisData,
+    chartsToCompute?: string[]
 ): Record<string, DivisionalChart> {
     const charts: Record<string, DivisionalChart> = {};
-    const chartTypes = ['D2', 'D7', 'D9', 'D10', 'D24', 'D30', 'D40', 'D45', 'D60', 'D150'];
+    const chartTypes = chartsToCompute ?? ['D2', 'D7', 'D9', 'D10', 'D24', 'D30', 'D40', 'D45', 'D60', 'D150'];
 
     for (const type of chartTypes) {
         const planets: Record<string, { sign: string; degree: number; house: number }> = {};
