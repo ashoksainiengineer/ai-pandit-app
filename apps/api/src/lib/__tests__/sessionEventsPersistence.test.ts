@@ -52,7 +52,7 @@ describe('SessionEventManager persistence filter', () => {
     });
   });
 
-  it('does not persist high-volume ai_thinking events', async () => {
+  it('persists ai_thinking events for replayability', async () => {
     const { sessionEvents } = await import('../session-events.js');
 
     sessionEvents.emit(SESSION_ID, {
@@ -64,11 +64,16 @@ describe('SessionEventManager persistence filter', () => {
 
     await new Promise((resolve) => setTimeout(resolve, 0));
 
-    expect(getLatestJobForSessionMock).not.toHaveBeenCalled();
-    expect(appendJobEventMock).not.toHaveBeenCalled();
+    expect(getLatestJobForSessionMock).toHaveBeenCalledWith(SESSION_ID);
+    expect(appendJobEventMock).toHaveBeenCalledTimes(1);
+    expect(appendJobEventMock.mock.calls[0][0]).toMatchObject({
+      jobId: 'job-123',
+      sessionId: SESSION_ID,
+      eventType: 'ai_thinking',
+    });
   });
 
-  it('does not persist batched candidate score snapshots', async () => {
+  it('persists candidate score snapshots for replayability', async () => {
     const { sessionEvents } = await import('../session-events.js');
 
     sessionEvents.emit(SESSION_ID, {
@@ -78,11 +83,16 @@ describe('SessionEventManager persistence filter', () => {
 
     await new Promise((resolve) => setTimeout(resolve, 0));
 
-    expect(getLatestJobForSessionMock).not.toHaveBeenCalled();
-    expect(appendJobEventMock).not.toHaveBeenCalled();
+    expect(getLatestJobForSessionMock).toHaveBeenCalledWith(SESSION_ID);
+    expect(appendJobEventMock).toHaveBeenCalledTimes(1);
+    expect(appendJobEventMock.mock.calls[0][0]).toMatchObject({
+      jobId: 'job-123',
+      sessionId: SESSION_ID,
+      eventType: 'candidate_scores',
+    });
   });
 
-  it('does not persist high-volume decision events', async () => {
+  it('persists decision events for replayability', async () => {
     const { sessionEvents } = await import('../session-events.js');
 
     sessionEvents.emit(SESSION_ID, {
@@ -97,7 +107,12 @@ describe('SessionEventManager persistence filter', () => {
 
     await new Promise((resolve) => setTimeout(resolve, 0));
 
-    expect(getLatestJobForSessionMock).not.toHaveBeenCalled();
-    expect(appendJobEventMock).not.toHaveBeenCalled();
+    expect(getLatestJobForSessionMock).toHaveBeenCalledWith(SESSION_ID);
+    expect(appendJobEventMock).toHaveBeenCalledTimes(1);
+    expect(appendJobEventMock.mock.calls[0][0]).toMatchObject({
+      jobId: 'job-123',
+      sessionId: SESSION_ID,
+      eventType: 'decision',
+    });
   });
 });

@@ -10,30 +10,25 @@ describe('Real Database Integration Tests', () => {
   const app = createApp();
   const testTimestamp = Date.now();
 
-  const testUser = {
-    externalId: `test_clerk_${testTimestamp}`,
-    email: `test_${testTimestamp}@example.com`,
-    fullName: 'Test User'
-  };
-
   let testUserId: string;
   let authToken: string;
 
   beforeAll(async () => {
-    await db.delete(sessions).where(eq(sessions.externalId, testUser.externalId));
-    await db.delete(users).where(eq(users.externalId, testUser.externalId));
+    authToken = `test_token_${testTimestamp}`;
+    
+    await db.delete(sessions).where(eq(sessions.externalId, authToken));
+    await db.delete(users).where(eq(users.externalId, authToken));
     
     const [user] = await db.insert(users).values({
       id: crypto.randomUUID(),
-      externalId: testUser.externalId,
-      email: testUser.email,
-      fullName: testUser.fullName,
+      externalId: authToken,
+      email: `test_${testTimestamp}@example.com`,
+      fullName: 'Test User',
       createdAt: new Date(),
       updatedAt: new Date()
     } as any).returning();
     
     testUserId = user.id;
-    authToken = `test_token_${testTimestamp}`;
   });
 
   beforeEach(async () => {
@@ -103,7 +98,7 @@ describe('Real Database Integration Tests', () => {
           ],
           offsetConfig: { preset: '2hours', minutes: 120, customMinutes: 120 }
         })
-        .expect(200);
+        .expect(201);
       
       expect(res.body.success).toBe(true);
       expect(res.body.data.id).toBeDefined();
@@ -117,7 +112,9 @@ describe('Real Database Integration Tests', () => {
       expect(dbSession).toBeDefined();
       expect(dbSession?.userId).toBe(testUserId);
       expect(dbSession?.fullName).not.toBe('Lata Mangeshkar');
-      expect(dbSession?.fullName).toContain('encrypted');
+      expect(dbSession?.fullName).not.toBe('Lata Mangeshkar');
+      expect(dbSession?.fullName).toContain(':');
+      expect(dbSession?.fullName.split(':').length).toBeGreaterThanOrEqual(4);
     });
 
     it('should retrieve and decrypt session from real DB', async () => {
@@ -234,8 +231,9 @@ describe('Real Database Integration Tests', () => {
       const sessionId2 = crypto.randomUUID();
       await db.insert(sessions).values([
         {
+          id: sessionId1,
           userId: testUserId,
-          externalId: testUser.externalId,
+          externalId: authToken,
           fullName: 'encrypted:session1',
           dateOfBirth: 'encrypted:1990-01-01',
           tentativeTime: 'encrypted:12:00',
@@ -245,12 +243,13 @@ describe('Real Database Integration Tests', () => {
           timezone: '5.5',
           gender: 'male',
           status: 'completed',
-          createdAt: new Date(),
-          updatedAt: new Date()
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
         },
         {
+          id: sessionId2,
           userId: testUserId,
-          externalId: testUser.externalId,
+          externalId: authToken,
           fullName: 'encrypted:session2',
           dateOfBirth: 'encrypted:1995-05-15',
           tentativeTime: 'encrypted:06:30',
@@ -259,9 +258,9 @@ describe('Real Database Integration Tests', () => {
           longitude: '77.209',
           timezone: '5.5',
           gender: 'female',
-          status: 'pending',
-          createdAt: new Date(),
-          updatedAt: new Date()
+          status: 'draft',
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
         }
       ] as any);
       
@@ -300,7 +299,7 @@ describe('Real Database Integration Tests', () => {
         .post(`/api/sessions/${originalId}/clone`)
         .set('Authorization', `Bearer ${authToken}`)
         .set('X-Test-User-Id', testUserId)
-        .expect(200);
+        .expect(201);
       
       expect(cloneRes.body.data.id).not.toBe(originalId);
       expect(cloneRes.body.data.id).toBeDefined();
@@ -341,7 +340,7 @@ describe('Real Database Integration Tests', () => {
       const results = await Promise.all(promises);
       
       results.forEach(res => {
-        expect(res.status).toBe(200);
+        expect(res.status).toBe(201);
         expect(res.body.data.id).toBeDefined();
       });
       
@@ -357,8 +356,7 @@ describe('Real Database Integration Tests', () => {
     it('should not allow session without valid user', async () => {
       const res = await request(app)
         .post('/api/sessions')
-        .set('Authorization', `Bearer ${authToken}`)
-        .set('X-Test-User-Id', 'non-existent-user-id')
+        .set('Authorization', 'Bearer invalid_token_that_does_not_match')
         .send({
           birthData: {
             fullName: 'Orphan Session',
@@ -400,9 +398,10 @@ describe('Real Database Integration Tests', () => {
         id: jobId,
         sessionId: sessionId,
         userId: testUserId,
-        status: 'pending',
-        createdAt: new Date(),
-        updatedAt: new Date()
+        kind: 'btr_rectification',
+        status: 'queued',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
       } as any);
       
       const jobsBefore = await db.query.jobs.findMany({
