@@ -233,7 +233,18 @@ class SessionEventManager {
         // 2.1 Cross-Process Bridge: Publish to Redis
         // Skip pings and high-volume raw chunks (batching handled via bufferThinking)
         const skipBridgeTypes = ['ping', 'connected', 'ai_thinking_chunk'];
-        if (this.useRedis && this.redisStore.isAvailable() && !skipBridgeTypes.includes(eventType)) {
+        const redisOk = this.useRedis && this.redisStore.isAvailable();
+        // Debug log to trace event flow
+        logger.debug('[EVENT]', {
+            type: eventType,
+            sessionId: sessionId?.slice(0, 8),
+            useRedis: this.useRedis,
+            storeAvail: this.redisStore?.isAvailable?.(),
+            fromBridge: !!(event as any)._fromBridge,
+            skipBridge: skipBridgeTypes.includes(eventType),
+            willPublish: redisOk && !skipBridgeTypes.includes(eventType) && !(event as any)._fromBridge,
+        });
+        if (redisOk && !skipBridgeTypes.includes(eventType)) {
             // Internal prevent-loop flag: don't re-publish events that we just received from Redis
             if (!(event as any)._fromBridge) {
                 void this.redisStore.publishEvent(sessionId, event);
