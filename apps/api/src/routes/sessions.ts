@@ -10,7 +10,7 @@ import { logger } from '../utils/logger.js';
 import { getApiEncryption } from '../lib/encryption/index.js';
 import { randomUUID } from 'crypto';
 import { isSessionOwnedByContext, resolveSessionOwnershipContext } from '../lib/session-ownership.js';
-import { validateBody, SessionUpdateSchema } from '../middleware/validation.js';
+import { validateBody, SessionCreateSchema, SessionUpdateSchema } from '../middleware/validation.js';
 const crypto = getApiEncryption();
 
 const router = Router();
@@ -25,6 +25,53 @@ function normalizeTimezoneValue(rawTimezone: string): number | string {
     const numericTimezone = Number(rawTimezone);
     return Number.isFinite(numericTimezone) ? numericTimezone : rawTimezone;
 }
+
+/**
+ * POST /api/sessions - Create a new draft session
+ */
+router.post('/', validateBody(SessionCreateSchema), async (req: AuthenticatedRequest, res: Response) => {
+    try {
+        const externalId = req.externalId!;
+        const ownershipContext = await resolveSessionOwnershipContext(externalId);
+        const internalUserId = ownershipContext.internalUserId ?? externalId;
+        const body = req.body;
+        const bd = body.birthData;
+
+        const sessionId = randomUUID();
+        const timestamp = new Date().toISOString();
+
+        const insertData = {
+            id: sessionId,
+            userId: internalUserId,
+            externalId,
+            fullName: crypto.encrypt(bd.fullName, internalUserId),
+            dateOfBirth: crypto.encrypt(bd.dateOfBirth, internalUserId),
+            tentativeTime: crypto.encrypt(bd.tentativeTime, internalUserId),
+            birthPlace: crypto.encrypt(bd.birthPlace, internalUserId),
+            latitude: bd.latitude,
+            longitude: bd.longitude,
+            timezone: String(bd.timezone),
+            gender: bd.gender,
+            status: 'draft' as const,
+            createdAt: timestamp,
+            updatedAt: timestamp,
+            ...(body.lifeEvents ? { lifeEvents: crypto.encrypt(JSON.stringify(body.lifeEvents), internalUserId) } : {}),
+            ...(body.offsetConfig ? { offsetConfig: crypto.encrypt(JSON.stringify(body.offsetConfig), internalUserId) } : {}),
+            ...(body.spouseData ? { spouseData: crypto.encrypt(JSON.stringify(body.spouseData), internalUserId) } : {}),
+        } satisfies Record<string, unknown>;
+
+        await executeWithRetry(() => db.insert(sessions).values(insertData));
+
+        res.status(201).json({
+            success: true,
+            data: { id: sessionId },
+            message: 'Session created as draft',
+        });
+    } catch (error: unknown) {
+        logger.error('Create session error', error);
+        res.status(500).json({ success: false, error: getErrorMessage(error) });
+    }
+});
 
 /**
  * GET /api/sessions - List all user sessions

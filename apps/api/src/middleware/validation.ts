@@ -57,6 +57,14 @@ export const QueueSubmitSchema = z.object({
     spouseData: z.any().optional(),
 });
 
+// Session creation schema — lifeEvents and offsetConfig are optional for draft creation
+export const SessionCreateSchema = z.object({
+    birthData: BirthDataSchema,
+    lifeEvents: z.array(z.any()).optional(),
+    offsetConfig: TimeOffsetConfigSchema.optional(),
+    spouseData: z.any().optional(),
+});
+
 // ═════════════════════════════════════════════════════════════════════════════
 // VALIDATION MIDDLEWARE
 // ═════════════════════════════════════════════════════════════════════════════
