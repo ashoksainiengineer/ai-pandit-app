@@ -38,6 +38,7 @@ import { createRedisQueueClient } from './redis-queue.js';
 
 export { createRedisQueueClient };
 export type { RedisQueueConfig, RedisQueueClient };
+export { ProgressTracker, ANALYSIS_STEPS, getSessionProgress, clearAllActiveInstances } from './progress-tracker.js';
 
 // Default configuration
 const DEFAULT_POLL_INTERVAL_MS = 2000;

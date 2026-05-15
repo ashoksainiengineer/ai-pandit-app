@@ -42,9 +42,12 @@ COPY --from=builder --chown=node:node /app/packages/shared ./packages/shared
 COPY --from=builder --chown=node:node /app/packages/db ./packages/db
 COPY --from=builder --chown=node:node /app/packages/worker-runtime ./packages/worker-runtime
 
-# Fix worker dynamic imports — API compiled dist at /app/apps/api/dist/
-# but worker's relative imports resolve to /app/apps/worker/dist/apps/api/src/
-# Copy full API dist tree so all transitive imports (config, utils, etc.) resolve
+# Worker dynamically imports the BTR engine from API at runtime:
+#   worker.ts:  import('../../api/src/lib/seconds-precision-btr.js')
+# This resolves to: /app/apps/worker/dist/apps/api/src/lib/seconds-precision-btr.js
+# Copy API dist to that path so the BTR engine and its transitive deps are available.
+# NOTE: Event store, session events, and progress tracker are now in shared packages
+# (@ai-pandit/shared, @ai-pandit/worker-runtime) and do NOT rely on this copy.
 RUN mkdir -p /app/apps/worker/dist/apps/api/src && \
     cp -r /app/apps/api/dist/* /app/apps/worker/dist/apps/api/src/
 USER node

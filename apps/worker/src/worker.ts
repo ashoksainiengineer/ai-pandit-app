@@ -19,16 +19,7 @@ import { eq, and } from 'drizzle-orm';
 import type { SecondsPrecisionInput, SecondsPrecisionResult } from '@ai-pandit/shared';
 import { createEncryption } from '@ai-pandit/shared';
 import { Redis } from 'ioredis';
-// ⚠️ LAZY IMPORT: These API modules are imported dynamically (not statically)
-// to avoid triggering API config validation at module load time.
-// Statically importing them causes env var validation to run during test setup.
-async function initApiRedisEventStore(redisClient: import('ioredis').Redis): Promise<void> {
-  const [{ initRedisEventStore }, { adaptIORedis }] = await Promise.all([
-    import('../../api/src/lib/redis-event-store.js') as Promise<{ initRedisEventStore: (client: import('../../api/src/lib/redis-event-store.js').RedisClient) => void }>,
-    import('../../api/src/lib/redis-adapter.js') as Promise<{ adaptIORedis: (redis: import('ioredis').Redis) => import('../../api/src/lib/redis-event-store.js').RedisClient }>,
-  ]);
-  initRedisEventStore(adaptIORedis(redisClient));
-}
+import { initRedisEventStore, adaptIORedis } from '@ai-pandit/shared';
 
 // Load environment variables
 config({ path: '.env' });
@@ -644,7 +635,7 @@ void (async () => {
      }
 
     try {
-      await initApiRedisEventStore(redisClient);
+      initRedisEventStore(adaptIORedis(redisClient));
       redisEventsReady = true;
       console.log('[WORKER] Redis Event Store initialised (events will be published to API)');
     } catch (error) {

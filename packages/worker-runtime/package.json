@@ -7,7 +7,8 @@
     "types": "./dist/index.d.ts",
     "exports": {
         ".": "./dist/index.js",
-        "./types": "./dist/types.js"
+        "./types": "./dist/types.js",
+        "./progress-tracker": "./dist/progress-tracker.js"
     },
     "scripts": {
         "build": "tsc",
@@ -15,7 +16,10 @@
         "test": "vitest run"
     },
     "dependencies": {
-        "@ai-pandit/db": "*"
+        "@ai-pandit/db": "*",
+        "@ai-pandit/shared": "*",
+        "drizzle-orm": "^0.45.1",
+        "ioredis": "^5.10.0"
     },
     "devDependencies": {
         "@types/node": "^20.0.0",

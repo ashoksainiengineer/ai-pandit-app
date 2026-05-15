@@ -8,7 +8,9 @@
     "exports": {
         ".": "./dist/index.js",
         "./schemas": "./dist/schemas.js",
-        "./types": "./dist/types.js"
+        "./types": "./dist/types.js",
+        "./event-store": "./dist/event-store.js",
+        "./session-events": "./dist/session-events.js"
     },
     "scripts": {
         "build": "tsc",
@@ -16,6 +18,8 @@
         "test": "vitest run"
     },
     "dependencies": {
+        "@ai-pandit/db": "*",
+        "ioredis": "^5.10.0",
         "zod": "^3.22.4"
     },
     "devDependencies": {
