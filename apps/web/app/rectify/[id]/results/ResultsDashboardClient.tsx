@@ -5,6 +5,26 @@ import { ResultsDashboard } from '@/components/rectify/ResultsDashboard';
 import Layout from '@/components/Layout';
 import { Breadcrumbs, predefinedBreadcrumbs } from '@/components/ui/Breadcrumbs';
 import { Session } from '@/lib/types';
+import { logger } from '@/lib/secure-logger';
+
+const safeSetItem = (key: string, value: string): void => {
+    try {
+        // localStorage quota is ~5MB per origin. Serialized reasoningLogs can exceed this.
+        if (value.length > 1_000_000) {
+            logger.warn('[ResultsDashboard] Skipping localStorage write — value too large', {
+                key,
+                sizeBytes: value.length,
+            });
+            return;
+        }
+        localStorage.setItem(key, value);
+    } catch (err) {
+        logger.warn('[ResultsDashboard] localStorage write failed', {
+            key,
+            error: err instanceof Error ? err.message : String(err),
+        });
+    }
+};
 
 interface ResultsDashboardClientProps {
     id: string;
@@ -21,43 +41,41 @@ export function ResultsDashboardClient({ id, initialSession }: ResultsDashboardC
     const [reasoningLogs, setReasoningLogs] = useState<any>(initialSession?.reasoningLogs);
 
     useEffect(() => {
-        // Sync with localStorage for future speed/offline availability
         if (initialSession) {
             let analysisResult = initialSession.analysisResult;
             if (typeof analysisResult === 'string') {
                 try {
                     analysisResult = JSON.parse(analysisResult);
-                } catch (e) {
-                    // Keep as string if not JSON
+                } catch {
+                    analysisResult = null;
                 }
             }
 
             const sessionData = {
                 ...initialSession,
                 analysisResult,
-                rectifiedTime: initialSession.rectifiedTime || analysisResult?.rectifiedTime,
-                accuracy: initialSession.accuracy || analysisResult?.accuracy,
-                confidence: initialSession.confidence || analysisResult?.confidence,
+                rectifiedTime: initialSession.rectifiedTime ?? analysisResult?.rectifiedTime ?? null,
+                accuracy: initialSession.accuracy ?? analysisResult?.accuracy ?? null,
+                confidence: initialSession.confidence ?? analysisResult?.confidence ?? null,
             };
 
             setResultData(sessionData);
             setBirthData(initialSession.birthData);
             setReasoningLogs(initialSession.reasoningLogs);
 
-            if (initialSession.rectifiedTime || analysisResult?.rectifiedTime) {
-                // Strip PII before localStorage storage per AGENTS.md policy
+            if (sessionData.rectifiedTime) {
                 const safeResult = {
                     rectifiedTime: sessionData.rectifiedTime,
                     accuracy: sessionData.accuracy,
                     confidence: sessionData.confidence,
                 };
-                localStorage.setItem(`rectification_result_${id}`, JSON.stringify(safeResult));
+                safeSetItem(`rectification_result_${id}`, JSON.stringify(safeResult));
                 if (initialSession.reasoningLogs) {
-                    localStorage.setItem(`reasoningLogs_${id}`, JSON.stringify(initialSession.reasoningLogs));
+                    safeSetItem(`reasoningLogs_${id}`, JSON.stringify(initialSession.reasoningLogs));
                 }
             }
         }
-    }, [id, initialSession]);
+    }, [id, initialSession, setResultData, setBirthData, setReasoningLogs]);
 
     return (
         <Layout>

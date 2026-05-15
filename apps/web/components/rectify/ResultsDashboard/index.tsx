@@ -18,7 +18,7 @@ function ResultsDashboardContent(props: ResultsDashboardProps) {
             {engine.error && (
                 <div className="max-w-7xl mx-auto px-6 mt-4">
                     <div className="p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
-                        ⚠️ {engine.error}
+                        {engine.error}
                     </div>
                 </div>
             )}

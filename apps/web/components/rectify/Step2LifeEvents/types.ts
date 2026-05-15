@@ -1,6 +1,6 @@
 import { LifeEvent, TimeOffsetConfig } from '@/lib/types';
 
-export interface Step3Props {
+export interface Step2Props {
     lifeEvents: LifeEvent[];
     updateEvents: (events: LifeEvent[]) => void;
     offsetConfig?: TimeOffsetConfig;

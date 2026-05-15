@@ -1,9 +1,14 @@
 import { MONTHS } from './constants';
 
+const range = (n: number): string[] =>
+    Array.from({ length: n }, (_, i) => (i + 1).toString().padStart(2, '0'));
+
 export const sanitizeInput = (input: string): string => {
     return input
-        .replace(/[<>]/g, '') // Remove < and > to prevent HTML injection
-        .slice(0, 100); // Limit to 100 characters
+        .normalize('NFKC')
+        .replace(/[<>&"'\\]/g, '')
+        .replace(/[\u0000-\u001F\u007F-\u009F]/g, '')
+        .slice(0, 100);
 };
 
 export const isValidDate = (year: string, month: string, day: string): boolean => {
@@ -14,15 +19,22 @@ export const isValidDate = (year: string, month: string, day: string): boolean =
     const d = parseInt(day, 10);
 
     if (isNaN(y) || isNaN(m) || isNaN(d)) return false;
+    if (m < 1 || m > 12 || d < 1 || d > 31) return false;
 
     const date = new Date(y, m - 1, d);
     return date.getFullYear() === y && date.getMonth() === m - 1 && date.getDate() === d;
 };
 
 export const getDaysForMonth = (month: string, year: string): string[] => {
-    if (!month || !year) return Array.from({ length: 31 }, (_, i) => (i + 1).toString().padStart(2, '0'));
+    if (!month) return range(31);
 
     const monthNum = parseInt(month, 10);
+
+    if (!year) {
+        const days = MONTHS.find(m => m.val === month)?.days || 31;
+        return range(monthNum === 2 ? 28 : days);
+    }
+
     const yearNum = parseInt(year, 10);
 
     let daysInMonth = MONTHS.find(m => m.val === month)?.days || 31;
@@ -32,7 +44,7 @@ export const getDaysForMonth = (month: string, year: string): string[] => {
         daysInMonth = isLeapYear ? 29 : 28;
     }
 
-    return Array.from({ length: daysInMonth }, (_, i) => (i + 1).toString().padStart(2, '0'));
+    return range(daysInMonth);
 };
 
 export const convertTo24Hour = (hour: string, minute: string, period: 'AM' | 'PM'): string => {

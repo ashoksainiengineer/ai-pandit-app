@@ -3,10 +3,10 @@ import { LifeEvent } from '@/lib/types';
 import { EventCategory, EventTemplate, EventImportance } from '@/lib/events/types';
 import { EVENT_CATEGORIES as ENHANCED_CATEGORIES } from '@/lib/events/categories';
 import { getCategoryById } from '@/lib/events/utils';
-import { Step3Props, DatePrecision, ImportanceLevel } from '../types';
+import { Step2Props, DatePrecision, ImportanceLevel } from '../types';
 import { generateEventId, sanitizeDescription, parseDateParts, isValidDateString } from '../utils';
 
-export function useLifeEvents({ lifeEvents, updateEvents }: Step3Props) {
+export function useLifeEvents({ lifeEvents, updateEvents }: Step2Props) {
     const [editingId, setEditingId] = useState<string | null>(null);
     const [isCustomModalOpen, setIsCustomModalOpen] = useState(false);
     const [customCategories, setCustomCategories] = useState<EventCategory[]>([]);

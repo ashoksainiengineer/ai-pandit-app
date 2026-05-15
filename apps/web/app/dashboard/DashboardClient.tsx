@@ -22,10 +22,23 @@ interface DashboardStats {
   accuracy: number;
 }
 
+function getPageNumbers(current: number, total: number): (number | null)[] {
+    if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
+    const pages: (number | null)[] = [1];
+    if (current > 3) pages.push(null);
+    const start = Math.max(2, current - 1);
+    const end = Math.min(total - 1, current + 1);
+    for (let i = start; i <= end; i++) pages.push(i);
+    if (current < total - 2) pages.push(null);
+    pages.push(total);
+    return pages;
+}
+
 function calculateStats(sessions: DashboardSession[]): DashboardStats {
   const completed = sessions.filter(s => s.status === 'complete');
-  const avgAccuracy = completed.length > 0
-    ? Math.round(completed.reduce((acc, s) => acc + (Number(s.accuracy) || 0), 0) / completed.length)
+  const withAccuracy = completed.filter(s => s.accuracy != null);
+  const avgAccuracy = withAccuracy.length > 0
+    ? Math.round(withAccuracy.reduce((acc, s) => acc + Number(s.accuracy), 0) / withAccuracy.length)
     : 0;
 
   return {
@@ -200,7 +213,7 @@ export function DashboardClient({ initialSessions, userName }: DashboardClientPr
             )}
           </div>
         ) : (
-          paginatedSessions.map((session, index) => (
+          paginatedSessions.map(session => (
             <div
               key={session.id}
             >
@@ -216,7 +229,7 @@ export function DashboardClient({ initialSessions, userName }: DashboardClientPr
         )}
       </div>
 
-      {/* Pagination - Mobile Responsive */}
+      {/* Pagination - Mobile Responsive with windowing */}
       {totalPages > 1 && (
         <div className="flex items-center justify-center gap-1 sm:gap-2 mt-6 sm:mt-8">
           <button
@@ -228,18 +241,23 @@ export function DashboardClient({ initialSessions, userName }: DashboardClientPr
             <span className="hidden sm:inline">Previous</span>
           </button>
 
-          {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
-            <button
-              key={page}
-              onClick={() => navigateToPage(page)}
-              className={`w-8 h-8 sm:w-10 sm:h-10 rounded-lg text-xs sm:text-sm font-medium transition-colors ${currentPage === page
-                ? 'bg-[#000000] text-white'
-                : 'text-[#636363] hover:bg-[var(--prism-canvas)]'
+          {getPageNumbers(currentPage, totalPages).map((page, i) =>
+            page === null ? (
+              <span key={`e${i}`} className="px-1 text-[#636363] text-xs sm:text-sm">...</span>
+            ) : (
+              <button
+                key={page}
+                onClick={() => navigateToPage(page)}
+                className={`w-8 h-8 sm:w-10 sm:h-10 rounded-lg text-xs sm:text-sm font-medium transition-colors ${
+                  currentPage === page
+                    ? 'bg-[#000000] text-white'
+                    : 'text-[#636363] hover:bg-[var(--prism-canvas)]'
                 }`}
-            >
-              {page}
-            </button>
-          ))}
+              >
+                {page}
+              </button>
+            )
+          )}
 
           <button
             onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}

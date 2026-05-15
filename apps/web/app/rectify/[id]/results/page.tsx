@@ -57,9 +57,9 @@ const getSessionResults = cache(async (sessionId: string, userId: string): Promi
             birthData,
             analysisResult,
             reasoningLogs,
-            rectifiedTime: (session as Record<string, unknown>).rectifiedTime || (analysisResult as Record<string, unknown>)?.rectifiedTime,
-            accuracy: (session as Record<string, unknown>).accuracy || (analysisResult as Record<string, unknown>)?.accuracy,
-            confidence: (session as Record<string, unknown>).confidence || (analysisResult as Record<string, unknown>)?.confidence,
+            rectifiedTime: (session as Record<string, unknown>)?.rectifiedTime ?? (analysisResult as Record<string, unknown>)?.rectifiedTime ?? null,
+            accuracy: (session as Record<string, unknown>)?.accuracy ?? (analysisResult as Record<string, unknown>)?.accuracy ?? null,
+            confidence: (session as Record<string, unknown>)?.confidence ?? (analysisResult as Record<string, unknown>)?.confidence ?? null,
         } as Record<string, unknown>;
     } catch (error) {
         logger.error('CRITICAL: Error in getSessionResults', error instanceof Error ? error : new Error(String(error)));

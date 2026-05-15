@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Step3Props } from './types';
+import { Step2Props } from './types';
 import { useLifeEvents } from './hooks/useLifeEvents';
 import { Header } from './components/Header';
 import { EventEditor } from './components/EventEditor';
@@ -13,7 +13,7 @@ import EventSelector from '@/components/events/EventSelector';
 import CustomEventModal from '@/components/events/CustomEventModal';
 import WhyEventsMatter from '../WhyEventsMatter';
 
-export default function Step2LifeEventsIndex(props: Step3Props) {
+export default function Step2LifeEventsIndex(props: Step2Props) {
     const [mounted, setMounted] = useState(false);
     useEffect(() => setMounted(true), []);
 
