@@ -23,6 +23,8 @@ vi.mock('../../lib/logger.js', () => ({
     },
 }));
 
+
+
 describe('BackendAuth Middleware', () => {
     let mockReq: any;
     let mockRes: any;
@@ -124,16 +126,16 @@ describe('BackendAuth Middleware', () => {
 
         expect(mockRes.status).toHaveBeenCalledWith(401);
         expect(mockRes.json).toHaveBeenCalledWith(expect.objectContaining({
-            code: 'AUTH_FAILED'
+            code: 'INVALID_SESSION'
         }));
     });
 
-    it('should bypass auth for test script with secret key', async () => {
+    it('should reject test script bypass in non-development mode', async () => {
         mockReq.headers['x-test-bypass-auth'] = 'super-secret-test-key';
 
         await authMiddleware(mockReq, mockRes, nextFunction);
 
-        expect(nextFunction).toHaveBeenCalled();
-        expect(mockReq.externalId).toBe('TEST_SCRIPT');
+        expect(nextFunction).not.toHaveBeenCalled();
+        expect(mockRes.status).toHaveBeenCalledWith(401);
     });
 });

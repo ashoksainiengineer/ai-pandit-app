@@ -58,7 +58,7 @@ describe('dependency-circuit-breaker', () => {
     describe('getCircuitSnapshots', () => {
         it('returns snapshots for all dependencies', () => {
             const snapshots = getCircuitSnapshots();
-            expect(snapshots.length).toBe(4);
+            expect(snapshots.length).toBe(5);
             const deps = snapshots.map(s => s.dependency);
             expect(deps).toContain('ai_provider');
             expect(deps).toContain('database');

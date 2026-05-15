@@ -445,14 +445,14 @@ describe('claimNextJobBlocking()', () => {
     expect(result).toBeNull();
   });
 
-  it('uses default BLPOP_TIMEOUT_SECONDS (5) when no timeout passed', async () => {
+  it('uses default BLPOP_TIMEOUT_SECONDS (30) when no timeout passed', async () => {
     const client = createClient();
     const r = mockRedis();
     (r.lpop as ReturnType<typeof vi.fn>).mockResolvedValue(null);
     (r.blpop as ReturnType<typeof vi.fn>).mockResolvedValue(null);
 
     await client.claimNextJobBlocking();
-    expect(r.blpop).toHaveBeenCalledWith(expect.any(String), 5);
+    expect(r.blpop).toHaveBeenCalledWith(expect.any(String), 30);
   });
 
   it('promotes due retries before blocking', async () => {

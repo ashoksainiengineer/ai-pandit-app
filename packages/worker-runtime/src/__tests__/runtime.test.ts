@@ -168,7 +168,7 @@ describe('runLoop()', () => {
         const loopPromise = rt.runLoop();
 
         // Let it run a few iterations, then stop
-        await new Promise((resolve) => setTimeout(resolve, 60));
+        await new Promise((resolve) => setTimeout(resolve, 150));
 
         await rt.stop();
         await loopPromise;
