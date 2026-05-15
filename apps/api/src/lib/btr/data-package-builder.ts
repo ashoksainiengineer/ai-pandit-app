@@ -104,7 +104,7 @@ export async function buildCandidateDataPackage(
 
   const candidateDate = candidate?.candidateDate || input.dateOfBirth;
   const birthDate = convertToUTC(candidateDate, time, input.timezone);
-  const ephemeris = await loadEphemeris(candidateDate, time, input, options.precomputedEphemeris);
+  const ephemeris = await loadEphemeris(candidateDate, time, input, options.precomputedEphemeris, includeFullData);
   const moonLong = ephemeris.planets.moon.longitude;
 
   // Build Dasha sequences
@@ -122,11 +122,13 @@ export async function buildCandidateDataPackage(
   });
 
   // Enrich planets with Vedic calculations
+  // shadbala and ashtakavarga may be absent when includeFullData=false (Stage 2)
+  // enrichSinglePlanet handles missing values gracefully via optional chaining
   const context: Parameters<typeof enrichPlanets>[1] = {
     ascendantSign: ephemeris.ascendant.sign,
     ascendantLongitude: ephemeris.ascendant.longitude,
-    shadbala: ephemeris.shadbala!,
-    ashtakavarga: ephemeris.ashtakavarga! as Record<string, number[]>,
+    shadbala: (ephemeris.shadbala ?? {}) as NonNullable<EphemerisData['shadbala']>,
+    ashtakavarga: (ephemeris.ashtakavarga ?? {}) as unknown as Record<string, number[]>,
     houses: ephemeris.houses
   };
   const enrichedPlanets = enrichPlanets(ephemeris.planets, context);
@@ -314,7 +316,7 @@ function validateDataPackage(pkg: CandidateDataPackage): string[] {
 /**
  * Load and enrich ephemeris data
  */
-async function loadEphemeris(candidateDate: string, time: string, input: SecondsPrecisionInput, precomputed?: EphemerisData): Promise<EphemerisData> {
+async function loadEphemeris(candidateDate: string, time: string, input: SecondsPrecisionInput, precomputed?: EphemerisData, includeFullData?: boolean): Promise<EphemerisData> {
   const ephemeris = precomputed ?? await calculateEphemeris(
     candidateDate,
     time,
@@ -323,12 +325,21 @@ async function loadEphemeris(candidateDate: string, time: string, input: Seconds
     input.timezone
   );
 
-  // Calculate all supplemental data
+  // When includeFullData=false (Stage 2), only compute vargas needed for
+  // validation (D9/D10/D60) and skip ashtakavarga/shadbala entirely.
+  // This eliminates the heaviest ephemeris enrichment calls for batch
+  // tournament candidates where only base planets/ascendant/dasha are needed.
   // @ts-expect-error - Local DivisionalChart type differs from shared package type
-  ephemeris.divisionalCharts = calculateAllVargas(ephemeris);
-  ephemeris.ashtakavarga = calculateAshtakavarga(ephemeris);
-  // @ts-expect-error - calculateShadbala returns Record<string,number>; shadbala field expects Record<string,ShadbalaBreakdown>
-  ephemeris.shadbala = calculateShadbala(ephemeris);
+  ephemeris.divisionalCharts = calculateAllVargas(
+    ephemeris,
+    includeFullData ? undefined : ['D9', 'D10', 'D60']
+  );
+
+  if (includeFullData) {
+    ephemeris.ashtakavarga = calculateAshtakavarga(ephemeris);
+    // @ts-expect-error - calculateShadbala returns Record<string,number>; shadbala field expects Record<string,ShadbalaBreakdown>
+    ephemeris.shadbala = calculateShadbala(ephemeris);
+  }
 
   return ephemeris;
 }
