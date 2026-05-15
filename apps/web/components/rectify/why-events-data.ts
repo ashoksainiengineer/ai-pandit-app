@@ -1,12 +1,7 @@
 import {
-  Clock,
-  Target,
   Sparkles,
   TrendingUp,
-  Shield,
-  Zap,
   Award,
-  Calendar,
   HeartPulse,
   Briefcase,
   Home,

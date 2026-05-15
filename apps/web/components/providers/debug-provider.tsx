@@ -18,7 +18,7 @@ export function DebugProvider({ children }: { children: React.ReactNode }) {
         try {
           const debugModule = await import('@/lib/debug/analysis-debug');
           debugAnalysis = debugModule.debugAnalysis || {};
-        } catch (e) {
+        } catch {
           // Debug module not available in production build
           debugAnalysis = {
             logStreamState: () => console.log('Debug not available'),

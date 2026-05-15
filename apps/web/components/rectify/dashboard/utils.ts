@@ -35,7 +35,7 @@ export function formatDate(dateStr: string | Date | undefined): string {
             month: 'long',
             day: 'numeric',
         });
-    } catch (e) {
+    } catch {
         return 'N/A';
     }
 }

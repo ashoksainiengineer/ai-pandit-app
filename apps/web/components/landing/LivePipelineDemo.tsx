@@ -59,6 +59,7 @@ function AIThinkingPanel({ isActive, onComplete, cycleCount }: { isActive: boole
     });
 
     return () => timers.forEach(clearTimeout);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isActive, cycleCount]);
 
   const completedCount = visibleLines.length;

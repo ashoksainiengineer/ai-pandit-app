@@ -5,9 +5,10 @@ import { THEME } from '../../dashboard/theme';
 import { cleanSummary } from '../../dashboard/utils';
 import { EphemerisPanel } from '../../EphemerisPanel';
 import { PlanetaryVitals } from '../../PlanetaryVitals';
-import { CandidateComparisonView } from '../../CandidateComparisonView';
+import { CandidateComparisonView, type CandidateData } from '../../CandidateComparisonView';
 import { VedicShuddhiRadar } from '../../VedicShuddhiRadar';
 import { FinalResult, AnalysisDetails } from '../../dashboard/types';
+import type { EphemerisData, DivisionalChart } from '@ai-pandit/shared';
 
 interface TabPanelsProps {
     activeTab: 'summary' | 'audit' | 'comparison' | 'logs';
@@ -99,8 +100,8 @@ export function TabPanels({
                                 {analysisDetails?.godTierData?.ephemeris && (
                                     <div className="mt-4">
                                         <PlanetaryVitals
-                                            ephemeris={analysisDetails.godTierData.ephemeris as any}
-                                            divCharts={analysisDetails.godTierData.divCharts as any}
+                                            ephemeris={analysisDetails.godTierData.ephemeris as unknown as EphemerisData}
+                                            divCharts={analysisDetails.godTierData.divCharts as unknown as Record<string, DivisionalChart>}
                                         />
                                     </div>
                                 )}
@@ -118,7 +119,7 @@ export function TabPanels({
                         role="tabpanel"
                         id="comparison-panel"
                     >
-                        <CandidateComparisonView candidates={topCandidates as any[]} />
+                        <CandidateComparisonView candidates={topCandidates as unknown as CandidateData[]} />
                     </motion.div>
                 )}
 

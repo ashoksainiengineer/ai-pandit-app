@@ -24,7 +24,7 @@ interface EventMatch {
     dasha?: string;
 }
 
-interface CandidateData {
+export interface CandidateData {
     time: string;
     score: number;
     stage: number;

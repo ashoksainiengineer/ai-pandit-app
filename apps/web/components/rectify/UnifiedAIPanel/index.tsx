@@ -18,7 +18,6 @@ export const UnifiedAIPanel = memo(function UnifiedAIPanel({
     onSelectCandidate,
     candidateScores,
     unifiedMode = true,
-    isComplete = false,
     title = 'Intelligence Grid',
     isCompleted = false,
     offsetMinutes = 60,

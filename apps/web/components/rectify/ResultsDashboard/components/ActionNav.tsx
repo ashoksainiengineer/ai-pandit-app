@@ -15,7 +15,7 @@ interface ActionNavProps {
 }
 
 export function ActionNav({
-    sessionId,
+    sessionId: _sessionId,
     isCloning,
     hasCopied,
     isGenerating,

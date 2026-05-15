@@ -3,8 +3,8 @@
 
 import React from 'react';
 import SignalCard from '../common/SignalCard';
-import { IParivartanaYoga, TPlanet, TSign } from '../types';
-import { Repeat, Zap } from 'lucide-react';
+import { IParivartanaYoga, TPlanet } from '../types';
+import { Repeat } from 'lucide-react';
 
 // A mapping for simple planet icons (could be replaced with actual image icons)
 const planetIcons: Record<TPlanet, string> = {

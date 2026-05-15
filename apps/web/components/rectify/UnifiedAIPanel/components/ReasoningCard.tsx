@@ -9,7 +9,6 @@ export const ReasoningCard = memo(function ReasoningCard({
     content,
     isLive,
     onClick,
-    batchIndex,
     startedAt,
     updatedAt,
     score,

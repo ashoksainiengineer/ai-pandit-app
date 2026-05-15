@@ -117,7 +117,7 @@ const ReasoningPanel = memo(function ReasoningPanel({
 const CandidatesPanel = memo(function CandidatesPanel({
     scores,
     stage,
-    isCompleted,
+    isCompleted: _isCompleted,
 }: {
     scores: CandidateScore[];
     stage: number;
@@ -379,14 +379,12 @@ const EphemerisPanel = memo(function EphemerisPanel({
 
 export const AnalysisTriPanel = memo(function AnalysisTriPanel({
     stage,
-    candidateScores,
     sortedCandidateScores,
     stageCandidates,
     stageHistory,
     isActive,
-    isCompleted,
+    isCompleted: _isCompleted,
     allSteps,
-    sessionId,
     title,
 }: AnalysisTriPanelProps) {
     // Top candidate for ephemeris panel
@@ -414,7 +412,7 @@ export const AnalysisTriPanel = memo(function AnalysisTriPanel({
                     w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-medium border-2 transition-all duration-500
                     ${isActive
                         ? 'bg-[#C65D3B] border-[#C65D3B]/30 text-white shadow-sm ring-4 ring-[#C65D3B]/10'
-                        : isCompleted
+                        : _isCompleted
                             ? 'bg-[#184131] border-[#184131]/20 text-white'
                             : 'bg-white border-[rgba(0,0,0,0.08)] text-[#8A837D]'
                     }
@@ -448,7 +446,7 @@ export const AnalysisTriPanel = memo(function AnalysisTriPanel({
                 <CandidatesPanel
                     scores={sortedCandidateScores}
                     stage={stage}
-                    isCompleted={isCompleted}
+                    isCompleted={_isCompleted}
                 />
 
                 {/* RIGHT: Ephemeris Data */}

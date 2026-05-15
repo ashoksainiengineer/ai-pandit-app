@@ -28,7 +28,7 @@ export function FormattedAIReasoning({
                 try {
                     const parsed = JSON.parse(reasoningLogs);
                     return formatStructuredLogsForDisplay(parsed);
-                } catch (e) {
+                } catch {
                     return reasoningLogs;
                 }
             }

@@ -10,7 +10,7 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Clock, Target, Sparkles, ChevronDown, 
-  TrendingUp, Shield, Zap, Award,
+  TrendingUp, Zap, Award,
   Calendar, HeartPulse, Briefcase, Home, GraduationCap,
   Plane, Baby, Landmark, AlertTriangle
 } from 'lucide-react';
@@ -225,16 +225,16 @@ export default function WhyEventsMatter({ currentEventCount, categoriesCovered }
           >
             {/* Tab Navigation */}
             <div className="flex p-1 bg-[var(--prism-canvas)] mx-4 mt-4 rounded-xl">
-              {[
+              {([
                 { id: 'overview', label: 'Overview', icon: Clock },
                 { id: 'categories', label: 'Categories', icon: Calendar },
                 { id: 'science', label: 'The Science', icon: Zap }
-              ].map(tab => (
+              ] as const).map(tab => (
                 <button
                   key={tab.id}
                   onClick={(e) => {
                     e.stopPropagation();
-                    setActiveTab(tab.id as any);
+                    setActiveTab(tab.id);
                   }}
                   className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg text-xs font-medium transition-all ${
                     activeTab === tab.id 

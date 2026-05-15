@@ -5,7 +5,7 @@
 
 'use client';
 
-import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import dynamic from 'next/dynamic';
 import { MapPin, Search, Crosshair, Globe, X } from 'lucide-react';
 import { logger } from '@/lib/secure-logger';
@@ -146,8 +146,26 @@ export default function BirthPlacePicker({ birthPlace, latitude, longitude, time
       );
 
       if (!response.ok) throw new Error('Search failed');
-      const data = await response.json();
-      const results: LocationResult[] = data.map((item: any, index: number) => ({
+      interface NominatimResult {
+        place_id: number;
+        name?: string;
+        display_name: string;
+        lat: string;
+        lon: string;
+        address?: {
+          city?: string;
+          town?: string;
+          village?: string;
+          municipality?: string;
+          county?: string;
+          state_district?: string;
+          state?: string;
+          country?: string;
+          postcode?: string;
+        };
+      }
+      const data: NominatimResult[] = await response.json();
+      const results: LocationResult[] = data.map((item, index) => ({
         id: `${index}-${item.place_id}`,
         city: item.address?.city || item.address?.town || item.address?.village || item.address?.municipality || item.name || '',
         district: item.address?.county || item.address?.state_district || '',

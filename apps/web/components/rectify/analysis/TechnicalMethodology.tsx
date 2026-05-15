@@ -92,17 +92,17 @@ export const TechnicalMethodology = ({ offsetMinutes = 60 }: { offsetMinutes?: n
                     >
                         {/* Tab Navigation */}
                         <div className="flex p-1 bg-[var(--prism-canvas)] mx-4 mt-4 rounded-xl">
-                            {[
+                            {([
                                 { id: 'blueprint', label: 'The Funnel', icon: BookOpen },
                                 { id: 'vargas', label: 'Precision Layers', icon: Target },
                                 { id: 'logic', label: 'Integrity', icon: ShieldCheck },
                                 { id: 'specs', label: 'AI Specs', icon: Activity }
-                            ].map(tab => (
+                            ] as const).map(tab => (
                                 <button
                                     key={tab.id}
                                     onClick={(e) => {
                                         e.stopPropagation();
-                                        setActiveTab(tab.id as any);
+                                        setActiveTab(tab.id);
                                     }}
                                     className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg text-xs font-medium transition-all ${activeTab === tab.id
                                         ? 'bg-white text-black shadow-sm'

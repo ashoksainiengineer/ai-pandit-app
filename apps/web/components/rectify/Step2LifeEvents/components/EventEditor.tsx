@@ -1,10 +1,10 @@
 import React from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { FormField } from '@/components/ui/form/FormField';
 import DateInput from '@/components/events/DateInput';
 import { EventCategory, IMPORTANCE_OPTIONS } from '@/lib/events/types';
 import { getCategoryById } from '@/lib/events/utils';
-import { isPrecisionSatisfied } from '@/lib/date-utils';
+import { isPrecisionSatisfied, type DatePrecision as DatePrecisionUtil } from '@/lib/date-utils';
 import { LifeEvent } from '@/lib/types';
 import { DatePrecision } from '../types';
 import { DATE_OPTIONS } from '../constants';
@@ -58,7 +58,7 @@ export function EventEditor({
                     {(() => {
                         const hasEventType = !!editingEvent.eventType?.trim();
                         const isDateSatisfied = isPrecisionSatisfied(
-                            editingEvent.datePrecision as any,
+                            editingEvent.datePrecision as DatePrecisionUtil,
                             editingEvent.eventDate,
                             editingEvent.endDate,
                             editingEvent.eventTime
@@ -107,7 +107,7 @@ export function EventEditor({
                         <FormField label="Category">
                             <select
                                 value={editingEvent.category}
-                                onChange={(e) => updateEvent(editingEvent.id, { category: e.target.value as any })}
+                                onChange={(e) => updateEvent(editingEvent.id, { category: e.target.value })}
                                 className="w-full h-11 px-4 bg-white border border-[#E8E0D5] rounded-lg text-black focus:border-[#000000] focus:ring-2 focus:ring-[#000000]/10 outline-none cursor-pointer appearance-none"
                             >
                                 {allCategories.map((cat) => (
@@ -140,7 +140,7 @@ export function EventEditor({
                 </FormField>
 
                 <DateInput
-                    precision={editingEvent.datePrecision as import('@/lib/date-utils').DatePrecision}
+                    precision={editingEvent.datePrecision as DatePrecisionUtil}
                     eventDate={editingEvent.eventDate}
                     endDate={editingEvent.endDate}
                     eventTime={editingEvent.eventTime}
@@ -154,7 +154,7 @@ export function EventEditor({
                             return (
                                 <button
                                     key={opt.level}
-                                    onClick={() => updateEvent(editingEvent.id, { importance: opt.level as any })}
+                                    onClick={() => updateEvent(editingEvent.id, { importance: opt.level })}
                                     className={`p-3 rounded-lg text-left transition-all border ${isSelected
                                         ? 'bg-[#000000]/10 border-[#000000]'
                                         : 'bg-white border-[#E8E0D5] hover:border-[#000000]/50'

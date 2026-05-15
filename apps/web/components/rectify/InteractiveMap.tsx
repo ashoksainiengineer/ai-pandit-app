@@ -3,7 +3,7 @@
 // components/rectify/InteractiveMap.tsx
 // Interactive OpenStreetMap with zoom, pan, and click-to-select - OPTIMIZED
 
-import { useEffect, useRef, useCallback, useMemo } from 'react';
+import { useEffect, useRef, useMemo } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 

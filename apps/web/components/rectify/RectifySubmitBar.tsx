@@ -19,7 +19,7 @@ export default function RectifySubmitBar({
     error,
     onBack,
     onNext,
-    onSubmit,
+    onSubmit: _onSubmit,
 }: RectifySubmitBarProps) {
     return (
         <>
