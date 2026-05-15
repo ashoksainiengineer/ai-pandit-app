@@ -212,7 +212,7 @@ ${shuffledCandidates.map(c => `
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 CANDIDATE: ${getCandidateReference(c, duplicateTimes)}
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-${formatCandidateVSL(c as EnhancedCandidate)}
+${formatCandidateVSL(c as EnhancedCandidate, { stage: 6 })}
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 `).join('')}
 

@@ -22,10 +22,12 @@ const PLANET_ORDER = ['sun', 'moon', 'mars', 'mercury', 'jupiter', 'venus', 'sat
 const VARGA_ORDER = ['D9', 'D10', 'D12', 'D60', 'D150'];
 const VARGA_KEYS = ['Ascendant', 'Sun', 'Moon', 'Venus', 'Jupiter', 'Saturn', 'Rahu', 'Ketu'];
 
-/**
- * Main entry point for VSL formatting.
- */
-export function formatCandidateVSL(pkg: EnhancedCandidate): string {
+export interface VSLFormatOptions {
+  stage?: 2 | 4 | 6;
+}
+
+export function formatCandidateVSL(pkg: EnhancedCandidate, options?: VSLFormatOptions): string {
+  const stage = options?.stage ?? 6;
   const segments: string[] = [];
 
   segments.push('#C');
@@ -36,6 +38,43 @@ export function formatCandidateVSL(pkg: EnhancedCandidate): string {
 
   segments.push('#L');
   segments.push(formatLagna(pkg));
+
+  if (stage === 2) {
+    segments.push(formatMatrixCompact(pkg));
+    segments.push(formatVargasCompact(pkg));
+    segments.push(formatDashasCompact(pkg));
+    segments.push(formatKPCompact(pkg));
+    segments.push(formatShadbalaSummary(pkg));
+    segments.push(formatJaiminiCompact(pkg));
+    segments.push(formatSpouse(pkg));
+    return segments.join('\n');
+  }
+
+  if (stage === 4) {
+    segments.push(formatAyanamsa(pkg));
+    segments.push(formatHouseCusps(pkg));
+    segments.push(formatSpecialPoints(pkg));
+    segments.push(formatPakshi(pkg));
+
+    segments.push('#M');
+    segments.push(formatMatrix(pkg));
+    segments.push(formatVimsopaka(pkg));
+
+    segments.push(formatVargas(pkg));
+    segments.push(formatD60Deities(pkg));
+    segments.push(formatAshtakavarga(pkg));
+    segments.push(formatNadi(pkg));
+    segments.push(formatKP(pkg));
+    segments.push(formatCuspal(pkg));
+    segments.push(formatJaimini(pkg));
+    segments.push(formatYogas(pkg));
+    segments.push(formatChalit(pkg));
+    segments.push(formatDashas(pkg));
+    segments.push(formatTransits(pkg));
+    segments.push(formatSpouse(pkg));
+    return segments.join('\n');
+  }
+
   segments.push(formatAyanamsa(pkg));
   segments.push(formatHouseCusps(pkg));
   segments.push(formatSpecialPoints(pkg));
@@ -250,6 +289,17 @@ function formatAspects(aspects: unknown[] | undefined): string {
   }).join(',');
 }
 
+function formatAspectsCompact(aspects: unknown[] | undefined): string {
+  if (!aspects || aspects.length === 0) return '~';
+  return aspects.slice(0, 2).map((a) => {
+    const ar = a as Record<string, unknown>;
+    const planet = ar.planet ? getPlan(String(ar.planet)) : '~';
+    const type = String(ar.type || ar.aspectType || '~');
+    const abbr = type.length <= 4 ? type : type.slice(0, 4);
+    return `${planet}>${abbr}`;
+  }).join(',');
+}
+
 // ── Vimsopaka Bala (!VB) ─────────────────────────────────────────────
 
 function formatVimsopaka(pkg: EnhancedCandidate): string {
@@ -259,6 +309,97 @@ function formatVimsopaka(pkg: EnhancedCandidate): string {
     .sort((a, b) => planetSortWeight(a[0]) - planetSortWeight(b[0]))
     .map(([name, score]) => `${getPlan(name)}:${score}`);
   return `!VB|${entries.join('|')}`;
+}
+
+function formatMatrixCompact(pkg: EnhancedCandidate): string {
+  const planets = pkg.planets;
+  if (!planets || Object.keys(planets).length === 0) return '!M|~';
+
+  const entries = sortPlanetEntries(planets).map(([name, p]) => {
+    const dig = normalizeDignity(p.dignity);
+    const house = typeof p.house === 'number' ? `H${p.house}` : 'H~';
+    const fn = sanitizeToken(p.functionalNature?.role || '~', 12);
+    const shad = typeof p.shadbala === 'number' ? p.shadbala.toFixed(2) : '~';
+
+    return `${getPlan(name)}[${getSgn(p.sign)}|${house}|${dig}|SB${shad}|FN${fn}]`;
+  });
+
+  return `!M|${entries.join('|')}`;
+}
+
+function formatVargasCompact(pkg: EnhancedCandidate): string {
+  const rows: string[] = [];
+
+  if (pkg.vargaDegrees) {
+    for (const chart of ['D9', 'D10']) {
+      const row = pkg.vargaDegrees[chart];
+      if (!row) continue;
+      const asc = row.Ascendant;
+      if (asc) {
+        const { sign } = parseVargaValue(asc);
+        rows.push(`${chart}[Asc:${getSgn(sign)}]`);
+      }
+    }
+  }
+
+  if (rows.length === 0) {
+    if (pkg.d9Chart?.ascendant) rows.push(`D9[Asc:${getSgn(pkg.d9Chart.ascendant)}]`);
+    if (pkg.d10Chart?.ascendant) rows.push(`D10[Asc:${getSgn(pkg.d10Chart.ascendant)}]`);
+  }
+
+  return rows.length > 0 ? `#V|${rows.join('|')}` : '#V|~';
+}
+
+function formatDashasCompact(pkg: EnhancedCandidate): string {
+  const ds = pkg.vimshottariDasha;
+  if (!ds || ds.length === 0) return '#D|~';
+
+  const vim = ds
+    .slice(0, 4)
+    .map((d) => {
+      const window = sanitizeToken(d.startEnd || '~', 28);
+      return `VIM[${getPlan(d.maha)}|${getPlan(d.antar)}|${window}]`;
+    })
+    .join(';');
+
+  return `#D|${vim}`;
+}
+
+function formatKPCompact(pkg: EnhancedCandidate): string {
+  const kp = pkg.kpData?.planetSubLords || pkg.precision?.kpSubLords as KPPlanetSubMap | undefined;
+  if (!kp || Object.keys(kp).length === 0) return '#K|~';
+
+  const entries = Object.entries(kp)
+    .sort((a, b) => planetSortWeight(a[0]) - planetSortWeight(b[0]))
+    .map(([name, lords]) => {
+      return `${getPlan(name)}[${getPlan(lords.starLord)}>${getPlan(lords.subLord)}]`;
+    });
+
+  return `#K|${entries.join('|')}`;
+}
+
+function formatShadbalaSummary(pkg: EnhancedCandidate): string {
+  const planets = pkg.planets;
+  if (!planets || Object.keys(planets).length === 0) return '!SB|~';
+
+  const entries = sortPlanetEntries(planets).map(([name, p]) => {
+    const shad = typeof p.shadbala === 'number' ? p.shadbala.toFixed(2) : '~';
+    return `${getPlan(name)}:${shad}`;
+  });
+
+  return `!SB|${entries.join('|')}`;
+}
+
+function formatJaiminiCompact(pkg: EnhancedCandidate): string {
+  const s = pkg.vedicSignals;
+  const karakas = s?.charaKarakas || [];
+  if (karakas.length === 0) return '#B|~';
+
+  const ak = getPlan(karakas.find((k) => k.karakaName === 'Atmakaraka')?.planet || '~');
+  const amk = getPlan(karakas.find((k) => k.karakaName === 'Amatyakaraka')?.planet || '~');
+  const dk = getPlan(karakas.find((k) => k.karakaName === 'Darakaraka')?.planet || '~');
+
+  return `#B|AK=${ak}|AmK=${amk}|DK=${dk}`;
 }
 
 // ── Vargas (#V) ──────────────────────────────────────────────────────
