@@ -459,18 +459,79 @@ updates.analyzedCount = new Set(newScores.filter(s => s.stage === maxStage).map(
 updates.activeAIStage = (stepIndex === 1 || stepIndex === 2 || stepIndex === 4 || stepIndex === 6) ? stepIndex : prev.activeAIStage;
 }
 
+const thinkingPayload = p.lastAIThinking as Record<string, unknown> | undefined;
+if (thinkingPayload?.fullText && thinkingPayload?.stage) {
+    const stage = Number(thinkingPayload.stage);
+    const candidateTime = String(thinkingPayload.candidateTime || 'general');
+    const fullText = String(thinkingPayload.fullText);
+    if (stage > 0 && fullText.length > 0) {
+        const newCandidatesByStage = { ...prev.candidatesByStage };
+        const stageMap = { ...(newCandidatesByStage[stage] || {}) };
+        const existing: AIThinking = stageMap[candidateTime] || {
+            stage,
+            candidateTime,
+            chunks: [],
+            fullText: '',
+            startedAt: Date.now(),
+        };
+        existing.fullText = fullText;
+        existing.updatedAt = Date.now();
+        stageMap[candidateTime] = existing;
+        newCandidatesByStage[stage] = stageMap;
+        updates.candidatesByStage = newCandidatesByStage;
+    }
+}
+
+const historyPayload = p.stageHistory as Record<string, unknown> | undefined;
+if (historyPayload) {
+    const newStageHistory: Record<number, string> = { ...prev.stageHistory };
+    for (const [stageStr, text] of Object.entries(historyPayload)) {
+        const stage = Number(stageStr);
+        if (!isNaN(stage) && typeof text === 'string' && text.length > 0) {
+            newStageHistory[stage] = text;
+        }
+    }
+    updates.stageHistory = newStageHistory;
+}
+
 return updates;
 }
 
                             case 'candidate_score':
-                            case 'candidate_score_v2':
+                            case 'candidate_score_v2': {
+                                const item = payload as CandidateScore;
+                                if (!item || !item.time) return {};
+
+                                const scoreMap = new Map<string, CandidateScore>();
+                                prev.candidateScores.forEach(s => scoreMap.set(`${s.stage}_${s.time}`, s));
+                                scoreMap.set(`${item.stage}_${item.time}`, item);
+
+                                const newScores = archiveCandidates(Array.from(scoreMap.values()));
+                                const maxStage = newScores.length > 0 ? Math.max(...newScores.map(s => s.stage)) : 1;
+                                const analyzedCount = new Set(newScores.filter(s => s.stage === maxStage).map(s => s.time)).size;
+
+                                return {
+                                    candidateScores: newScores,
+                                    analyzedCount,
+                                    activeAIStage: maxStage
+                                };
+                            }
+
                             case 'candidate_scores': {
-                                const batch = Array.isArray(payload) ? payload : [payload as CandidateScore];
+                                // Batched format from broadcast flush: { type: 'candidate_scores', data: [...] }
+                                // Must unwrap .data before processing. This was silently dropping scores
+                                // on SSE reconnect because the old handler wrapped the entire event object
+                                // as a single-element array, then skipped it (no .time property).
+                                // Also supports direct array payload for backward compatibility.
+                                const rawData = Array.isArray(payload)
+                                    ? payload
+                                    : (payload as Record<string, unknown>)?.data;
+                                const batch = Array.isArray(rawData) ? rawData as CandidateScore[] : [];
                                 if (batch.length === 0) return {};
 
                                 const scoreMap = new Map<string, CandidateScore>();
                                 prev.candidateScores.forEach(s => scoreMap.set(`${s.stage}_${s.time}`, s));
-                                batch.forEach(s => {
+                                (batch as CandidateScore[]).forEach(s => {
                                     if (s && s.time) scoreMap.set(`${s.stage}_${s.time}`, s);
                                 });
 

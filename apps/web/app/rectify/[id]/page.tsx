@@ -41,19 +41,6 @@ const SSEDebugPanel = env.app.isDevelopment
   : () => null;
 
 /* ═══════════════════════════════════════════════════════════════════════════════
-   THEME  —  Prism Design System (light only)
-   ═══════════════════════════════════════════════════════════════════════════════ */
-const C = {
-  canvas: 'var(--prism-canvas)',
-  ink: 'var(--prism-ink)',
-  graphite: 'var(--prism-graphite)',
-  slate: 'var(--prism-slate)',
-  success: '#184131',
-  error: '#C65D3B',
-  accent: '#B8860B',
-} as const;
-
-/* ═══════════════════════════════════════════════════════════════════════════════
    HELPERS
    ═══════════════════════════════════════════════════════════════════════════════ */
 function fmtTime(totalSeconds: number): string {
@@ -310,7 +297,7 @@ function StatusBanner({
 /* ═══════════════════════════════════════════════════════════════════════════════
    PIPELINE  (S1–S6 only, skip S0/init)
    ═══════════════════════════════════════════════════════════════════════════════ */
-function Pipeline({ currentStage, isComplete, isConnected }: { currentStage: number; isComplete: boolean; isConnected: boolean }) {
+function Pipeline({ currentStage, isComplete, isConnected, percentage }: { currentStage: number; isComplete: boolean; isConnected: boolean; percentage?: number }) {
   const pipelineStages = useMemo(() => STAGES.slice(1), []); // S1–S6
 
   const stageStates = useMemo(() => {
@@ -324,7 +311,9 @@ function Pipeline({ currentStage, isComplete, isConnected }: { currentStage: num
   }, [isComplete, currentStage, pipelineStages]);
 
   const completedCount = stageStates.filter(s => s === 'completed').length;
-  const progressPercent = Math.round((completedCount / pipelineStages.length) * 100);
+  // Use backend-authoritative percentage when available (backend divides by 7 steps including init).
+  // Falls back to local calculation over visible stages for standalone display.
+  const progressPercent = percentage ?? Math.round((completedCount / pipelineStages.length) * 100);
 
   return (
     <div className="bg-white border border-[rgba(0,0,0,0.08)] rounded-xl p-4 sm:p-5">
@@ -832,6 +821,7 @@ export default function AnalysisPage() {
               currentStage={currentStageIndex}
               isComplete={session.isComplete}
               isConnected={session.isConnected}
+              percentage={session.progress?.percentage}
             />
           )}
 

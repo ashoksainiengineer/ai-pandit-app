@@ -57,17 +57,13 @@ describe('useAnalysisSession', () => {
             error: null,
             progress: null,
             candidateScores: [],
-            advancedSignals: null,
             result: null,
             startedAt: null,
             allSteps: [],
             metadata: null,
             activeAIStage: null,
-            analyzedCount: 0,
-            totalCandidates: 0,
             candidatesByStage: {},
-            stageHistory: [],
-            stageStats: [],
+            stageHistory: {},
         });
     });
 
@@ -84,21 +80,14 @@ describe('useAnalysisSession', () => {
         expect(result.current.streamError).toBeNull();
         expect(result.current.progress).toBeNull();
         expect(result.current.candidateScores).toEqual([]);
-        expect(result.current.advancedSignals).toBeNull();
         expect(result.current.result).toBeNull();
         expect(result.current.startedAt).toBeNull();
         expect(result.current.allSteps).toEqual([]);
         expect(result.current.metadata).toBeNull();
         expect(result.current.activeAIStage).toBeNull();
-        expect(result.current.analyzedCount).toBe(0);
-        expect(result.current.totalCandidates).toBe(0);
         expect(result.current.candidatesByStage).toEqual({});
-        expect(result.current.stageHistory).toEqual([]);
-        expect(result.current.stageStats).toEqual([]);
+        expect(result.current.stageHistory).toEqual({});
         expect(result.current.elapsedSeconds).toBe(0);
-        expect(result.current.sortedCandidateScores).toEqual([]);
-        expect(result.current.offsetMinutes).toBe(60);
-        expect(typeof result.current.handleStageClick).toBe('function');
         expect(result.current.hasError).toBe(false);
         expect(result.current.errorMessage).toBe('Unknown error');
         expect(result.current.hasData).toBe(false);
@@ -121,23 +110,5 @@ describe('useAnalysisSession', () => {
         );
 
         expect(result.current.isConnected).toBe(true);
-    });
-
-    it('should compute offsetMinutes from metadata preset', () => {
-        mockStreamStoreState.metadata = { offsetConfig: { preset: '2hours', customMinutes: 120 } };
-        const { result } = renderHook(() =>
-            useAnalysisSession('session-123', true, true, mockGetToken)
-        );
-
-        expect(result.current.offsetMinutes).toBe(120);
-    });
-
-    it('should compute offsetMinutes from customMinutes when provided', () => {
-        mockStreamStoreState.metadata = { offsetConfig: { preset: '1hour', customMinutes: 45 } };
-        const { result } = renderHook(() =>
-            useAnalysisSession('session-123', true, true, mockGetToken)
-        );
-
-        expect(result.current.offsetMinutes).toBe(45);
     });
 });
