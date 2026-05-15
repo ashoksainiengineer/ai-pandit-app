@@ -10,7 +10,8 @@ import { AppError } from '@ai-pandit/shared';
 import { SecondsPrecisionInput, EphemerisData } from '@ai-pandit/shared';
 import { CandidateTime, getCandidateIdentity, getDynamicBatchSize, getDynamicSurvivors, sortCandidatesByMerit, splitIntoBatches } from '../../time-offset-manager.js';
 import { ProgressTracker } from '../../progress-tracker.js';
-import { _callAIWithStream, _executeAIInParallel } from '../../ai-client.js';
+import { _callAIWithStream } from '../../ai-client.js';
+import { executeAIWithBackpressure } from '../../ai-helpers.js';
 import { emitAIContext } from '../../session-events.js';
 import { calculateEphemeris } from '../../ephemeris.js';
 import { getDashaForDate } from '../../vedic-astrology-engine.js';
@@ -321,171 +322,179 @@ export async function stage6FinalPrecision(
         const initialFinalistsCount = finalists.length;
         const batches = splitIntoBatches(finalists, batchSize, `${input.sessionId}:stage6:r${roundNumber}`);
         const batchWinners: CandidateTime[] = [];
-        const batchDataMap = new Map<number, CandidateDataPackage[]>();
+        let roundReasoning = '';
 
-        const tasks = batches.map((batchTimes, i) => async () => {
-            const batchEnriched = await Promise.all(batchTimes.map(ct =>
-                buildCandidateDataPackage(ct.time, ct.offsetMinutes, input, {
-                    includeFullData: true,
-                    dashaDepth: 4,
-                    pranaWindowDays: 3,
-                    lifecycleShifts: globalLifecycle,
-                    candidate: ct,
-                })
-            ));
-            batchDataMap.set(i, batchEnriched);
-
-            if (batchEnriched.length === 0) {
-                logger.error(`🔱 [STAGE-6] Batch ${i + 1} enrichment returned no data`);
-                return { success: false, error: 'Enrichment failed', content: '' };
+        async function* finalPrecisionGenerator(): AsyncGenerator<{ index: number; payload: { batchTimes: CandidateTime[]; batchEnriched: CandidateDataPackage[] } }> {
+            for (let i = 0; i < batches.length; i++) {
+                const batchTimes = batches[i];
+                const batchEnriched = await Promise.all(batchTimes.map(ct =>
+                    buildCandidateDataPackage(ct.time, ct.offsetMinutes, input, {
+                        includeFullData: true,
+                        dashaDepth: 4,
+                        pranaWindowDays: 3,
+                        lifecycleShifts: globalLifecycle,
+                        candidate: ct,
+                    })
+                ));
+                yield { index: i, payload: { batchTimes, batchEnriched } };
+                batchEnriched.length = 0;
             }
+        }
 
-            const presentAnchor = buildPresentTransitLockMap(batchEnriched, currentEph, now);
-            
-            const systemPrompt = 'FINAL PRECISION JUDGEMENT. Pick THE ONE based on astrological alignment.';
-            const userPrompt = getFinalPrecisionPrompt(batchEnriched, input.lifeEvents, input.spouseData, presentAnchor);
-            
-            // Save batch metadata
-            btrDataCapture.saveBatchMetadata(
-                input.sessionId,
-                6,
-                1,
-                i + 1,
-                batchTimes.map(c => c.time),
-                1
-            );
-            
-            // Save ephemeris and prompts
-            for (const candidate of batchEnriched) {
-                btrDataCapture.saveEphemeris(
+        const results = await executeAIWithBackpressure(
+            finalPrecisionGenerator(),
+            async ({ index, payload }) => {
+                const { batchTimes, batchEnriched } = payload;
+                const i = index;
+
+                if (batchEnriched.length === 0) {
+                    logger.error(`🔱 [STAGE-6] Batch ${i + 1} enrichment returned no data`);
+                    return { winner: null as CandidateTime | null, aiContent: '' };
+                }
+
+                const presentAnchor = buildPresentTransitLockMap(batchEnriched, currentEph, now);
+                
+                const systemPrompt = 'FINAL PRECISION JUDGEMENT. Pick THE ONE based on astrological alignment.';
+                const userPrompt = getFinalPrecisionPrompt(batchEnriched, input.lifeEvents, input.spouseData, presentAnchor);
+                
+                // Save batch metadata
+                btrDataCapture.saveBatchMetadata(
                     input.sessionId,
                     6,
-                    candidate.time,
-                    {
-                        planets: candidate.planets,
-                        houses: candidate.houseLords,
-                        lagna: candidate.ascendant,
-                        vimshottariDasha: candidate.vimshottariDasha,
-                        vargas: candidate.vargaDegrees,
-                        transits: candidate.transitData
-                    },
                     1,
-                    i + 1
+                    i + 1,
+                    batchTimes.map(c => c.time),
+                    1
                 );
                 
-                btrDataCapture.savePrompt(
-                    input.sessionId,
-                    6,
-                    candidate.time,
-                    systemPrompt,
-                    userPrompt,
-                    {
-                        candidateCount: batchEnriched.length,
-                        eventCount: input.lifeEvents.length,
-                        spouseDataPresent: !!input.spouseData,
-                    },
-                    1,
-                    i + 1
-                );
-            }
-
-            const resp = await _callAIWithStream(
-                input.sessionId,
-                6,
-                systemPrompt,
-                userPrompt,
-                {
-                    candidateTime: `R1-B${i + 1}`,
-                    abortSignal: input.abortSignal,
-                    progressTracker: progress,
-                    maxTokens: config.ai.stage6MaxTokens,
-                    model: config.ai.reasonerModel,
-                }
-            );
-            
-            // Save AI responses
-            if (resp.success) {
-                const verdict = extractFinalVerdict(resp.content || resp.thinking || '');
+                // Save ephemeris and prompts
                 for (const candidate of batchEnriched) {
-                    btrDataCapture.saveAIResponse(
+                    btrDataCapture.saveEphemeris(
                         input.sessionId,
                         6,
                         candidate.time,
-                        resp.thinking || '',
-                        resp.content || '',
                         {
-                            score: verdict?.confidence ? parseFloat(String(verdict.confidence)) : undefined,
-                            verdict: verdict?.time,
-                            tokensUsed: { prompt: 0, completion: 0, total: 0 },
-                            duration: 0,
-                            model: config.ai.reasonerModel
+                            planets: candidate.planets,
+                            houses: candidate.houseLords,
+                            lagna: candidate.ascendant,
+                            vimshottariDasha: candidate.vimshottariDasha,
+                            vargas: candidate.vargaDegrees,
+                            transits: candidate.transitData
+                        },
+                        1,
+                        i + 1
+                    );
+                    
+                    btrDataCapture.savePrompt(
+                        input.sessionId,
+                        6,
+                        candidate.time,
+                        systemPrompt,
+                        userPrompt,
+                        {
+                            candidateCount: batchEnriched.length,
+                            eventCount: input.lifeEvents.length,
+                            spouseDataPresent: !!input.spouseData,
                         },
                         1,
                         i + 1
                     );
                 }
-            }
 
-            const aiContent = resp.success ? (resp.content || resp.thinking || '') : '';
-            return { response: resp, aiContent };
-        });
-
-        const results = await _executeAIInParallel(tasks, config.ai.parallelConcurrency, config.ai.parallelStaggerMs); // Configurable concurrency/stagger
-
-        // Accumulate reasoning from batches
-        allReasoning += results.map(r => r.aiContent).filter(Boolean).join('\n\n---\n\n');
-
-        for (let i = 0; i < batches.length; i++) {
-            const batchTimes = batches[i];
-            const result = results[i];
-            if (!result) continue;
-
-            const response = result.response;
-            if (!response) continue;
-
-            const fullBatchData = batchDataMap.get(i) || [];
-            const aiContent = response.success ? (response.content || response.thinking || '') : '';
-            const verdict = extractFinalVerdict(aiContent);
-            const resolved = resolveCandidateByVerdictTime(verdict?.time, batchTimes, BATCH_VERDICT_MATCH_THRESHOLD_SECONDS);
-            const selectedWinner = resolved.match;
-
-            if (verdict?.time && !selectedWinner) {
-                logger.warn(`🔱 [STAGE-6] Batch ${i + 1} verdict time "${verdict.time}" not in finalists. Ignoring verdict and using deterministic fallback.`);
-            } else if (selectedWinner && verdict?.time !== selectedWinner.time) {
-                logger.info(`🔱 [STAGE-6] Batch ${i + 1} mapped verdict "${verdict?.time}" -> "${selectedWinner.time}" (${resolved.diffSeconds}s)`);
-            }
-
-            const fallbackWinner = !selectedWinner && batchTimes.length > 0
-                ? pickDeterministicFallbackWinner(batchTimes)
-                : null;
-
-            for (let j = 0; j < fullBatchData.length; j++) {
-                const candidate = fullBatchData[j];
-                const originalTimeInfo = batchTimes[j];
-                const winnerTime = selectedWinner?.time || fallbackWinner?.time;
-                const isWinner = !!winnerTime && candidate.time === winnerTime;
-                const score = isWinner
-                    ? (selectedWinner ? (verdict?.accuracy || 90) : config.btr.fallbackPromotedScore)
-                    : 60;
-
-                if (isWinner) {
-                    batchWinners.push(originalTimeInfo);
+                const resp = await _callAIWithStream(
+                    input.sessionId,
+                    6,
+                    systemPrompt,
+                    userPrompt,
+                    {
+                        candidateTime: `R1-B${i + 1}`,
+                        abortSignal: input.abortSignal,
+                        progressTracker: progress,
+                        maxTokens: config.ai.stage6MaxTokens,
+                        model: config.ai.reasonerModel,
+                    }
+                );
+                
+                // Save AI responses
+                if (resp.success) {
+                    const verdict = extractFinalVerdict(resp.content || resp.thinking || '');
+                    for (const candidate of batchEnriched) {
+                        btrDataCapture.saveAIResponse(
+                            input.sessionId,
+                            6,
+                            candidate.time,
+                            resp.thinking || '',
+                            resp.content || '',
+                            {
+                                score: verdict?.confidence ? parseFloat(String(verdict.confidence)) : undefined,
+                                verdict: verdict?.time,
+                                tokensUsed: { prompt: 0, completion: 0, total: 0 },
+                                duration: 0,
+                                model: config.ai.reasonerModel
+                            },
+                            1,
+                            i + 1
+                        );
+                    }
                 }
 
-                await progress.addCandidateScore({
-                    time: candidate.time,
-                    score,
-                    stage: 6,
-                    batch: i + 1,
-                    minifiedEph: getMinifiedEphemerisInline(candidate),
-                    fullEph: getFullEphemerisPayload(candidate)
-                });
-            }
+                const aiContent = resp.success ? (resp.content || resp.thinking || '') : '';
+                const verdict = extractFinalVerdict(aiContent);
+                const resolved = resolveCandidateByVerdictTime(verdict?.time, batchTimes, BATCH_VERDICT_MATCH_THRESHOLD_SECONDS);
+                const selectedWinner = resolved.match;
 
-            if (!selectedWinner && fallbackWinner) {
-                logger.warn(`🔱 [STAGE-6] Batch ${i + 1} fallback winner selected deterministically: ${fallbackWinner.time}`);
+                if (verdict?.time && !selectedWinner) {
+                    logger.warn(`🔱 [STAGE-6] Batch ${i + 1} verdict time "${verdict.time}" not in finalists. Ignoring verdict and using deterministic fallback.`);
+                } else if (selectedWinner && verdict?.time !== selectedWinner.time) {
+                    logger.info(`🔱 [STAGE-6] Batch ${i + 1} mapped verdict "${verdict?.time}" -> "${selectedWinner.time}" (${resolved.diffSeconds}s)`);
+                }
+
+                const fallbackWinner = !selectedWinner && batchTimes.length > 0
+                    ? pickDeterministicFallbackWinner(batchTimes)
+                    : null;
+
+                let batchWinner: CandidateTime | null = null;
+                for (let j = 0; j < batchEnriched.length; j++) {
+                    const candidate = batchEnriched[j];
+                    const originalTimeInfo = batchTimes[j];
+                    const winnerTime = selectedWinner?.time || fallbackWinner?.time;
+                    const isWinner = !!winnerTime && candidate.time === winnerTime;
+                    const score = isWinner
+                        ? (selectedWinner ? (verdict?.accuracy || 90) : config.btr.fallbackPromotedScore)
+                        : 60;
+
+                    if (isWinner) {
+                        batchWinner = originalTimeInfo;
+                    }
+
+                    await progress.addCandidateScore({
+                        time: candidate.time,
+                        score,
+                        stage: 6,
+                        batch: i + 1,
+                        minifiedEph: getMinifiedEphemerisInline(candidate),
+                        fullEph: getFullEphemerisPayload(candidate)
+                    });
+                }
+
+                if (!selectedWinner && fallbackWinner) {
+                    logger.warn(`🔱 [STAGE-6] Batch ${i + 1} fallback winner selected deterministically: ${fallbackWinner.time}`);
+                }
+
+                return { winner: batchWinner, aiContent };
+            },
+            config.ai.parallelConcurrency,
+            config.ai.parallelStaggerMs
+        );
+
+        // Accumulate winners and reasoning from results
+        for (const r of results) {
+            if (r) {
+                if (r.winner) batchWinners.push(r.winner);
+                if (r.aiContent) roundReasoning += (roundReasoning ? '\n\n---\n\n' : '') + r.aiContent;
             }
         }
+        allReasoning += roundReasoning;
 
         // Break early if we made no progress cutting down candidates
         if (batchWinners.length >= initialFinalistsCount) {
