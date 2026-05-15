@@ -310,7 +310,7 @@ export const useStreamStore = create<StreamStore>()(
                                 ? { ...prev.expandedCandidate, fullEph: data.fullEph, loading: false }
                                 : prev.expandedCandidate,
                         }));
-                    } catch (_err) {
+                    } catch {
                         set(prev => ({
                             expandedCandidate: prev.expandedCandidate?.time === time
                                 ? { ...prev.expandedCandidate, loading: false, error: 'Network error' }
@@ -358,7 +358,7 @@ export const useStreamStore = create<StreamStore>()(
                                 ? { ...prev.expandedCandidate, reasoning: data.reasoning, loading: false }
                                 : prev.expandedCandidate,
                         }));
-                    } catch (_err) {
+                    } catch {
                         set(prev => ({
                             expandedCandidate: prev.expandedCandidate?.time === time
                                 ? { ...prev.expandedCandidate, loading: false, error: 'Network error' }

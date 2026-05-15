@@ -215,7 +215,7 @@ export function templateToLifeEvent(
     const category = getCategoryById(categoryId);
     return {
         id: `${template.id}_${Date.now()}`,
-        category: categoryId as any,
+        category: categoryId,
         eventType: template.label,
         datePrecision: 'exact',
         eventDate,

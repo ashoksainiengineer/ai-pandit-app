@@ -159,7 +159,7 @@ break;
                             const result = machine.onSseMessage(data, event.lastEventId);
                             setConnectionState(result.state);
                             applyEffects(result.effects);
-                        } catch (e) {
+                        } catch {
                             // Non-critical: malformed SSE data — skip and continue streaming
                             logger.warn('Failed to parse SSE message');
                         }
@@ -225,6 +225,7 @@ break;
                     break;
             }
         }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [machine, dispatchStreamEvent, setLastEventId, forceError]);
 
     // ── token / ticket helpers ────────────────────────────────────────────────
@@ -261,7 +262,7 @@ break;
         return ticket;
     };
 
-    const tryAutoRequeue = async (sid: string, token: string | null): Promise<boolean> => {
+    const _tryAutoRequeue = async (sid: string, token: string | null): Promise<boolean> => {
         if (forcePollingTransport) {
             try {
                 const res = await fetch('/api/analysis/requeue', {
@@ -312,7 +313,7 @@ break;
         }
     };
 
-    const resolvePollToken = async (shouldUseProxyProgress: boolean, options: PollOptions): Promise<string | null> => {
+    const _resolvePollToken = async (shouldUseProxyProgress: boolean, options: PollOptions): Promise<string | null> => {
         if (shouldUseProxyProgress) return null;
 
         const cached = machine.getCachedToken();
@@ -327,7 +328,7 @@ break;
         return getTokenWithRetry(getToken, options as Record<string, unknown>);
     };
 
-    const buildPollUrl = (sid: string, shouldUseProxyProgress: boolean, options: PollOptions): string => {
+    const _buildPollUrl = (sid: string, shouldUseProxyProgress: boolean, options: PollOptions): string => {
         const sseBaseUrl = backendUrl || machineConfigRef.current.backendUrl;
 
         if (shouldUseProxyProgress) {
@@ -536,6 +537,7 @@ return;
         }, REFRESH_INTERVAL);
 
         return () => clearInterval(interval);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [getToken]);
 
     return { connectionState };

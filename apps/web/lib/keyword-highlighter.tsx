@@ -30,9 +30,6 @@ const ANALYSIS_TERMS = [
     'Reasoning', 'Evidence', 'Analysis',
 ];
 
-// Score patterns (e.g., "87.3%", "Score: 92")
-const SCORE_PATTERN = /\b(\d{1,3}\.\d%)/g;
-
 const escapeRegExp = (string: string) => string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 const allTerms = [

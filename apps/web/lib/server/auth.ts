@@ -12,7 +12,7 @@
  */
 
 import { auth as clerkAuth, currentUser as clerkCurrentUser } from '@clerk/nextjs/server';
-import type { AuthIdentity, AuthUserProfile } from '@ai-pandit/shared';
+import type { AuthUserProfile } from '@ai-pandit/shared';
 
 // ── Types ────────────────────────────────────────────────────────────────────
 

@@ -35,7 +35,7 @@ export async function proxyBackendJson(req: NextRequest, options: ProxyOptions):
       body: options.body !== undefined ? JSON.stringify(options.body) : undefined,
       cache: 'no-store',
     });
-  } catch (fetchError) {
+  } catch {
     return NextResponse.json(
       { success: false, error: 'Backend unreachable. Please try again.' },
       { status: 502 }
