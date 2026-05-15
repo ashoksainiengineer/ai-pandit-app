@@ -73,13 +73,6 @@ function formatReadingDate(dateString: string): string {
   }).format(date);
 }
 
-function formatDuration(seconds?: number): string {
-  if (!seconds) return '-';
-  const minutes = Math.floor(seconds / 60);
-  const remainingSeconds = seconds % 60;
-  return `${minutes}m ${remainingSeconds}s`;
-}
-
 export default function RecentReadingsTable({ readings, loading }: RecentReadingsTableProps) {
   if (loading) {
     return (

@@ -42,22 +42,6 @@ interface SessionCardProps {
   onDuplicate?: (id: string) => void;
 }
 
-// Sacred Ivory Light Theme Colors
-const THEME = {
-  bg: '#FAFAFA',
-  surface: 'white',
-  textPrimary: '#000000',
-  textSecondary: '#636363',
-  textMuted: '#959595',
-  border: 'rgba(0,0,0,0.08)',
-  borderHover: '#E8E0D5',
-  gold: '#000000',
-  goldLight: '#000000',
-  success: '#184131',
-  error: '#C65D3B',
-  info: '#3B82F6',
-} as const;
-
 const statusConfig = {
   complete: {
     label: '✓ Verified',
@@ -491,10 +475,10 @@ export const SessionCard = memo(function SessionCard({
             <span className="truncate">{session.birthPlace}</span>
           </div>
           {/* Offset Config */}
-          {(session as any).offsetConfig && (
+          {session.offsetConfig && (
             <div className="flex items-center gap-1 text-[10px] text-[#959595]">
               <span className="bg-[var(--prism-canvas)] px-1.5 py-0.5 rounded">
-                ±{(session as any).offsetConfig.customMinutes || 60}min
+                ±{session.offsetConfig.customMinutes || 60}min
               </span>
             </div>
           )}

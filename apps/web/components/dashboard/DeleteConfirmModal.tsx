@@ -7,7 +7,7 @@
 
 import { memo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { AlertTriangle, Trash2, X, Loader2, Shield, User, FileText, Sparkles, Database } from 'lucide-react';
+import { AlertTriangle, Trash2, X, Loader2, User, FileText, Sparkles, Database } from 'lucide-react';
 import { DashboardSession } from '@/lib/dashboard/types';
 
 interface DeleteConfirmModalProps {
