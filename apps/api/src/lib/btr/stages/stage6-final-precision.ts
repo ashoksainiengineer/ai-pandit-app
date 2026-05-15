@@ -32,7 +32,7 @@ import { buildCandidateReferenceMap, getCandidateReference } from '../candidate-
 import { getOffsetMinutes } from '../utils.js';
 
 const BATCH_VERDICT_MATCH_THRESHOLD_SECONDS = 8;
-const FINAL_VERDICT_MATCH_THRESHOLD_SECONDS = 12;
+const FINAL_VERDICT_MATCH_THRESHOLD_SECONDS = 30;
 type LifecycleShift = NonNullable<CandidateDataPackage['lifecycleShifts']>[number];
 type PresentTransitLock = {
     dashaAtNow: string;
