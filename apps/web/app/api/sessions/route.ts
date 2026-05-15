@@ -6,15 +6,13 @@ import { db } from '@ai-pandit/db';
 import { sessions, users } from '@ai-pandit/db/schema';
 import { eq, desc } from 'drizzle-orm';
 import { getServerAuth, getServerCurrentUser } from '@/lib/server/auth';
-import { createEncryption } from '@ai-pandit/shared';
+import { getWebEncryption } from '@/lib/crypto';
 import { ensureUserRecord } from '@/lib/server/user-sync';
 import { getProtectedFieldsPresent } from '@/lib/server/session-write-guards';
 import { getBuildPhaseRouteResponse } from '@/lib/server/build-phase-route-guard';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
-
-const crypto = createEncryption(env.security.encryptionSecret ?? '');
 
 const INTERNAL_ERROR = 'An internal error occurred. Please try again.';
 
@@ -70,6 +68,7 @@ export async function GET(_req: NextRequest) {
     } catch { /* favorites unavailable */ }
 
     // Only decrypt fields dashboard list actually needs
+    const crypto = getWebEncryption();
     const parsedSessions = userSessions.map((s) => ({
       ...s,
       isFavorite: favoriteSet.has(s.id),
@@ -147,26 +146,27 @@ export async function POST(req: NextRequest) {
     const newSessionId = randomUUID();
     const bd = body.birthData;
 
+    const webCrypto = getWebEncryption();
     const newSession = {
       id: newSessionId,
       userId: user.id,
       externalId: providerId,
-      fullName: crypto.encrypt(bd.fullName || 'Unknown', user.id),
-      dateOfBirth: crypto.encrypt(bd.dateOfBirth || '', user.id),
-      tentativeTime: crypto.encrypt(bd.tentativeTime || '', user.id),
-      birthPlace: crypto.encrypt(bd.birthPlace || '', user.id),
+      fullName: webCrypto.encrypt(bd.fullName || 'Unknown', user.id),
+      dateOfBirth: webCrypto.encrypt(bd.dateOfBirth || '', user.id),
+      tentativeTime: webCrypto.encrypt(bd.tentativeTime || '', user.id),
+      birthPlace: webCrypto.encrypt(bd.birthPlace || '', user.id),
       latitude: bd.latitude || 0,
       longitude: bd.longitude || 0,
       timezone: String(bd.timezone ?? 5.5),
       gender: bd.gender || 'male',
       lifeEvents: body.lifeEvents
-        ? crypto.encrypt(JSON.stringify(body.lifeEvents), user.id)
-        : crypto.encrypt('[]', user.id),
+        ? webCrypto.encrypt(JSON.stringify(body.lifeEvents), user.id)
+        : webCrypto.encrypt('[]', user.id),
       spouseData: body.spouseData
-        ? crypto.encrypt(JSON.stringify(body.spouseData), user.id)
+        ? webCrypto.encrypt(JSON.stringify(body.spouseData), user.id)
         : null,
       offsetConfig: body.offsetConfig
-        ? crypto.encrypt(JSON.stringify(body.offsetConfig), user.id)
+        ? webCrypto.encrypt(JSON.stringify(body.offsetConfig), user.id)
         : null,
       status: 'draft' as const,
       isEncrypted: true,

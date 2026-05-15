@@ -49,7 +49,7 @@ function resolveBackendUrl(): string {
   const isBuildPhase = process.env.NEXT_PHASE === 'phase-production-build';
 
   if (!raw) {
-    if (isDevelopment || isTest) {
+    if (isDevelopment || isTest || isBuildPhase) {
       return 'http://localhost:3001';
     }
     throw new Error(
@@ -177,7 +177,14 @@ export const env = {
   },
 
   security: {
-    get encryptionSecret() { return process.env.ENCRYPTION_SECRET; },
+    get encryptionSecret() {
+      const secret = process.env.ENCRYPTION_SECRET;
+      if (secret) return secret;
+      if (process.env.NEXT_PHASE === 'phase-production-build') {
+        return 'build_placeholder_32_char_secret_key_2026';
+      }
+      return secret;
+    },
   },
 
   features: {

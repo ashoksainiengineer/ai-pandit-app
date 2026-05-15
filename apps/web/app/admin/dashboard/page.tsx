@@ -1,21 +1,16 @@
-/**
- * Admin Dashboard Page
- * Main dashboard overview with metrics, charts, and recent readings
- */
-
 'use client';
 
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@clerk/nextjs';
 import { env } from '@/lib/config/env';
-import dynamic from 'next/dynamic';
+import nextDynamic from 'next/dynamic';
 import DashboardLayout from '@/app/components/dashboard/DashboardLayout';
 import StatsCard from '@/app/components/dashboard/StatsCard';
 import ChartCard from '@/app/components/dashboard/ChartCard';
 import RecentReadingsTable from '@/app/components/dashboard/RecentReadingsTable';
 import '@/app/globals.css';
 
-const ReadingsChart = dynamic(() => import('@/app/components/dashboard/charts/ReadingsChart'), {
+const ReadingsChart = nextDynamic(() => import('@/app/components/dashboard/charts/ReadingsChart'), {
   ssr: false,
   loading: () => <div className="h-64 rounded-2xl bg-black/5 animate-pulse" />
 });
