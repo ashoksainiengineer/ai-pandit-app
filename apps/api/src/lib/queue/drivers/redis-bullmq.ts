@@ -70,12 +70,22 @@ export class RedisBullMqQueueDriver implements QueueDriver {
     return countActiveJobs();
   }
 
+  /** Pub/Sub channel for notifying workers of new jobs */
+  private readonly notifyChannel = 'btr:job:notify';
+
   public async enqueueSession(sessionId: string): Promise<void> {
     await this.ensureConnected();
 
     // Best-effort deduplication before queueing latest attempt.
     await this.client.lrem(this.queueKey, 0, sessionId);
     await this.client.rpush(this.queueKey, sessionId);
+
+    // Notify idle workers via Redis Pub/Sub so they wake up immediately
+    // instead of waiting for the next BLPOP/poll cycle. This eliminates
+    // wasteful polling commands and enables near-zero idle Redis usage.
+    await this.client.publish(this.notifyChannel, sessionId).catch(() => {
+      // Pub/Sub is advisory — queue push already guarantees delivery
+    });
   }
 
   public async scheduleRetrySession(sessionId: string, nextRetryAtIso: string): Promise<void> {

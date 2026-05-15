@@ -34,7 +34,7 @@ async function initApiRedisEventStore(redisClient: import('ioredis').Redis): Pro
 config({ path: '.env' });
 config({ path: '.env.local' });
 
-const pollIntervalMs = Number(process.env.WORKER_POLL_INTERVAL_MS || 2000);
+const pollIntervalMs = Number(process.env.WORKER_POLL_INTERVAL_MS || 60000);
 const port = Number(process.env.PORT || 8080);
 const drainTimeoutMs = Number(process.env.WORKER_DRAIN_TIMEOUT_MS || 30000);
 
@@ -79,6 +79,8 @@ const redisClient = (() => {
 // Wire the ioredis instance into the existing RedisEventStore so progress
 // events, heartbeats and checkpoints survive container restarts.
 let redisEventsReady = false;
+/** Dedicated Redis connection for Pub/Sub job notifications (separate from main client) */
+let pubSubClient: import('ioredis').Redis | null = null;
 console.log({ 
   event: 'worker_startup_context', 
   cwd: process.cwd(), 
@@ -195,6 +197,12 @@ async function gracefulShutdown(signal: 'SIGTERM' | 'SIGINT' | 'uncaughtExceptio
 
     // Disconnect Redis event store client
     await redisClient.quit().catch(() => {});
+
+    // Disconnect Pub/Sub client (separate connection)
+    if (pubSubClient) {
+      await pubSubClient.quit().catch(() => {});
+      pubSubClient = null;
+    }
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     console.error('[WORKER] Graceful shutdown encountered an error:', message);
@@ -644,7 +652,26 @@ void (async () => {
       redisEventsReady = false;
       console.warn(`[WORKER] Redis Event Store init failed — progress events will not be published: ${message}`);
     }
-    
+
+    // Subscribe to job notifications (Pub/Sub) for instant wake-up.
+    // When the API enqueues a new job, it publishes to 'btr:job:notify'.
+    // This eliminates wasteful polling — worker stays idle with near-zero
+    // Redis commands until a new job arrives. The 60s poll interval below
+    // is only a safety net for missed notifications.
+    try {
+      pubSubClient = redisClient.duplicate();
+      await pubSubClient.subscribe('btr:job:notify');
+      pubSubClient.on('message', (_channel: string) => {
+        processJob().catch((err) =>
+          console.error('[WORKER] Notification-triggered processJob failed:', err)
+        );
+      });
+      console.log('[WORKER] Subscribed to job notifications (Pub/Sub)');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      pubSubClient = null;
+      console.warn(`[WORKER] Pub/Sub subscription failed — falling back to polling only: ${message}`);
+    }
 
     await workerRuntime.initialize({ pollIntervalMs });
     workerStarted = true;

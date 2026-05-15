@@ -33,7 +33,7 @@ import { and, eq, lte, or } from 'drizzle-orm';
 
 const QUEUE_PREFIX = 'ai-pandit:btr:jobs';
 const REDIS_CLAIM_BATCH_SIZE = 50;
-const BLPOP_TIMEOUT_SECONDS = 5;
+const BLPOP_TIMEOUT_SECONDS = 30;
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -46,6 +46,8 @@ export interface RedisQueueConfig {
   queuePrefix?: string;
   /** Connection timeout in ms (default: 10000) */
   connectTimeout?: number;
+  /** BLPOP timeout in seconds (default: 30) */
+  blpopTimeout?: number;
 }
 
 export interface RedisQueueClient {
@@ -210,7 +212,7 @@ export function createRedisQueueClient(config: RedisQueueConfig): RedisQueueClie
       // Block until a job arrives
       const result = await client.blpop(
         readyKey,
-        timeoutSeconds ?? BLPOP_TIMEOUT_SECONDS,
+        timeoutSeconds ?? config.blpopTimeout ?? BLPOP_TIMEOUT_SECONDS,
       );
 
       if (!result) return null;
