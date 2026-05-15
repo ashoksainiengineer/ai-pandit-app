@@ -10,7 +10,8 @@ import { AppError } from '@ai-pandit/shared';
 import { SecondsPrecisionInput } from '@ai-pandit/shared';
 import { CandidateTime, getCandidateIdentity, getDynamicBatchSize, getDynamicSurvivors, sortCandidatesByMerit, splitIntoBatches } from '../../time-offset-manager.js';
 import { ProgressTracker } from '../../progress-tracker.js';
-import { _callAIWithStream, _executeAIInParallel } from '../../ai-client.js';
+import { _callAIWithStream } from '../../ai-client.js';
+import { executeAIWithBackpressure } from '../../ai-helpers.js';
 import { emitAIContext, emitDecision } from '../../session-events.js';
 import { throwIfCancelled } from '../../cancellation-manager.js';
 import { buildCandidateDataPackage } from '../data-package-builder.js';
@@ -69,181 +70,196 @@ export async function stage4DeepAnalysis(
         const batchSize = getDynamicBatchSize(currentCandidates.length, offsetMinutes);
         const survivorsPerBatch = getDynamicSurvivors(batchSize, offsetMinutes, false);
         const batches = splitIntoBatches(currentCandidates, batchSize, `${input.sessionId}:stage4:r${roundNumber}`);
-        const batchDataMap = new Map<number, CandidateDataPackage[]>();
         let completedBatches = 0;
-        const tasks = batches.map((batchTimes, i) => async () => {
-            const batchEnriched = await Promise.all(batchTimes.map(ct =>
-                buildCandidateDataPackage(ct.time, ct.offsetMinutes, input, {
-                    includeFullData: true,
-                    dashaDepth: 4, // High Precision (Sookshma Dasha)
-                    lifecycleShifts: globalLifecycle,
-                    candidate: ct,
-                })
-            ));
-            batchDataMap.set(i, batchEnriched);
 
-            emitAIContext(input.sessionId, {
-                stage: 4,
-                candidateTime: `Deep R${roundNumber}-B${i + 1}/${batches.length}`,
-                batch: i + 1,
-                totalBatches: batches.length,
-                candidatesInBatch: batchEnriched.map(c => ({
-                    time: c.time,
-                    ascendant: `${c.ascendant.sign} ${c.ascendant.degree}`,
-                    moon: `${c.planets.moon.sign} ${c.planets.moon.degree}`
-                })),
-                lifeEventsCount: input.lifeEvents.length,
-            });
+        async function* deepAnalysisGenerator(): AsyncGenerator<{ index: number; payload: { batchTimes: CandidateTime[]; batchEnriched: CandidateDataPackage[] } }> {
+            for (let i = 0; i < batches.length; i++) {
+                const batchTimes = batches[i];
+                const batchEnriched = await Promise.all(batchTimes.map(ct =>
+                    buildCandidateDataPackage(ct.time, ct.offsetMinutes, input, {
+                        includeFullData: true,
+                        dashaDepth: 4, // High Precision (Sookshma Dasha)
+                        lifecycleShifts: globalLifecycle,
+                        candidate: ct,
+                    })
+                ));
+                yield { index: i, payload: { batchTimes, batchEnriched } };
+                batchEnriched.length = 0;
+            }
+        }
 
-            const systemPrompt = 'You are the GOD-TIER VEDIC ANALYST. Perform deep multi-dasha verification.';
-            const userPrompt = getDeepAnalysisPrompt(batchEnriched, input.lifeEvents, input.spouseData, offsetMinutes);
-            
-            // Save batch metadata
-            btrDataCapture.saveBatchMetadata(
-                input.sessionId,
-                4,
-                roundNumber,
-                i + 1,
-                batchTimes.map(c => c.time),
-                survivorsPerBatch
-            );
-            
-            // Save ephemeris and prompts for each candidate
-            for (const candidate of batchEnriched) {
-                btrDataCapture.saveEphemeris(
+        const results = await executeAIWithBackpressure(
+            deepAnalysisGenerator(),
+            async ({ index, payload }) => {
+                const { batchTimes, batchEnriched } = payload;
+                const i = index;
+
+                emitAIContext(input.sessionId, {
+                    stage: 4,
+                    candidateTime: `Deep R${roundNumber}-B${i + 1}/${batches.length}`,
+                    batch: i + 1,
+                    totalBatches: batches.length,
+                    candidatesInBatch: batchEnriched.map(c => ({
+                        time: c.time,
+                        ascendant: `${c.ascendant.sign} ${c.ascendant.degree}`,
+                        moon: `${c.planets.moon.sign} ${c.planets.moon.degree}`
+                    })),
+                    lifeEventsCount: input.lifeEvents.length,
+                });
+
+                const systemPrompt = 'You are the GOD-TIER VEDIC ANALYST. Perform deep multi-dasha verification.';
+                const userPrompt = getDeepAnalysisPrompt(batchEnriched, input.lifeEvents, input.spouseData, offsetMinutes);
+                
+                // Save batch metadata
+                btrDataCapture.saveBatchMetadata(
                     input.sessionId,
                     4,
-                    candidate.time,
-                    {
-                        planets: candidate.planets,
-                        houses: candidate.houseLords,
-                        lagna: candidate.ascendant,
-                        vimshottariDasha: candidate.vimshottariDasha,
-                        vargas: candidate.vargaDegrees,
-                        transits: candidate.transitData
-                    },
                     roundNumber,
-                    i + 1
+                    i + 1,
+                    batchTimes.map(c => c.time),
+                    survivorsPerBatch
                 );
                 
-                btrDataCapture.savePrompt(
-                    input.sessionId,
-                    4,
-                    candidate.time,
-                    systemPrompt,
-                    userPrompt,
-                    {
-                        candidateCount: batchEnriched.length,
-                        eventCount: input.lifeEvents.length,
-                        spouseDataPresent: !!input.spouseData,
-                    },
-                    roundNumber,
-                    i + 1
-                );
-            }
-            
-            const response = await _callAIWithStream(
-                input.sessionId,
-                4,
-                systemPrompt,
-                userPrompt,
-                {
-                    candidateTime: `R${roundNumber}-B${i + 1}`,
-                    abortSignal: input.abortSignal,
-                    progressTracker: progress,
-                    maxTokens: config.ai.stage4MaxTokens,
-                    model: config.ai.reasonerModel,
-                }
-            );
-            
-            completedBatches++;
-            await progress.updateSubProgress(completedBatches, batches.length + 1);
-
-            const batchSurvivors: CandidateTime[] = [];
-            const aiContent = response.success ? (response.content || response.thinking || '') : '';
-            const referenceMap = buildCandidateReferenceMap(batchTimes);
-            const aiScores = extractBatchSurvivors(aiContent, [...referenceMap.keys()], survivorsPerBatch);
-            
-            if (response.success) {
+                // Save ephemeris and prompts for each candidate
                 for (const candidate of batchEnriched) {
-                    const scoreObj = aiScores.find(s => getCandidateIdentity(referenceMap.get(s.time) || { time: s.time }) === getCandidateIdentity(candidate));
-                    btrDataCapture.saveAIResponse(
+                    btrDataCapture.saveEphemeris(
                         input.sessionId,
                         4,
                         candidate.time,
-                        response.thinking || '',
-                        response.content || '',
                         {
-                            score: scoreObj?.score,
-                            verdict: scoreObj?.time,
-                            tokensUsed: { prompt: 0, completion: 0, total: 0 },
-                            duration: 0,
-                            model: config.ai.reasonerModel
+                            planets: candidate.planets,
+                            houses: candidate.houseLords,
+                            lagna: candidate.ascendant,
+                            vimshottariDasha: candidate.vimshottariDasha,
+                            vargas: candidate.vargaDegrees,
+                            transits: candidate.transitData
+                        },
+                        roundNumber,
+                        i + 1
+                    );
+                    
+                    btrDataCapture.savePrompt(
+                        input.sessionId,
+                        4,
+                        candidate.time,
+                        systemPrompt,
+                        userPrompt,
+                        {
+                            candidateCount: batchEnriched.length,
+                            eventCount: input.lifeEvents.length,
+                            spouseDataPresent: !!input.spouseData,
                         },
                         roundNumber,
                         i + 1
                     );
                 }
-            }
+                
+                const response = await _callAIWithStream(
+                    input.sessionId,
+                    4,
+                    systemPrompt,
+                    userPrompt,
+                    {
+                        candidateTime: `R${roundNumber}-B${i + 1}`,
+                        abortSignal: input.abortSignal,
+                        progressTracker: progress,
+                        maxTokens: config.ai.stage4MaxTokens,
+                        model: config.ai.reasonerModel,
+                    }
+                );
+                
+                completedBatches++;
+                await progress.updateSubProgress(completedBatches, batches.length + 1);
 
-            // 🔱 RESILIENT FALLBACK: If AI fails or returns empty, preserve the first N candidates
-            let survivorTimes: string[] = [];
-            if (!response.success || aiScores.length === 0) {
-                logger.warn(`🔱 [STAGE-4] Batch ${i + 1} AI verdict failed (Success: ${response.success}, Scores: ${aiScores.length}). FALLBACK: Preserving top candidates.`);
-                survivorTimes = sortCandidatesByMerit(batchTimes)
-                    .slice(0, survivorsPerBatch)
-                    .map(c => getCandidateIdentity(c));
-            } else {
-                survivorTimes = aiScores
-                    .sort((a, b) => b.score - a.score)
-                    .slice(0, survivorsPerBatch)
-                    .map(s => getCandidateIdentity(referenceMap.get(s.time) || { time: s.time }));
-            }
-
-            for (let j = 0; j < batchEnriched.length; j++) {
-                const candidate = batchEnriched[j];
-                const originalTimeInfo = batchTimes[j];
-                const candidateId = getCandidateIdentity(originalTimeInfo);
-                const isSurvivor = survivorTimes.includes(candidateId);
-
-                // If AI failed, use fallback scores — mark as isFallback for transparency
-                const scoreObj = aiScores.find(s => getCandidateIdentity(referenceMap.get(s.time) || { time: s.time }) === candidateId);
-                const _isFallback = !scoreObj;
-                const score = scoreObj ? scoreObj.score : (isSurvivor ? config.btr.fallbackPromotedScore : config.btr.fallbackRejectedScore + 20);
-                const reason = scoreObj ? scoreObj.reason : (isSurvivor ? "⚠️ AI unavailable — estimated score (preserved)" : "⚠️ AI unavailable — estimated score");
-
-                if (isSurvivor) {
-                    batchSurvivors.push(originalTimeInfo);
+                const batchSurvivors: CandidateTime[] = [];
+                const aiContent = response.success ? (response.content || response.thinking || '') : '';
+                const referenceMap = buildCandidateReferenceMap(batchTimes);
+                const aiScores = extractBatchSurvivors(aiContent, [...referenceMap.keys()], survivorsPerBatch);
+                
+                if (response.success) {
+                    for (const candidate of batchEnriched) {
+                        const scoreObj = aiScores.find(s => getCandidateIdentity(referenceMap.get(s.time) || { time: s.time }) === getCandidateIdentity(candidate));
+                        btrDataCapture.saveAIResponse(
+                            input.sessionId,
+                            4,
+                            candidate.time,
+                            response.thinking || '',
+                            response.content || '',
+                            {
+                                score: scoreObj?.score,
+                                verdict: scoreObj?.time,
+                                tokensUsed: { prompt: 0, completion: 0, total: 0 },
+                                duration: 0,
+                                model: config.ai.reasonerModel
+                            },
+                            roundNumber,
+                            i + 1
+                        );
+                    }
                 }
 
-                // IMMEDIATE EMIT & PERSIST - SYNCED WITH AI
-                await progress.addCandidateScore({
-                    time: candidate.time,
-                    score,
-                    stage: 4,
-                    batch: i + 1,
-                    minifiedEph: getMinifiedEphemerisInline(candidate),
-                    fullEph: getFullEphemerisPayload(candidate)
-                });
-                emitDecision(input.sessionId, {
-                    stage: 4,
-                    time: candidate.time,
-                    verdict: isSurvivor ? 'promoted' : 'rejected',
-                    score,
-                    reason,
-                    batch: i + 1
-                });
-            }
+                // 🔱 RESILIENT FALLBACK: If AI fails or returns empty, preserve the first N candidates
+                let survivorTimes: string[] = [];
+                if (!response.success || aiScores.length === 0) {
+                    logger.warn(`🔱 [STAGE-4] Batch ${i + 1} AI verdict failed (Success: ${response.success}, Scores: ${aiScores.length}). FALLBACK: Preserving top candidates.`);
+                    survivorTimes = sortCandidatesByMerit(batchTimes)
+                        .slice(0, survivorsPerBatch)
+                        .map(c => getCandidateIdentity(c));
+                } else {
+                    survivorTimes = aiScores
+                        .sort((a, b) => b.score - a.score)
+                        .slice(0, survivorsPerBatch)
+                        .map(s => getCandidateIdentity(referenceMap.get(s.time) || { time: s.time }));
+                }
 
-            return { batchSurvivors, aiContent };
-        });
+                for (let j = 0; j < batchEnriched.length; j++) {
+                    const candidate = batchEnriched[j];
+                    const originalTimeInfo = batchTimes[j];
+                    const candidateId = getCandidateIdentity(originalTimeInfo);
+                    const isSurvivor = survivorTimes.includes(candidateId);
 
-        const results = await _executeAIInParallel(tasks, config.ai.parallelConcurrency, config.ai.parallelStaggerMs);
+                    // If AI failed, use fallback scores — mark as isFallback for transparency
+                    const scoreObj = aiScores.find(s => getCandidateIdentity(referenceMap.get(s.time) || { time: s.time }) === candidateId);
+                    const score = scoreObj ? scoreObj.score : (isSurvivor ? config.btr.fallbackPromotedScore : config.btr.fallbackRejectedScore + 20);
+                    const reason = scoreObj ? scoreObj.reason : (isSurvivor ? "⚠️ AI unavailable — estimated score (preserved)" : "⚠️ AI unavailable — estimated score");
+
+                    if (isSurvivor) {
+                        batchSurvivors.push(originalTimeInfo);
+                    }
+
+                    // IMMEDIATE EMIT & PERSIST - SYNCED WITH AI
+                    await progress.addCandidateScore({
+                        time: candidate.time,
+                        score,
+                        stage: 4,
+                        batch: i + 1,
+                        minifiedEph: getMinifiedEphemerisInline(candidate),
+                        fullEph: getFullEphemerisPayload(candidate)
+                    });
+                    emitDecision(input.sessionId, {
+                        stage: 4,
+                        time: candidate.time,
+                        verdict: isSurvivor ? 'promoted' : 'rejected',
+                        score,
+                        reason,
+                        batch: i + 1
+                    });
+                }
+
+                return { batchSurvivors, aiContent };
+            },
+            config.ai.parallelConcurrency,
+            config.ai.parallelStaggerMs
+        );
 
         // Flatten survivors and accumulate reasoning
-        // BUG-FIX: Guard against undefined from failed parallel tasks
-        const roundSurvivors = results.filter(Boolean).flatMap(r => r.batchSurvivors);
-        allReasoning += results.map(r => r.aiContent).filter(Boolean).join('\n\n---\n\n');
+        const roundSurvivors: CandidateTime[] = [];
+        for (const r of results) {
+            if (r) {
+                roundSurvivors.push(...r.batchSurvivors);
+                if (r.aiContent) allReasoning += (allReasoning ? '\n\n---\n\n' : '') + r.aiContent;
+            }
+        }
 
         currentCandidates = roundSurvivors;
 
