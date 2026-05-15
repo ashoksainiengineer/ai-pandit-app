@@ -4,13 +4,16 @@ export function sleep(ms: number): Promise<void> {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
 
+/**
+ * Legacy parallel executor — eagerly evaluates all tasks.
+ * Prefer executeAIWithBackpressure for memory-heavy workloads.
+ */
 export async function executeAIInParallel<T>(
   tasks: Array<() => Promise<T>>,
   concurrency: number = 3,
   staggerMs: number = 500
 ) : Promise<T[]> {
   const results: T[] = new Array(tasks.length);
-    // BUG-FIX: Removed unused errors array (dead code)
     let activeCount = 0;
     let nextIndex = 0;
 
@@ -48,6 +51,105 @@ export async function executeAIInParallel<T>(
 
         runNext();
     });
+}
+
+/**
+ * Backpressure-aware lazy executor.
+ *
+ * Only materialises the next task when a concurrency slot frees up,
+ * then immediately drops the heavy payload so GC can reclaim it.
+ *
+ * @param taskGenerator  Async generator that yields { index, payload }.
+ *                       The generator is responsible for building the
+ *                       heavy data JIT and should clear its own refs
+ *                       after yielding.
+ * @param processor      Function that consumes the payload and returns
+ *                       the result. Called inside the concurrency slot.
+ * @param concurrency    Max parallel workers (default 3).
+ * @param staggerMs      Delay between slot starts (default 500).
+ *
+ * @returns Array of results in index order.
+ *
+ * @example
+ * async function* gen() {
+ *   for (let i = 0; i < batches.length; i++) {
+ *     const payload = await buildHeavyData(batches[i]); // JIT
+ *     yield { index: i, payload };
+ *     payload.length = 0; // clear ref for GC
+ *   }
+ * }
+ * const results = await executeAIWithBackpressure(
+ *   gen(),
+ *   async ({ index, payload }) => { … },
+ *   3
+ * );
+ */
+export async function executeAIWithBackpressure<T, P>(
+  taskGenerator: AsyncGenerator<{ index: number; payload: P }>,
+  processor: (ctx: { index: number; payload: P }) => Promise<T>,
+  concurrency: number = 3,
+  staggerMs: number = 500
+): Promise<T[]> {
+  const results = new Map<number, T>();
+  let activeCount = 0;
+  let done = false;
+
+  return new Promise((resolve, reject) => {
+    const tryNext = async () => {
+      if (done && activeCount === 0) {
+        const ordered: T[] = [];
+        for (let i = 0; i < results.size; i++) {
+          ordered.push(results.get(i)!);
+        }
+        resolve(ordered);
+        return;
+      }
+
+      while (activeCount < concurrency && !done) {
+        const slot = activeCount;
+        activeCount++;
+
+        const execute = async () => {
+          try {
+            const { value, done: genDone } = await taskGenerator.next();
+            if (genDone || !value) {
+              done = true;
+              activeCount--;
+              tryNext();
+              return;
+            }
+
+            const { index, payload } = value;
+            const result = await processor({ index, payload });
+            results.set(index, result);
+
+            if (Array.isArray(payload)) {
+              (payload as unknown[]).length = 0;
+            }
+          } catch (err) {
+            logger.error(`Backpressure task failed`, err);
+            done = true;
+            reject(err);
+            return;
+          } finally {
+            activeCount--;
+            if (global.gc && activeCount === 0) {
+              global.gc();
+            }
+            tryNext();
+          }
+        };
+
+        if (staggerMs > 0 && slot > 0) {
+          setTimeout(execute, staggerMs * slot);
+        } else {
+          execute();
+        }
+      }
+    };
+
+    tryNext();
+  });
 }
 
 export function parseAIAnalysisResponse(content: string): {

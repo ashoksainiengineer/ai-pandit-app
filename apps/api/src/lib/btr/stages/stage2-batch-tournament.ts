@@ -10,7 +10,8 @@
 import { SecondsPrecisionInput } from '@ai-pandit/shared';
 import { CandidateTime, getCandidateIdentity, getDynamicBatchSize, getDynamicSurvivors, sortCandidatesByMerit, splitIntoBatches } from '../../time-offset-manager.js';
 import { ProgressTracker } from '../../progress-tracker.js';
-import { _callAIWithStream, _executeAIInParallel } from '../../ai-client.js';
+import { _callAIWithStream } from '../../ai-client.js';
+import { executeAIWithBackpressure } from '../../ai-helpers.js';
 import { emitAIContext, emitDecision } from '../../session-events.js';
 import { throwIfCancelled } from '../../cancellation-manager.js';
 import { cleanup } from '../../ephemeris.js';
@@ -27,6 +28,11 @@ import { btrDataCapture } from '../data-capture.js';
 
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 type LifecycleShift = NonNullable<CandidateDataPackage['lifecycleShifts']>[number];
+
+interface BatchPayload {
+    batchTimes: CandidateTime[];
+    batchEnriched: CandidateDataPackage[];
+}
 
 /**
  * Stage 2: Batch tournament with dynamic sizing and safety net protection
@@ -45,7 +51,6 @@ export async function stage2BatchTournament(
 ): Promise<{ survivors: CandidateTime[]; stageResult: StageResult; rounds: TournamentRound[] }> {
     await progress.startStep('coarse', 'Stage 2: Batch Tournament...');
 
-    // FIXED: Log initial data state for debugging
     logger.info('🔱 [STAGE-2] Starting batch tournament', {
         totalCandidates: candidates.length,
         sampleCandidate: candidates[0]?.time,
@@ -56,13 +61,8 @@ export async function stage2BatchTournament(
     let currentCandidates = [...candidates];
     let roundNumber = 0;
 
-    // Get offset from config for dynamic batch sizing
     const offsetMinutes = getOffsetMinutes(input);
-
-    // Dynamic batch size based on offset
     const batchSize = getDynamicBatchSize(candidates.length, offsetMinutes);
-
-    // GOD-TIER ELASTICITY: First round keeps more survivors, wider offsets keep more survivors
     const isFirstRound = roundNumber === 0;
     const survivorsPerBatch = getDynamicSurvivors(batchSize, offsetMinutes, isFirstRound);
 
@@ -84,181 +84,187 @@ export async function stage2BatchTournament(
         await progress.updateMessage(`Base Analysis: Evaluating ${currentCandidates.length} potential paths...`);
 
         const batchSurvivorResults = new Map<number, CandidateTime[]>();
-        const tasks = batches.map((batchTimes, i) => async () => {
-            // BUILD DATA ON-DEMAND per batch (not all at once) to control memory
-            const batchEnriched = await Promise.all(batchTimes.map(ct =>
-                buildCandidateDataPackage(ct.time, ct.offsetMinutes, input, {
-                    includeFullData: true,
-                    dashaDepth: 4,
-                    lifecycleShifts: globalLifecycle,
-                    candidate: ct,
-                })
-            ));
-            emitAIContext(input.sessionId, {
-                stage: 2,
-                candidateTime: `Batch ${i + 1}/${batches.length}`,
-                batch: i + 1,
-                totalBatches: batches.length,
-                candidatesInBatch: batchEnriched.map(c => ({
-                    time: c.time,
-                    ascendant: `${c.ascendant.sign} ${c.ascendant.degree}`,
-                    moon: `${c.planets.moon.sign} ${c.planets.moon.degree}`
-                })),
-                lifeEventsCount: input.lifeEvents.length,
-            });
 
-            const systemPrompt = 'You are the SUPREME VEDIC ASTROLOGER. Analyze candidate birth times for primary astrological alignment.';
-            const userPrompt = getBatchPrompt(batchEnriched, input.lifeEvents, i + 1, batches.length, survivorsPerBatch, input.spouseData, offsetMinutes);
-            
-            const memBefore = process.memoryUsage();
-            const shouldCapture = memBefore.heapUsed <= 150 * 1024 * 1024;
-            
-            if (shouldCapture) {
-                btrDataCapture.saveBatchMetadata(
+        async function* batchGenerator(): AsyncGenerator<{ index: number; payload: BatchPayload }> {
+            for (let i = 0; i < batches.length; i++) {
+                const batchTimes = batches[i];
+                const batchEnriched = await Promise.all(batchTimes.map(ct =>
+                    buildCandidateDataPackage(ct.time, ct.offsetMinutes, input, {
+                        includeFullData: false,
+                        dashaDepth: 2,
+                        lifecycleShifts: globalLifecycle,
+                        candidate: ct,
+                    })
+                ));
+                yield { index: i, payload: { batchTimes, batchEnriched } };
+                batchEnriched.length = 0;
+            }
+        }
+
+        const systemPrompt = 'You are the SUPREME VEDIC ASTROLOGER. Analyze candidate birth times for primary astrological alignment.';
+
+        await executeAIWithBackpressure(
+            batchGenerator(),
+            async ({ index, payload }) => {
+                const { batchTimes, batchEnriched } = payload;
+                const i = index;
+                emitAIContext(input.sessionId, {
+                    stage: 2,
+                    candidateTime: `Batch ${i + 1}/${batches.length}`,
+                    batch: i + 1,
+                    totalBatches: batches.length,
+                    candidatesInBatch: batchEnriched.map(c => ({
+                        time: c.time,
+                        ascendant: `${c.ascendant.sign} ${c.ascendant.degree}`,
+                        moon: `${c.planets.moon.sign} ${c.planets.moon.degree}`
+                    })),
+                    lifeEventsCount: input.lifeEvents.length,
+                });
+
+                const userPrompt = getBatchPrompt(batchEnriched, input.lifeEvents, i + 1, batches.length, survivorsPerBatch, input.spouseData, offsetMinutes);
+                
+                const memBefore = process.memoryUsage();
+                const shouldCapture = memBefore.heapUsed <= 150 * 1024 * 1024;
+                
+                if (shouldCapture) {
+                    btrDataCapture.saveBatchMetadata(
+                        input.sessionId,
+                        2,
+                        roundNumber,
+                        i + 1,
+                        batchTimes.map(c => c.time),
+                        survivorsPerBatch
+                    );
+
+                    for (const candidate of batchEnriched) {
+                        btrDataCapture.saveEphemeris(
+                            input.sessionId,
+                            2,
+                            candidate.time,
+                            {
+                                planets: candidate.planets,
+                                houses: candidate.houseLords,
+                                lagna: candidate.ascendant,
+                                vimshottariDasha: candidate.vimshottariDasha,
+                                vargas: candidate.vargaDegrees,
+                                transits: candidate.transitData
+                            },
+                            roundNumber,
+                            i + 1
+                        );
+
+                        btrDataCapture.savePrompt(
+                            input.sessionId,
+                            2,
+                            candidate.time,
+                            systemPrompt,
+                            userPrompt,
+                            {
+                                candidateCount: batchEnriched.length,
+                                eventCount: input.lifeEvents.length,
+                                spouseDataPresent: !!input.spouseData,
+                            },
+                            roundNumber,
+                            i + 1
+                        );
+                    }
+                }
+                
+                const response = await _callAIWithStream(
                     input.sessionId,
                     2,
-                    roundNumber,
-                    i + 1,
-                    batchTimes.map(c => c.time),
-                    survivorsPerBatch
+                    systemPrompt,
+                    userPrompt,
+                    {
+                        candidateTime: `R${roundNumber}-B${i + 1}`,
+                        abortSignal: input.abortSignal,
+                        progressTracker: progress,
+                        maxTokens: config.ai.stage2MaxTokens,
+                        model: config.ai.model,
+                    }
                 );
+                
+                const batchSurvivors: CandidateTime[] = [];
+                const aiContent = response.success ? (response.content || response.thinking || '') : '';
+                const referenceMap = buildCandidateReferenceMap(batchTimes);
+                const aiScores = extractBatchSurvivors(aiContent, [...referenceMap.keys()], Math.min(batchTimes.length, survivorsPerBatch));
 
-                for (const candidate of batchEnriched) {
-                    btrDataCapture.saveEphemeris(
-                        input.sessionId,
-                        2,
-                        candidate.time,
-                        {
-                            planets: candidate.planets,
-                            houses: candidate.houseLords,
-                            lagna: candidate.ascendant,
-                            vimshottariDasha: candidate.vimshottariDasha,
-                            vargas: candidate.vargaDegrees,
-                            transits: candidate.transitData
-                        },
-                        roundNumber,
-                        i + 1
-                    );
-
-                    // Save prompt
-                    btrDataCapture.savePrompt(
-                        input.sessionId,
-                        2,
-                        candidate.time,
-                        systemPrompt,
-                        userPrompt,
-                        {
-                            candidateCount: batchEnriched.length,
-                            eventCount: input.lifeEvents.length,
-                            spouseDataPresent: !!input.spouseData,
-                        },
-                        roundNumber,
-                        i + 1
-                    );
-                }
-            }
-            
-            const response = await _callAIWithStream(
-                input.sessionId,
-                2,
-                systemPrompt,
-                userPrompt,
-                {
-                    candidateTime: `R${roundNumber}-B${i + 1}`,
-                    abortSignal: input.abortSignal,
-                    progressTracker: progress,
-                    maxTokens: config.ai.stage2MaxTokens,
-                    model: config.ai.model,
-                }
-            );
-            
-            // PROCESS BATCH IMMEDIATELY AND EMIT SCORES
-            const batchSurvivors: CandidateTime[] = [];
-            const aiContent = response.success ? (response.content || response.thinking || '') : '';
-            const referenceMap = buildCandidateReferenceMap(batchTimes);
-            const aiScores = extractBatchSurvivors(aiContent, [...referenceMap.keys()], Math.min(batchTimes.length, survivorsPerBatch));
-
-            // Save AI responses after parsing
-            if (response.success) {
-                for (const candidate of batchEnriched) {
-                    const scoreObj = aiScores.find(s => getCandidateIdentity(referenceMap.get(s.time) || { time: s.time }) === getCandidateIdentity(candidate));
-                    btrDataCapture.saveAIResponse(
-                        input.sessionId,
-                        2,
-                        candidate.time,
-                        response.thinking || '',
-                        response.content || '',
-                        {
-                            score: scoreObj?.score,
-                            verdict: scoreObj?.time,
-                            tokensUsed: { prompt: 0, completion: 0, total: 0 },
-                            duration: 0,
-                            model: config.ai.model
-                        },
-                        roundNumber,
-                        i + 1
-                    );
-                }
-            }
-
-            // 🔱 RESILIENT FALLBACK: If AI fails or returns empty, preserve the first N candidates
-            let survivorTimes: string[] = [];
-            if (!response.success || aiScores.length === 0) {
-                logger.warn(`🔱 [STAGE-2] Batch ${i + 1} AI verdict failed. FALLBACK: Preserving top candidates.`);
-                survivorTimes = sortCandidatesByMerit(batchTimes)
-                    .slice(0, survivorsPerBatch)
-                    .map(c => getCandidateIdentity(c));
-            } else {
-                survivorTimes = aiScores
-                    .sort((a, b) => b.score - a.score)
-                    .slice(0, Math.min(batchTimes.length, survivorsPerBatch))
-                    .map(s => getCandidateIdentity(referenceMap.get(s.time) || { time: s.time }));
-            }
-
-            for (let j = 0; j < batchEnriched.length; j++) {
-                const candidate = batchEnriched[j];
-                const originalTimeInfo = batchTimes[j];
-                const candidateId = getCandidateIdentity(originalTimeInfo);
-                const isSurvivor = survivorTimes.includes(candidateId);
-
-                // If AI failed, use fallback scores
-                const scoreObj = aiScores.find(s => getCandidateIdentity(referenceMap.get(s.time) || { time: s.time }) === candidateId);
-                const score = scoreObj ? scoreObj.score : (isSurvivor ? config.btr.fallbackPromotedScore : config.btr.fallbackRejectedScore);
-                const reason = scoreObj ? scoreObj.reason : (isSurvivor ? "Meets primary alignment criteria (Fallback)" : "Low astrological match score");
-
-                if (isSurvivor) {
-                    batchSurvivors.push(originalTimeInfo);
+                if (response.success) {
+                    for (const candidate of batchEnriched) {
+                        const scoreObj = aiScores.find(s => getCandidateIdentity(referenceMap.get(s.time) || { time: s.time }) === getCandidateIdentity(candidate));
+                        btrDataCapture.saveAIResponse(
+                            input.sessionId,
+                            2,
+                            candidate.time,
+                            response.thinking || '',
+                            response.content || '',
+                            {
+                                score: scoreObj?.score,
+                                verdict: scoreObj?.time,
+                                tokensUsed: { prompt: 0, completion: 0, total: 0 },
+                                duration: 0,
+                                model: config.ai.model
+                            },
+                            roundNumber,
+                            i + 1
+                        );
+                    }
                 }
 
-                // IMMEDIATE EMIT & PERSIST - SYNCED WITH AI
-                // 🔱 UX SMOOTHING: Stagger emissions in first round to prevent "leaderboard pop"
-                if (roundNumber === 1 && j > 0) {
-                    await sleep(100);
+                let survivorTimes: string[] = [];
+                if (!response.success || aiScores.length === 0) {
+                    logger.warn(`🔱 [STAGE-2] Batch ${i + 1} AI verdict failed. FALLBACK: Preserving top candidates.`);
+                    survivorTimes = sortCandidatesByMerit(batchTimes)
+                        .slice(0, survivorsPerBatch)
+                        .map(c => getCandidateIdentity(c));
+                } else {
+                    survivorTimes = aiScores
+                        .sort((a, b) => b.score - a.score)
+                        .slice(0, Math.min(batchTimes.length, survivorsPerBatch))
+                        .map(s => getCandidateIdentity(referenceMap.get(s.time) || { time: s.time }));
                 }
 
-                await progress.addCandidateScore({
-                    time: candidate.time,
-                    score,
-                    stage: 2,
-                    batch: i + 1,
-                    minifiedEph: getMinifiedEphemerisInline(candidate),
-                });
-                emitDecision(input.sessionId, {
-                    stage: 2,
-                    time: candidate.time,
-                    verdict: isSurvivor ? 'promoted' : 'rejected',
-                    score,
-                    reason,
-                    batch: i + 1
-                });
-            }
+                for (let j = 0; j < batchEnriched.length; j++) {
+                    const candidate = batchEnriched[j];
+                    const originalTimeInfo = batchTimes[j];
+                    const candidateId = getCandidateIdentity(originalTimeInfo);
+                    const isSurvivor = survivorTimes.includes(candidateId);
 
-            batchSurvivorResults.set(i, batchSurvivors);
-            return batchSurvivors;
-        });
+                    const scoreObj = aiScores.find(s => getCandidateIdentity(referenceMap.get(s.time) || { time: s.time }) === candidateId);
+                    const score = scoreObj ? scoreObj.score : (isSurvivor ? config.btr.fallbackPromotedScore : config.btr.fallbackRejectedScore);
+                    const reason = scoreObj ? scoreObj.reason : (isSurvivor ? "Meets primary alignment criteria (Fallback)" : "Low astrological match score");
 
-        await _executeAIInParallel(tasks, config.ai.parallelConcurrency, config.ai.parallelStaggerMs);
-        if (global.gc) global.gc();
+                    if (isSurvivor) {
+                        batchSurvivors.push(originalTimeInfo);
+                    }
+
+                    if (roundNumber === 1 && j > 0) {
+                        await sleep(100);
+                    }
+
+                    await progress.addCandidateScore({
+                        time: candidate.time,
+                        score,
+                        stage: 2,
+                        batch: i + 1,
+                        minifiedEph: getMinifiedEphemerisInline(candidate),
+                    });
+                    emitDecision(input.sessionId, {
+                        stage: 2,
+                        time: candidate.time,
+                        verdict: isSurvivor ? 'promoted' : 'rejected',
+                        score,
+                        reason,
+                        batch: i + 1
+                    });
+                }
+
+                batchSurvivorResults.set(i, batchSurvivors);
+                return batchSurvivors;
+            },
+            config.ai.parallelConcurrency,
+            config.ai.parallelStaggerMs
+        );
 
         const memAfter = process.memoryUsage();
         if (memAfter.heapUsed > 200 * 1024 * 1024) {
@@ -269,16 +275,13 @@ export async function stage2BatchTournament(
           if (global.gc) global.gc();
         }
 
-        // Read lightweight survivors from map (heavy batchEnriched already GC'd)
         let nextCandidates: CandidateTime[] = [];
         for (let i = 0; i < batches.length; i++) {
             const survivors = batchSurvivorResults.get(i) || [];
             nextCandidates.push(...survivors);
         }
 
-        // 🔱 SAFETY NET 2.0: Cluster-Aware Survival
-        // If candidates are very close (within specified threshold), keep both if one is a survivor
-        const clusterThreshold = config.btr.clusterThreshold; // minutes
+        const clusterThreshold = config.btr.clusterThreshold;
         const additionalSurvivors: CandidateTime[] = [];
         const additionalSurvivorIds = new Set<string>();
         for (const s of nextCandidates) {
@@ -286,7 +289,6 @@ export async function stage2BatchTournament(
                 !nextCandidates.some(nc => getCandidateIdentity(nc) === getCandidateIdentity(c)) &&
                 Math.abs(c.offsetMinutes - s.offsetMinutes) <= clusterThreshold
             );
-            // Pick the CLOSEST nearby candidate (sorted by offset distance)
             if (nearby.length > 0) {
                 nearby.sort((a, b) => Math.abs(a.offsetMinutes - s.offsetMinutes) - Math.abs(b.offsetMinutes - s.offsetMinutes));
                 const chosen = nearby[0];
@@ -299,8 +301,6 @@ export async function stage2BatchTournament(
         }
         nextCandidates = [...nextCandidates, ...additionalSurvivors];
 
-        // 🔱 SAFETY NET 2.0: Wildcard Quadrants
-        // Divide the offset range into 4 quadrants and ensure at least one survives from each
         const minOffset = Math.min(...currentCandidates.map(c => c.offsetMinutes));
         const maxOffset = Math.max(...currentCandidates.map(c => c.offsetMinutes));
         const qSize = (maxOffset - minOffset) / 4;
@@ -313,12 +313,11 @@ export async function stage2BatchTournament(
                 const bestInQuadrant = currentCandidates
                     .filter(c => c.offsetMinutes >= qStart && c.offsetMinutes <= qEnd)
                     .sort((a, b) => {
-                      // BUG-FIX: Proper transitive comparator — favor tentative, then by offset
                       const aTent = a.time === input.tentativeTime ? 0 : 1;
                       const bTent = b.time === input.tentativeTime ? 0 : 1;
                       if (aTent !== bTent) return aTent - bTent;
                       return a.offsetMinutes - b.offsetMinutes;
-                    })[0]; // Favor tentative if in quadrant
+                    })[0];
                 if (bestInQuadrant) {
                     nextCandidates.push(bestInQuadrant);
                     logger.info('🔱 Safety Net: Injected Wildcard from quadrant', { quadrant: i + 1, time: bestInQuadrant.time });
@@ -326,7 +325,6 @@ export async function stage2BatchTournament(
             }
         }
 
-        // 🔱 PROTECTION: Boundary Locks and Tentative always survive Round 1
         const protectedCandidates = currentCandidates.filter(c =>
             (c.time === input.tentativeTime && (c.dayOffset ?? 0) === 0) ||
             c.offsetDescription.includes('Boundary')
@@ -345,7 +343,6 @@ export async function stage2BatchTournament(
     while (currentCandidates.length > 1 && roundNumber <= MAX_ROUNDS) {
         roundNumber++;
 
-        // Recalculate per round: adapting to shrinking candidate pool
         const roundBatchSize = getDynamicBatchSize(currentCandidates.length, offsetMinutes);
         const roundSurvivorsPerBatch = getDynamicSurvivors(roundBatchSize, offsetMinutes, false);
         const batches = splitIntoBatches(currentCandidates, roundBatchSize, `${input.sessionId}:stage2:r${roundNumber}`);
@@ -353,177 +350,186 @@ export async function stage2BatchTournament(
         await progress.updateMessage(`Tournament Round ${roundNumber}: ${batches.length} batches of ${roundBatchSize}`);
 
         const batchSurvivorResults = new Map<number, CandidateTime[]>();
-        const tasks = batches.map((batchTimes, i) => async () => {
-            const batchEnriched = await Promise.all(batchTimes.map(ct =>
-                buildCandidateDataPackage(ct.time, ct.offsetMinutes, input, {
-                    includeFullData: true,
-                    dashaDepth: 4, // Upgraded to Sukshma for precision pruning
-                    lifecycleShifts: globalLifecycle,
-                    candidate: ct,
-                })
-            ));
-            // NOTE: batchEnriched is NOT stored in any global Map — GC reclaims it after this task
-            emitAIContext(input.sessionId, {
-                stage: 2,
-                candidateTime: `Tournament ${roundNumber}-${i + 1}`,
-                batch: i + 1,
-                totalBatches: batches.length,
-                candidatesInBatch: batchEnriched.map(c => ({
-                    time: c.time,
-                    ascendant: `${c.ascendant.sign} ${c.ascendant.degree}`
-                }))
-            });
 
-            const systemPrompt = 'You are the SUPREME VEDIC ASTROLOGER. Tournament analysis: prune based on astrological alignment.';
-            const userPrompt = getBatchPrompt(batchEnriched, input.lifeEvents, i + 1, batches.length, roundSurvivorsPerBatch, input.spouseData, offsetMinutes);
+        async function* tournamentGenerator(): AsyncGenerator<{ index: number; payload: BatchPayload }> {
+            for (let i = 0; i < batches.length; i++) {
+                const batchTimes = batches[i];
+                const batchEnriched = await Promise.all(batchTimes.map(ct =>
+                    buildCandidateDataPackage(ct.time, ct.offsetMinutes, input, {
+                        includeFullData: false,
+                        dashaDepth: 2,
+                        lifecycleShifts: globalLifecycle,
+                        candidate: ct,
+                    })
+                ));
+                yield { index: i, payload: { batchTimes, batchEnriched } };
+                batchEnriched.length = 0;
+            }
+        }
 
-            const memBefore = process.memoryUsage();
-            if (memBefore.heapUsed > 150 * 1024 * 1024) {
-                logger.warn('[STAGE-2] High memory before data capture, skipping', {
-                    heapUsedMB: Math.round(memBefore.heapUsed / 1024 / 1024),
+        const systemPrompt = 'You are the SUPREME VEDIC ASTROLOGER. Tournament analysis: prune based on astrological alignment.';
+
+        await executeAIWithBackpressure(
+            tournamentGenerator(),
+            async ({ index, payload }) => {
+                const { batchTimes, batchEnriched } = payload;
+                const i = index;
+
+                emitAIContext(input.sessionId, {
+                    stage: 2,
+                    candidateTime: `Tournament ${roundNumber}-${i + 1}`,
                     batch: i + 1,
+                    totalBatches: batches.length,
+                    candidatesInBatch: batchEnriched.map(c => ({
+                        time: c.time,
+                        ascendant: `${c.ascendant.sign} ${c.ascendant.degree}`
+                    }))
                 });
-            } else {
-                btrDataCapture.saveBatchMetadata(
+
+                const userPrompt = getBatchPrompt(batchEnriched, input.lifeEvents, i + 1, batches.length, roundSurvivorsPerBatch, input.spouseData, offsetMinutes);
+
+                const memBefore = process.memoryUsage();
+                if (memBefore.heapUsed > 150 * 1024 * 1024) {
+                    logger.warn('[STAGE-2] High memory before data capture, skipping', {
+                        heapUsedMB: Math.round(memBefore.heapUsed / 1024 / 1024),
+                        batch: i + 1,
+                    });
+                } else {
+                    btrDataCapture.saveBatchMetadata(
+                        input.sessionId,
+                        2,
+                        roundNumber,
+                        i + 1,
+                        batchTimes.map(c => c.time),
+                        roundSurvivorsPerBatch
+                    );
+
+                    for (const candidate of batchEnriched) {
+                        btrDataCapture.saveEphemeris(
+                            input.sessionId,
+                            2,
+                            candidate.time,
+                            {
+                                planets: candidate.planets,
+                                houses: candidate.houseLords,
+                                lagna: candidate.ascendant,
+                                vimshottariDasha: candidate.vimshottariDasha,
+                                vargas: candidate.vargaDegrees,
+                                transits: candidate.transitData
+                            },
+                            roundNumber,
+                            i + 1
+                        );
+
+                        btrDataCapture.savePrompt(
+                            input.sessionId,
+                            2,
+                            candidate.time,
+                            systemPrompt,
+                            userPrompt,
+                            {
+                                candidateCount: batchEnriched.length,
+                                eventCount: input.lifeEvents.length,
+                                spouseDataPresent: !!input.spouseData,
+                            },
+                            roundNumber,
+                            i + 1
+                        );
+                    }
+                }
+                
+                const response = await _callAIWithStream(
                     input.sessionId,
                     2,
-                    roundNumber,
-                    i + 1,
-                    batchTimes.map(c => c.time),
-                    roundSurvivorsPerBatch
+                    systemPrompt,
+                    userPrompt,
+                    {
+                        candidateTime: `R${roundNumber}-B${i + 1}`,
+                        abortSignal: input.abortSignal,
+                        progressTracker: progress,
+                        maxTokens: config.ai.stage2MaxTokens,
+                        model: config.ai.model,
+                    }
                 );
-
-                for (const candidate of batchEnriched) {
-                    btrDataCapture.saveEphemeris(
-                        input.sessionId,
-                        2,
-                        candidate.time,
-                        {
-                            planets: candidate.planets,
-                            houses: candidate.houseLords,
-                            lagna: candidate.ascendant,
-                            vimshottariDasha: candidate.vimshottariDasha,
-                            vargas: candidate.vargaDegrees,
-                            transits: candidate.transitData
-                        },
-                        roundNumber,
-                        i + 1
-                    );
-
-                    btrDataCapture.savePrompt(
-                        input.sessionId,
-                        2,
-                        candidate.time,
-                        systemPrompt,
-                        userPrompt,
-                        {
-                            candidateCount: batchEnriched.length,
-                            eventCount: input.lifeEvents.length,
-                            spouseDataPresent: !!input.spouseData,
-                        },
-                        roundNumber,
-                        i + 1
-                    );
-                }
-            }
-            
-            const response = await _callAIWithStream(
-                input.sessionId,
-                2,
-                systemPrompt,
-                userPrompt,
-                {
-                    candidateTime: `R${roundNumber}-B${i + 1}`,
-                    abortSignal: input.abortSignal,
-                    progressTracker: progress,
-                    maxTokens: config.ai.stage2MaxTokens,
-                    model: config.ai.model,
-                }
-            );
-            
-            // PROCESS BATCH IMMEDIATELY AND EMIT SCORES
-            const batchSurvivors: CandidateTime[] = [];
-            const aiContent = response.success ? (response.content || response.thinking || '') : '';
-            const referenceMap = buildCandidateReferenceMap(batchTimes);
-            const aiScores = extractBatchSurvivors(aiContent, [...referenceMap.keys()], roundSurvivorsPerBatch);
-            
-            // Save AI responses after parsing
-            if (response.success) {
-                for (const candidate of batchEnriched) {
-                    const scoreObj = aiScores.find(s => getCandidateIdentity(referenceMap.get(s.time) || { time: s.time }) === getCandidateIdentity(candidate));
-                    btrDataCapture.saveAIResponse(
-                        input.sessionId,
-                        2,
-                        candidate.time,
-                        response.thinking || '',
-                        response.content || '',
-                        {
-                            score: scoreObj?.score,
-                            verdict: scoreObj?.time,
-                            tokensUsed: { prompt: 0, completion: 0, total: 0 },
-                            duration: 0,
-                            model: config.ai.model
-                        },
-                        roundNumber,
-                        i + 1
-                    );
-                }
-            }
-
-            // 🔱 RESILIENT FALLBACK: If AI fails or returns empty, preserve the first N candidates
-            let survivorTimes: string[] = [];
-            if (!response.success || aiScores.length === 0) {
-                logger.warn(`🔱 [STAGE-2] Tournament batch ${i + 1} verdict failed. FALLBACK: Preserving top candidates.`);
-                survivorTimes = sortCandidatesByMerit(batchTimes)
-                    .slice(0, roundSurvivorsPerBatch)
-                    .map(c => getCandidateIdentity(c));
-            } else {
-                survivorTimes = aiScores
-                    .sort((a, b) => b.score - a.score)
-                    .slice(0, roundSurvivorsPerBatch)
-                    .map(s => getCandidateIdentity(referenceMap.get(s.time) || { time: s.time }));
-            }
-
-            for (let j = 0; j < batchEnriched.length; j++) {
-                const candidate = batchEnriched[j];
-                const originalTimeInfo = batchTimes[j];
-                const candidateId = getCandidateIdentity(originalTimeInfo);
-                const isSurvivor = survivorTimes.includes(candidateId);
-
-                // If AI failed, use fallback scores
-                const scoreObj = aiScores.find(s => getCandidateIdentity(referenceMap.get(s.time) || { time: s.time }) === candidateId);
-                const score = scoreObj ? scoreObj.score : (isSurvivor ? config.btr.fallbackPromotedScore + 3 : config.btr.fallbackRejectedScore - 10);
-                const reason = scoreObj ? scoreObj.reason : (isSurvivor ? "Superior alignment in tournament round (Fallback)" : "Eliminated in batch tournament");
-
-                if (isSurvivor) {
-                    batchSurvivors.push(originalTimeInfo);
+                
+                const batchSurvivors: CandidateTime[] = [];
+                const aiContent = response.success ? (response.content || response.thinking || '') : '';
+                const referenceMap = buildCandidateReferenceMap(batchTimes);
+                const aiScores = extractBatchSurvivors(aiContent, [...referenceMap.keys()], roundSurvivorsPerBatch);
+                
+                if (response.success) {
+                    for (const candidate of batchEnriched) {
+                        const scoreObj = aiScores.find(s => getCandidateIdentity(referenceMap.get(s.time) || { time: s.time }) === getCandidateIdentity(candidate));
+                        btrDataCapture.saveAIResponse(
+                            input.sessionId,
+                            2,
+                            candidate.time,
+                            response.thinking || '',
+                            response.content || '',
+                            {
+                                score: scoreObj?.score,
+                                verdict: scoreObj?.time,
+                                tokensUsed: { prompt: 0, completion: 0, total: 0 },
+                                duration: 0,
+                                model: config.ai.model
+                            },
+                            roundNumber,
+                            i + 1
+                        );
+                    }
                 }
 
-                await progress.addCandidateScore({
-                    time: candidate.time,
-                    score,
-                    stage: 2,
-                    batch: i + 1,
-                    minifiedEph: getMinifiedEphemerisInline(candidate),
-                });
-                emitDecision(input.sessionId, {
-                    stage: 2,
-                    time: candidate.time,
-                    verdict: isSurvivor ? 'promoted' : 'rejected',
-                    score,
-                    reason,
-                    batch: i + 1
-                });
-            }
+                let survivorTimes: string[] = [];
+                if (!response.success || aiScores.length === 0) {
+                    logger.warn(`🔱 [STAGE-2] Tournament batch ${i + 1} verdict failed. FALLBACK: Preserving top candidates.`);
+                    survivorTimes = sortCandidatesByMerit(batchTimes)
+                        .slice(0, roundSurvivorsPerBatch)
+                        .map(c => getCandidateIdentity(c));
+                } else {
+                    survivorTimes = aiScores
+                        .sort((a, b) => b.score - a.score)
+                        .slice(0, roundSurvivorsPerBatch)
+                        .map(s => getCandidateIdentity(referenceMap.get(s.time) || { time: s.time }));
+                }
 
-            // Store ONLY lightweight survivors (NOT heavy batchEnriched)
-            batchSurvivorResults.set(i, batchSurvivors);
-            // batchEnriched goes out of scope here — GC can reclaim it
+                for (let j = 0; j < batchEnriched.length; j++) {
+                    const candidate = batchEnriched[j];
+                    const originalTimeInfo = batchTimes[j];
+                    const candidateId = getCandidateIdentity(originalTimeInfo);
+                    const isSurvivor = survivorTimes.includes(candidateId);
 
-            return response;
-        });
+                    const scoreObj = aiScores.find(s => getCandidateIdentity(referenceMap.get(s.time) || { time: s.time }) === candidateId);
+                    const score = scoreObj ? scoreObj.score : (isSurvivor ? config.btr.fallbackPromotedScore + 3 : config.btr.fallbackRejectedScore - 10);
+                    const reason = scoreObj ? scoreObj.reason : (isSurvivor ? "Superior alignment in tournament round (Fallback)" : "Eliminated in batch tournament");
 
-        const results = await _executeAIInParallel(tasks, config.ai.parallelConcurrency, config.ai.parallelStaggerMs);
+                    if (isSurvivor) {
+                        batchSurvivors.push(originalTimeInfo);
+                    }
+
+                    await progress.addCandidateScore({
+                        time: candidate.time,
+                        score,
+                        stage: 2,
+                        batch: i + 1,
+                        minifiedEph: getMinifiedEphemerisInline(candidate),
+                    });
+                    emitDecision(input.sessionId, {
+                        stage: 2,
+                        time: candidate.time,
+                        verdict: isSurvivor ? 'promoted' : 'rejected',
+                        score,
+                        reason,
+                        batch: i + 1
+                    });
+                }
+
+                batchSurvivorResults.set(i, batchSurvivors);
+                return batchSurvivors;
+            },
+            config.ai.parallelConcurrency,
+            config.ai.parallelStaggerMs
+        );
+
         if (global.gc) global.gc();
 
         const memAfter2 = process.memoryUsage();
@@ -537,7 +543,6 @@ export async function stage2BatchTournament(
 
         await progress.updateSubProgress(batches.length, batches.length);
 
-        // Read lightweight survivors from map (heavy batchEnriched already GC'd)
         for (let i = 0; i < batches.length; i++) {
             const survivors = batchSurvivorResults.get(i) || [];
             roundSurvivors.push(...survivors);
@@ -566,7 +571,6 @@ export async function stage2BatchTournament(
         currentCandidates = sortCandidatesByMerit(currentCandidates).slice(0, batchSize);
     }
 
-    // GOD-TIER SAFETY: Ensure tentative time and safety net always survive
     const tentativeTime = input.tentativeTime;
         const hasTentative = currentCandidates.some(c => c.time === tentativeTime && (c.dayOffset ?? 0) === 0);
     const hasSafetyNet = currentCandidates.some(c => c.offsetDescription.includes('Safety Net'));
@@ -596,7 +600,6 @@ export async function stage2BatchTournament(
         }
     }
 
-    // Ensure we don't return an empty set
     if (currentCandidates.length === 0 && candidates.length > 0) {
         logger.warn('Tournament failed to yield survivors, using top candidates from original set');
         currentCandidates = sortCandidatesByMerit(candidates).slice(0, 10);
