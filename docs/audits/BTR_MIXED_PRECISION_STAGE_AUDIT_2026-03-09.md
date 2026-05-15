@@ -1,8 +1,8 @@
 # BTR Mixed Precision Stage Audit (2026-03-09)
 
-- stage2: prompts=39, batches=39, candidates(min-max)=0-0
-- stage4: prompts=22, batches=22, candidates(min-max)=0-0
-- stage6: prompts=26, batches=26, candidates(min-max)=0-0
+- stage2: prompts=30, batches=30, candidates(min-max)=0-0
+- stage4: prompts=15, batches=15, candidates(min-max)=0-0
+- stage6: prompts=3, batches=3, candidates(min-max)=0-0
 
 ## Validation Rules
 - Every Stage 2/4/6 batch prompt must include all mixed-precision event types

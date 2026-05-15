@@ -1,6 +1,6 @@
 # AI-Pandit Current Architecture Snapshot
 
-Last Updated: 12 March 2026
+Last Updated: 15 May 2026
 Owner: Engineering (Codex-assisted)
 Status: Canonical working snapshot for ongoing refactor/stabilization work
 
@@ -278,7 +278,47 @@ Important migration note:
 
 These drifts should be cleaned in controlled phases, not via ad-hoc patching.
 
-## 13. Change Protocol (Use This Every Time)
+## 13. Recent Architecture Changes
+
+### 13.1 Redis Backed Polling Fallback Fix (2026-05-15)
+
+**Problem:** When `JOB_EXECUTION_MODE=external_worker`, the API process could not access the worker's
+in-memory `ProgressTracker`. The polling endpoint (`/api/queue/progress`) called `getSessionProgress()`
+which fell back to Redis, but always returned `candidateScores: []` because:
+
+- `emitCandidateScore()` was never persisting scores to Redis (the `redisStore.storeCandidateScore()`
+  method existed but was never called).
+- `sessionEvents.emit()` was never calling `redisStore.logEvent()` so no event replay was available
+  from Redis — only in-memory and DB persistence was wired.
+- The frontend store's `progress` event handler only updated `candidateScores` and `progress` state
+  from polling payloads, never populating `candidatesByStage` or `stageHistory` which the
+  `ReasoningPanel` depends on. These were only populated by SSE `ai_thinking` events.
+
+**Impact:** Stages 2, 4, 6 (AI-intensive stages) showed "Waiting for reasoning data…" and the
+scoreboard showed default values only, when SSE was unavailable (no Next.js proxy for EventSource).
+
+**Files modified:**
+
+| File | Change | Timestamp |
+|------|--------|-----------|
+| `apps/api/src/lib/session-events.ts` (emitCandidateScore) | Added `redisStore.storeCandidateScore()` after `bufferScore()` so every candidate score persists to Redis List | 2026-05-15 |
+| `apps/api/src/lib/session-events.ts` (emit) | Added `redisStore.logEvent()` after `persistEvent()` so all events persist to Redis for cross-process replay | 2026-05-15 |
+| `apps/api/src/lib/progress-tracker.ts` (getSessionProgress) | Added `redisStore.getCandidateScores()` parallel read; replaced `candidateScores: []` with mapped data from Redis | 2026-05-15 |
+| `apps/web/lib/store/stream-store.ts` (progress handler) | Added parsing of `lastAIThinking` and `stageHistory` from polling payloads to populate `candidatesByStage` and `stageHistory` in the store | 2026-05-15 |
+
+**Redis key patterns used:**
+
+| Key | Type | Purpose |
+|-----|------|---------|
+| `btr:scores:{sessionId}` | List | Candidate scores (LPUSH, trim to 500, 24h TTL) |
+| `session-events:log:{sessionId}` | List | Event log for replay (LPUSH, trim to 2000, 24h TTL) |
+| `session-events:thinking:{sessionId}` | Hash | AI thinking buffers (already existed, now consumed by frontend polling) |
+
+**Verification:** TypeScript clean (`tsc --noEmit`) for both `apps/api` and `apps/web`. Frontend
+store tests pass (36/36). Pre-existing workspace dependency resolution issue in API test runner
+(not related to this change).
+
+## 14. Change Protocol (Use This Every Time)
 
 Before any task:
 1. Confirm affected area against this snapshot.
@@ -290,7 +330,7 @@ After any architecture-impacting change:
 2. Update `docs/PRODUCTION_READY_ROADMAP.md` phase status if relevant.
 3. Record drift/decision in known issues register if not fully resolved.
 
-## 14. Non-Goals for Current Phase
+## 15. Non-Goals for Current Phase
 
 1. Re-introducing legacy WASM runtime fallback.
 2. Supporting both old and new architecture indefinitely.

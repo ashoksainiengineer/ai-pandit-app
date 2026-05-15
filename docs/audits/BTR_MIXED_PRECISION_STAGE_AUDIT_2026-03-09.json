@@ -1,6 +1,6 @@
 {
   "stage2": {
-    "promptCount": 39,
+    "promptCount": 30,
     "batches": [
       {
         "candidateCount": 0,
@@ -38,9 +38,9 @@
       {
         "candidateCount": 0,
         "markerCounts": {
-          "#V|": 6,
-          "#K|": 6,
-          "#D|": 6
+          "#V|": 0,
+          "#K|": 0,
+          "#D|": 0
         },
         "missingEventTypes": [],
         "missingWindows": [],
@@ -71,9 +71,20 @@
       {
         "candidateCount": 0,
         "markerCounts": {
-          "#V|": 6,
-          "#K|": 6,
-          "#D|": 6
+          "#V|": 0,
+          "#K|": 0,
+          "#D|": 0
+        },
+        "missingEventTypes": [],
+        "missingWindows": [],
+        "missingTimeTokens": []
+      },
+      {
+        "candidateCount": 0,
+        "markerCounts": {
+          "#V|": 0,
+          "#K|": 0,
+          "#D|": 0
         },
         "missingEventTypes": [],
         "missingWindows": [],
@@ -104,9 +115,20 @@
       {
         "candidateCount": 0,
         "markerCounts": {
-          "#V|": 6,
-          "#K|": 6,
-          "#D|": 6
+          "#V|": 0,
+          "#K|": 0,
+          "#D|": 0
+        },
+        "missingEventTypes": [],
+        "missingWindows": [],
+        "missingTimeTokens": []
+      },
+      {
+        "candidateCount": 0,
+        "markerCounts": {
+          "#V|": 0,
+          "#K|": 0,
+          "#D|": 0
         },
         "missingEventTypes": [],
         "missingWindows": [],
@@ -137,9 +159,9 @@
       {
         "candidateCount": 0,
         "markerCounts": {
-          "#V|": 6,
-          "#K|": 6,
-          "#D|": 6
+          "#V|": 0,
+          "#K|": 0,
+          "#D|": 0
         },
         "missingEventTypes": [],
         "missingWindows": [],
@@ -148,300 +170,9 @@
       {
         "candidateCount": 0,
         "markerCounts": {
-          "#V|": 6,
-          "#K|": 6,
-          "#D|": 6
-        },
-        "missingEventTypes": [],
-        "missingWindows": [],
-        "missingTimeTokens": []
-      },
-      {
-        "candidateCount": 0,
-        "markerCounts": {
-          "#V|": 6,
-          "#K|": 6,
-          "#D|": 6
-        },
-        "missingEventTypes": [],
-        "missingWindows": [],
-        "missingTimeTokens": []
-      },
-      {
-        "candidateCount": 0,
-        "markerCounts": {
-          "#V|": 3,
-          "#K|": 3,
-          "#D|": 3
-        },
-        "missingEventTypes": [],
-        "missingWindows": [],
-        "missingTimeTokens": []
-      },
-      {
-        "candidateCount": 0,
-        "markerCounts": {
-          "#V|": 6,
-          "#K|": 6,
-          "#D|": 6
-        },
-        "missingEventTypes": [],
-        "missingWindows": [],
-        "missingTimeTokens": []
-      },
-      {
-        "candidateCount": 0,
-        "markerCounts": {
-          "#V|": 6,
-          "#K|": 6,
-          "#D|": 6
-        },
-        "missingEventTypes": [],
-        "missingWindows": [],
-        "missingTimeTokens": []
-      },
-      {
-        "candidateCount": 0,
-        "markerCounts": {
-          "#V|": 6,
-          "#K|": 6,
-          "#D|": 6
-        },
-        "missingEventTypes": [],
-        "missingWindows": [],
-        "missingTimeTokens": []
-      },
-      {
-        "candidateCount": 0,
-        "markerCounts": {
-          "#V|": 6,
-          "#K|": 6,
-          "#D|": 6
-        },
-        "missingEventTypes": [],
-        "missingWindows": [],
-        "missingTimeTokens": []
-      },
-      {
-        "candidateCount": 0,
-        "markerCounts": {
-          "#V|": 6,
-          "#K|": 6,
-          "#D|": 6
-        },
-        "missingEventTypes": [],
-        "missingWindows": [],
-        "missingTimeTokens": []
-      },
-      {
-        "candidateCount": 0,
-        "markerCounts": {
-          "#V|": 6,
-          "#K|": 6,
-          "#D|": 6
-        },
-        "missingEventTypes": [],
-        "missingWindows": [],
-        "missingTimeTokens": []
-      },
-      {
-        "candidateCount": 0,
-        "markerCounts": {
-          "#V|": 6,
-          "#K|": 6,
-          "#D|": 6
-        },
-        "missingEventTypes": [],
-        "missingWindows": [],
-        "missingTimeTokens": []
-      },
-      {
-        "candidateCount": 0,
-        "markerCounts": {
-          "#V|": 6,
-          "#K|": 6,
-          "#D|": 6
-        },
-        "missingEventTypes": [],
-        "missingWindows": [],
-        "missingTimeTokens": []
-      },
-      {
-        "candidateCount": 0,
-        "markerCounts": {
-          "#V|": 6,
-          "#K|": 6,
-          "#D|": 6
-        },
-        "missingEventTypes": [],
-        "missingWindows": [],
-        "missingTimeTokens": []
-      },
-      {
-        "candidateCount": 0,
-        "markerCounts": {
-          "#V|": 6,
-          "#K|": 6,
-          "#D|": 6
-        },
-        "missingEventTypes": [],
-        "missingWindows": [],
-        "missingTimeTokens": []
-      },
-      {
-        "candidateCount": 0,
-        "markerCounts": {
-          "#V|": 6,
-          "#K|": 6,
-          "#D|": 6
-        },
-        "missingEventTypes": [],
-        "missingWindows": [],
-        "missingTimeTokens": []
-      },
-      {
-        "candidateCount": 0,
-        "markerCounts": {
-          "#V|": 6,
-          "#K|": 6,
-          "#D|": 6
-        },
-        "missingEventTypes": [],
-        "missingWindows": [],
-        "missingTimeTokens": []
-      },
-      {
-        "candidateCount": 0,
-        "markerCounts": {
-          "#V|": 6,
-          "#K|": 6,
-          "#D|": 6
-        },
-        "missingEventTypes": [],
-        "missingWindows": [],
-        "missingTimeTokens": []
-      },
-      {
-        "candidateCount": 0,
-        "markerCounts": {
-          "#V|": 3,
-          "#K|": 3,
-          "#D|": 3
-        },
-        "missingEventTypes": [],
-        "missingWindows": [],
-        "missingTimeTokens": []
-      },
-      {
-        "candidateCount": 0,
-        "markerCounts": {
-          "#V|": 6,
-          "#K|": 6,
-          "#D|": 6
-        },
-        "missingEventTypes": [],
-        "missingWindows": [],
-        "missingTimeTokens": []
-      },
-      {
-        "candidateCount": 0,
-        "markerCounts": {
-          "#V|": 6,
-          "#K|": 6,
-          "#D|": 6
-        },
-        "missingEventTypes": [],
-        "missingWindows": [],
-        "missingTimeTokens": []
-      },
-      {
-        "candidateCount": 0,
-        "markerCounts": {
-          "#V|": 6,
-          "#K|": 6,
-          "#D|": 6
-        },
-        "missingEventTypes": [],
-        "missingWindows": [],
-        "missingTimeTokens": []
-      },
-      {
-        "candidateCount": 0,
-        "markerCounts": {
-          "#V|": 6,
-          "#K|": 6,
-          "#D|": 6
-        },
-        "missingEventTypes": [],
-        "missingWindows": [],
-        "missingTimeTokens": []
-      },
-      {
-        "candidateCount": 0,
-        "markerCounts": {
-          "#V|": 4,
-          "#K|": 4,
-          "#D|": 4
-        },
-        "missingEventTypes": [],
-        "missingWindows": [],
-        "missingTimeTokens": []
-      },
-      {
-        "candidateCount": 0,
-        "markerCounts": {
-          "#V|": 6,
-          "#K|": 6,
-          "#D|": 6
-        },
-        "missingEventTypes": [],
-        "missingWindows": [],
-        "missingTimeTokens": []
-      },
-      {
-        "candidateCount": 0,
-        "markerCounts": {
-          "#V|": 4,
-          "#K|": 4,
-          "#D|": 4
-        },
-        "missingEventTypes": [],
-        "missingWindows": [],
-        "missingTimeTokens": []
-      },
-      {
-        "candidateCount": 0,
-        "markerCounts": {
-          "#V|": 4,
-          "#K|": 4,
-          "#D|": 4
-        },
-        "missingEventTypes": [],
-        "missingWindows": [],
-        "missingTimeTokens": []
-      },
-      {
-        "candidateCount": 0,
-        "markerCounts": {
-          "#V|": 2,
-          "#K|": 2,
-          "#D|": 2
-        },
-        "missingEventTypes": [],
-        "missingWindows": [],
-        "missingTimeTokens": []
-      }
-    ]
-  },
-  "stage4": {
-    "promptCount": 22,
-    "batches": [
-      {
-        "candidateCount": 0,
-        "markerCounts": {
-          "#V|": 6,
-          "#K|": 6,
-          "#D|": 6
+          "#V|": 0,
+          "#K|": 0,
+          "#D|": 0
         },
         "missingEventTypes": [],
         "missingWindows": [],
@@ -530,116 +261,6 @@
           "#V|": 6,
           "#K|": 6,
           "#D|": 6
-        },
-        "missingEventTypes": [],
-        "missingWindows": [],
-        "missingTimeTokens": []
-      },
-      {
-        "candidateCount": 0,
-        "markerCounts": {
-          "#V|": 6,
-          "#K|": 6,
-          "#D|": 6
-        },
-        "missingEventTypes": [],
-        "missingWindows": [],
-        "missingTimeTokens": []
-      },
-      {
-        "candidateCount": 0,
-        "markerCounts": {
-          "#V|": 6,
-          "#K|": 6,
-          "#D|": 6
-        },
-        "missingEventTypes": [],
-        "missingWindows": [],
-        "missingTimeTokens": []
-      },
-      {
-        "candidateCount": 0,
-        "markerCounts": {
-          "#V|": 4,
-          "#K|": 4,
-          "#D|": 4
-        },
-        "missingEventTypes": [],
-        "missingWindows": [],
-        "missingTimeTokens": []
-      },
-      {
-        "candidateCount": 0,
-        "markerCounts": {
-          "#V|": 6,
-          "#K|": 6,
-          "#D|": 6
-        },
-        "missingEventTypes": [],
-        "missingWindows": [],
-        "missingTimeTokens": []
-      },
-      {
-        "candidateCount": 0,
-        "markerCounts": {
-          "#V|": 6,
-          "#K|": 6,
-          "#D|": 6
-        },
-        "missingEventTypes": [],
-        "missingWindows": [],
-        "missingTimeTokens": []
-      },
-      {
-        "candidateCount": 0,
-        "markerCounts": {
-          "#V|": 6,
-          "#K|": 6,
-          "#D|": 6
-        },
-        "missingEventTypes": [],
-        "missingWindows": [],
-        "missingTimeTokens": []
-      },
-      {
-        "candidateCount": 0,
-        "markerCounts": {
-          "#V|": 6,
-          "#K|": 6,
-          "#D|": 6
-        },
-        "missingEventTypes": [],
-        "missingWindows": [],
-        "missingTimeTokens": []
-      },
-      {
-        "candidateCount": 0,
-        "markerCounts": {
-          "#V|": 1,
-          "#K|": 1,
-          "#D|": 1
-        },
-        "missingEventTypes": [],
-        "missingWindows": [],
-        "missingTimeTokens": []
-      },
-      {
-        "candidateCount": 0,
-        "markerCounts": {
-          "#V|": 6,
-          "#K|": 6,
-          "#D|": 6
-        },
-        "missingEventTypes": [],
-        "missingWindows": [],
-        "missingTimeTokens": []
-      },
-      {
-        "candidateCount": 0,
-        "markerCounts": {
-          "#V|": 4,
-          "#K|": 4,
-          "#D|": 4
         },
         "missingEventTypes": [],
         "missingWindows": [],
@@ -659,9 +280,212 @@
       {
         "candidateCount": 0,
         "markerCounts": {
+          "#V|": 6,
+          "#K|": 6,
+          "#D|": 6
+        },
+        "missingEventTypes": [],
+        "missingWindows": [],
+        "missingTimeTokens": []
+      },
+      {
+        "candidateCount": 0,
+        "markerCounts": {
+          "#V|": 6,
+          "#K|": 6,
+          "#D|": 6
+        },
+        "missingEventTypes": [],
+        "missingWindows": [],
+        "missingTimeTokens": []
+      },
+      {
+        "candidateCount": 0,
+        "markerCounts": {
+          "#V|": 6,
+          "#K|": 6,
+          "#D|": 6
+        },
+        "missingEventTypes": [],
+        "missingWindows": [],
+        "missingTimeTokens": []
+      },
+      {
+        "candidateCount": 0,
+        "markerCounts": {
+          "#V|": 6,
+          "#K|": 6,
+          "#D|": 6
+        },
+        "missingEventTypes": [],
+        "missingWindows": [],
+        "missingTimeTokens": []
+      },
+      {
+        "candidateCount": 0,
+        "markerCounts": {
+          "#V|": 2,
+          "#K|": 2,
+          "#D|": 2
+        },
+        "missingEventTypes": [],
+        "missingWindows": [],
+        "missingTimeTokens": []
+      }
+    ]
+  },
+  "stage4": {
+    "promptCount": 15,
+    "batches": [
+      {
+        "candidateCount": 0,
+        "markerCounts": {
+          "#V|": 0,
+          "#K|": 0,
+          "#D|": 0
+        },
+        "missingEventTypes": [],
+        "missingWindows": [],
+        "missingTimeTokens": []
+      },
+      {
+        "candidateCount": 0,
+        "markerCounts": {
+          "#V|": 0,
+          "#K|": 0,
+          "#D|": 0
+        },
+        "missingEventTypes": [],
+        "missingWindows": [],
+        "missingTimeTokens": []
+      },
+      {
+        "candidateCount": 0,
+        "markerCounts": {
+          "#V|": 0,
+          "#K|": 0,
+          "#D|": 0
+        },
+        "missingEventTypes": [],
+        "missingWindows": [],
+        "missingTimeTokens": []
+      },
+      {
+        "candidateCount": 0,
+        "markerCounts": {
+          "#V|": 0,
+          "#K|": 0,
+          "#D|": 0
+        },
+        "missingEventTypes": [],
+        "missingWindows": [],
+        "missingTimeTokens": []
+      },
+      {
+        "candidateCount": 0,
+        "markerCounts": {
+          "#V|": 0,
+          "#K|": 0,
+          "#D|": 0
+        },
+        "missingEventTypes": [],
+        "missingWindows": [],
+        "missingTimeTokens": []
+      },
+      {
+        "candidateCount": 0,
+        "markerCounts": {
+          "#V|": 0,
+          "#K|": 0,
+          "#D|": 0
+        },
+        "missingEventTypes": [],
+        "missingWindows": [],
+        "missingTimeTokens": []
+      },
+      {
+        "candidateCount": 0,
+        "markerCounts": {
+          "#V|": 0,
+          "#K|": 0,
+          "#D|": 0
+        },
+        "missingEventTypes": [],
+        "missingWindows": [],
+        "missingTimeTokens": []
+      },
+      {
+        "candidateCount": 0,
+        "markerCounts": {
+          "#V|": 0,
+          "#K|": 0,
+          "#D|": 0
+        },
+        "missingEventTypes": [],
+        "missingWindows": [],
+        "missingTimeTokens": []
+      },
+      {
+        "candidateCount": 0,
+        "markerCounts": {
+          "#V|": 0,
+          "#K|": 0,
+          "#D|": 0
+        },
+        "missingEventTypes": [],
+        "missingWindows": [],
+        "missingTimeTokens": []
+      },
+      {
+        "candidateCount": 0,
+        "markerCounts": {
+          "#V|": 4,
+          "#K|": 4,
+          "#D|": 4
+        },
+        "missingEventTypes": [],
+        "missingWindows": [],
+        "missingTimeTokens": []
+      },
+      {
+        "candidateCount": 0,
+        "markerCounts": {
           "#V|": 3,
           "#K|": 3,
           "#D|": 3
+        },
+        "missingEventTypes": [],
+        "missingWindows": [],
+        "missingTimeTokens": []
+      },
+      {
+        "candidateCount": 0,
+        "markerCounts": {
+          "#V|": 3,
+          "#K|": 3,
+          "#D|": 3
+        },
+        "missingEventTypes": [],
+        "missingWindows": [],
+        "missingTimeTokens": []
+      },
+      {
+        "candidateCount": 0,
+        "markerCounts": {
+          "#V|": 2,
+          "#K|": 2,
+          "#D|": 2
+        },
+        "missingEventTypes": [],
+        "missingWindows": [],
+        "missingTimeTokens": []
+      },
+      {
+        "candidateCount": 0,
+        "markerCounts": {
+          "#V|": 2,
+          "#K|": 2,
+          "#D|": 2
         },
         "missingEventTypes": [],
         "missingWindows": [],
@@ -681,7 +505,7 @@
     ]
   },
   "stage6": {
-    "promptCount": 26,
+    "promptCount": 3,
     "batches": [
       {
         "candidateCount": 0,
@@ -708,262 +532,9 @@
       {
         "candidateCount": 0,
         "markerCounts": {
-          "#V|": 6,
-          "#K|": 6,
-          "#D|": 6
-        },
-        "missingEventTypes": [],
-        "missingWindows": [],
-        "missingTimeTokens": []
-      },
-      {
-        "candidateCount": 0,
-        "markerCounts": {
-          "#V|": 6,
-          "#K|": 6,
-          "#D|": 6
-        },
-        "missingEventTypes": [],
-        "missingWindows": [],
-        "missingTimeTokens": []
-      },
-      {
-        "candidateCount": 0,
-        "markerCounts": {
-          "#V|": 6,
-          "#K|": 6,
-          "#D|": 6
-        },
-        "missingEventTypes": [],
-        "missingWindows": [],
-        "missingTimeTokens": []
-      },
-      {
-        "candidateCount": 0,
-        "markerCounts": {
-          "#V|": 6,
-          "#K|": 6,
-          "#D|": 6
-        },
-        "missingEventTypes": [],
-        "missingWindows": [],
-        "missingTimeTokens": []
-      },
-      {
-        "candidateCount": 0,
-        "markerCounts": {
-          "#V|": 6,
-          "#K|": 6,
-          "#D|": 6
-        },
-        "missingEventTypes": [],
-        "missingWindows": [],
-        "missingTimeTokens": []
-      },
-      {
-        "candidateCount": 0,
-        "markerCounts": {
-          "#V|": 6,
-          "#K|": 6,
-          "#D|": 6
-        },
-        "missingEventTypes": [],
-        "missingWindows": [],
-        "missingTimeTokens": []
-      },
-      {
-        "candidateCount": 0,
-        "markerCounts": {
-          "#V|": 6,
-          "#K|": 6,
-          "#D|": 6
-        },
-        "missingEventTypes": [],
-        "missingWindows": [],
-        "missingTimeTokens": []
-      },
-      {
-        "candidateCount": 0,
-        "markerCounts": {
-          "#V|": 6,
-          "#K|": 6,
-          "#D|": 6
-        },
-        "missingEventTypes": [],
-        "missingWindows": [],
-        "missingTimeTokens": []
-      },
-      {
-        "candidateCount": 0,
-        "markerCounts": {
-          "#V|": 6,
-          "#K|": 6,
-          "#D|": 6
-        },
-        "missingEventTypes": [],
-        "missingWindows": [],
-        "missingTimeTokens": []
-      },
-      {
-        "candidateCount": 0,
-        "markerCounts": {
-          "#V|": 6,
-          "#K|": 6,
-          "#D|": 6
-        },
-        "missingEventTypes": [],
-        "missingWindows": [],
-        "missingTimeTokens": []
-      },
-      {
-        "candidateCount": 0,
-        "markerCounts": {
-          "#V|": 6,
-          "#K|": 6,
-          "#D|": 6
-        },
-        "missingEventTypes": [],
-        "missingWindows": [],
-        "missingTimeTokens": []
-      },
-      {
-        "candidateCount": 0,
-        "markerCounts": {
-          "#V|": 6,
-          "#K|": 6,
-          "#D|": 6
-        },
-        "missingEventTypes": [],
-        "missingWindows": [],
-        "missingTimeTokens": []
-      },
-      {
-        "candidateCount": 0,
-        "markerCounts": {
-          "#V|": 6,
-          "#K|": 6,
-          "#D|": 6
-        },
-        "missingEventTypes": [],
-        "missingWindows": [],
-        "missingTimeTokens": []
-      },
-      {
-        "candidateCount": 0,
-        "markerCounts": {
-          "#V|": 6,
-          "#K|": 6,
-          "#D|": 6
-        },
-        "missingEventTypes": [],
-        "missingWindows": [],
-        "missingTimeTokens": []
-      },
-      {
-        "candidateCount": 0,
-        "markerCounts": {
-          "#V|": 6,
-          "#K|": 6,
-          "#D|": 6
-        },
-        "missingEventTypes": [],
-        "missingWindows": [],
-        "missingTimeTokens": []
-      },
-      {
-        "candidateCount": 0,
-        "markerCounts": {
-          "#V|": 6,
-          "#K|": 6,
-          "#D|": 6
-        },
-        "missingEventTypes": [],
-        "missingWindows": [],
-        "missingTimeTokens": []
-      },
-      {
-        "candidateCount": 0,
-        "markerCounts": {
-          "#V|": 6,
-          "#K|": 6,
-          "#D|": 6
-        },
-        "missingEventTypes": [],
-        "missingWindows": [],
-        "missingTimeTokens": []
-      },
-      {
-        "candidateCount": 0,
-        "markerCounts": {
-          "#V|": 6,
-          "#K|": 6,
-          "#D|": 6
-        },
-        "missingEventTypes": [],
-        "missingWindows": [],
-        "missingTimeTokens": []
-      },
-      {
-        "candidateCount": 0,
-        "markerCounts": {
           "#V|": 2,
           "#K|": 2,
           "#D|": 2
-        },
-        "missingEventTypes": [],
-        "missingWindows": [],
-        "missingTimeTokens": []
-      },
-      {
-        "candidateCount": 0,
-        "markerCounts": {
-          "#V|": 6,
-          "#K|": 6,
-          "#D|": 6
-        },
-        "missingEventTypes": [],
-        "missingWindows": [],
-        "missingTimeTokens": []
-      },
-      {
-        "candidateCount": 0,
-        "markerCounts": {
-          "#V|": 6,
-          "#K|": 6,
-          "#D|": 6
-        },
-        "missingEventTypes": [],
-        "missingWindows": [],
-        "missingTimeTokens": []
-      },
-      {
-        "candidateCount": 0,
-        "markerCounts": {
-          "#V|": 6,
-          "#K|": 6,
-          "#D|": 6
-        },
-        "missingEventTypes": [],
-        "missingWindows": [],
-        "missingTimeTokens": []
-      },
-      {
-        "candidateCount": 0,
-        "markerCounts": {
-          "#V|": 3,
-          "#K|": 3,
-          "#D|": 3
-        },
-        "missingEventTypes": [],
-        "missingWindows": [],
-        "missingTimeTokens": []
-      },
-      {
-        "candidateCount": 0,
-        "markerCounts": {
-          "#V|": 4,
-          "#K|": 4,
-          "#D|": 4
         },
         "missingEventTypes": [],
         "missingWindows": [],
