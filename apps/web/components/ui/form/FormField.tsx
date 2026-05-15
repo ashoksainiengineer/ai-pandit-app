@@ -3,7 +3,6 @@
  * Sacred Ivory Light Theme - Wrapper for form inputs with label and error handling
  */
 
-import { ReactNode } from 'react';
 import { FormLabel } from './FormLabel';
 import { FormError } from './FormError';
 import { FormFieldProps } from './types';

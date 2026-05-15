@@ -102,7 +102,7 @@ export default function CustomEventModal({
         });
 
         handleClose();
-      } catch (err) {
+      } catch {
         setError('Failed to create event. Please try again.');
       } finally {
         setIsSubmitting(false);

@@ -8,7 +8,7 @@
 import React, { useState, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Search, Plus, ChevronDown, AlertTriangle } from 'lucide-react';
-import { EventCategory, EventTemplate, EventImportance } from '@/lib/events/types';
+import { EventTemplate, EventImportance } from '@/lib/events/types';
 import {
   filterEvents,
   searchEvents,

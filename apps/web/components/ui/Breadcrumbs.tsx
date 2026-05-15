@@ -68,7 +68,7 @@ export const Breadcrumbs = memo(function Breadcrumbs({
     >
       <ol className="flex items-center gap-2 flex-wrap">
         {items.map((item, index) => {
-          const isLast = index === items.length - 1;
+          const _isLast = index === items.length - 1;
           const Icon = item.icon;
           const isFirst = index === 0;
 

@@ -33,11 +33,8 @@ import {
   validateDateRange,
   validateMonthRange,
   validateYearRange,
-  getAvailableDays,
   buildDateString,
   buildTimeString,
-  isDateComplete,
-  compareDates,
   DATE_CONSTANTS
 } from '@/lib/date-utils';
 
@@ -348,7 +345,8 @@ export default function DateInput({
   // Derived parts for validation (from props - always use the canonical values)
   const startParts = useMemo(() => parseDateParts(eventDate), [eventDate]);
   const endParts = useMemo(() => parseDateParts(endDate), [endDate]);
-  const timeParts = useMemo(() => parseTimeParts(eventTime), [eventTime]);
+  
+
 
   // Validation state
   const [validation, setValidation] = useState<ValidationState>({
