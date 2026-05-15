@@ -607,9 +607,10 @@ export async function getSessionProgress(sessionId: string): Promise<ProgressDat
     // 2. Check Redis (distributed state)
     const redisStore = getRedisEventStore();
     try {
-        const [context, thinking] = await Promise.all([
+        const [context, thinking, rawScores] = await Promise.all([
             redisStore.getContext(sessionId),
-            redisStore.getThinking(sessionId)
+            redisStore.getThinking(sessionId),
+            redisStore.getCandidateScores(sessionId),
         ]);
 
         if (context && typeof context === 'object') {
@@ -629,6 +630,18 @@ export async function getSessionProgress(sessionId: string): Promise<ProgressDat
                 };
             }
 
+            const candidateScores: CandidateScore[] = (rawScores as Array<Record<string, unknown>>)
+                .filter(s => s && s.time)
+                .map(s => ({
+                    time: String(s.time),
+                    score: Number(s.score) || 0,
+                    stage: Number(s.stage) || 0,
+                    rank: s.rank as number | undefined,
+                    batch: s.batch as number | undefined,
+                    minifiedEph: s.minifiedEph as CandidateScore['minifiedEph'],
+                    fullEph: s.fullEph as CandidateScore['fullEph'],
+                }));
+
             const redisProgress: ProgressData = {
                 currentStep: ctx.currentStep ?? 0,
                 totalSteps: ANALYSIS_STEPS.length,
@@ -638,7 +651,7 @@ export async function getSessionProgress(sessionId: string): Promise<ProgressDat
                     status: 'pending' as const,
                 })),
                 lastUpdate: ctx.lastUpdate ? new Date(ctx.lastUpdate).toISOString() : new Date().toISOString(),
-                candidateScores: [],
+                candidateScores,
                 estimatedTimeRemaining: ctx.estimatedTimeRemaining ?? 0,
                 liveMessage: ctx.liveMessage,
                 lastAIThinking,

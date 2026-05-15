@@ -227,6 +227,11 @@ class SessionEventManager {
             (event as SessionEvent & { seq?: number }).seq = seq; // Attach sequence to event for easier handling
             this.logEvent(sessionId, seq, event);
             void this.persistEvent(sessionId, seq, event);
+
+            // Persist to Redis event log for cross-process replay and polling fallback
+            if (this.useRedis && this.redisStore.isAvailable()) {
+                void this.redisStore.logEvent(sessionId, seq, event);
+            }
         }
 
         // 2. Broadcast to all active SSE listeners
@@ -729,7 +734,8 @@ export function emitCandidateScore(
     batch?: number
 ): void {
     logger.info(`Buffer Candidate Score: ${sessionId?.slice(0, 8)} | ${time} | ${score}`);
-    sessionEvents.bufferScore(sessionId, {
+
+    const scoreEvent: CandidateScoreEvent = {
         type: 'candidate_score_v2',
         time,
         score,
@@ -738,7 +744,14 @@ export function emitCandidateScore(
         rank,
         minifiedEph,
         fullEph,
-    });
+    };
+    sessionEvents.bufferScore(sessionId, scoreEvent);
+
+    // Persist to Redis for polling fallback (scores are only in worker memory otherwise)
+    const redisStore = getRedisEventStore();
+    if (redisStore.isAvailable()) {
+        void redisStore.storeCandidateScore(sessionId, scoreEvent);
+    }
 }
 
 export function emitComplete(

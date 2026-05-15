@@ -36,7 +36,7 @@ import { logger } from '../utils/logger.js';
 import { ProgressTracker, ANALYSIS_STEPS } from './progress-tracker.js';
 import { SecondsPrecisionInput, SecondsPrecisionResult, type CandidateTime } from '@ai-pandit/shared';
 import { throwIfCancelled, isCancellationError } from './cancellation-manager.js';
-import { emitStageStats } from './session-events.js';
+import { emitStageStats, cleanupSession } from './session-events.js';
 import { _enhanceCandidateWithPrecisionData, _generatePrecisionAIPrompt } from './btr-precision-integrator.js';
 import { _getMinifiedEphemeris } from './utils/index.js';
 // Inline debug logging utilities to avoid ESM import issues in worker container
@@ -373,6 +373,9 @@ export async function executeSecondsPrecisionRectification(
         }
         const currentStepId = ANALYSIS_STEPS[Math.min(ANALYSIS_STEPS.length - 1, progress.getProgress().currentStep)]?.id || 'final';
         await progress.errorStep(currentStepId, error instanceof Error ? error.message : String(error));
+        // Clean up session event resources to prevent memory leak from orphaned
+        // EventEmitter + event buffers. Without this, the 1-hour GC is the only cleanup.
+        cleanupSession(input.sessionId);
         throw error;
     }
 }
