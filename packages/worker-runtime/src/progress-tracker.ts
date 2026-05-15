@@ -8,7 +8,7 @@ import {
   emitAIContext,
   emitEstimatedTime,
   emitAIThinking,
-} from '@ai-pandit/shared/session-events';
+} from './session-events.js';
 import { safeJsonParse } from '@ai-pandit/shared';
 import { getRedisEventStore } from '@ai-pandit/shared/event-store';
 import type { CandidateScore, ProgressStep, AIThinkingData, AIContextData, ProgressData } from '@ai-pandit/shared';

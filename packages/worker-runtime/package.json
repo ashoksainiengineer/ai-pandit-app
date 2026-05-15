@@ -8,7 +8,8 @@
     "exports": {
         ".": "./dist/index.js",
         "./types": "./dist/types.js",
-        "./progress-tracker": "./dist/progress-tracker.js"
+        "./progress-tracker": "./dist/progress-tracker.js",
+        "./session-events": "./dist/session-events.js"
     },
     "scripts": {
         "build": "tsc",

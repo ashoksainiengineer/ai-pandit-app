@@ -1,7 +1,7 @@
 import { EventEmitter } from 'events';
 import crypto from 'crypto';
 import { appendJobEvent, getLatestJobForSession } from '@ai-pandit/db/jobs';
-import { getRedisEventStore, type RedisClient, type RedisEventStore } from './event-store.js';
+import { getRedisEventStore, type RedisClient, type RedisEventStore } from '@ai-pandit/shared/event-store';
 import type {
     ProgressEvent,
     AIThinkingEvent,
@@ -16,7 +16,7 @@ import type {
     EstimatedTimeEvent,
     DecisionEvent,
     SessionEvent
-} from './types/api.js';
+} from '@ai-pandit/shared/types';
 
 export type {
     ProgressEvent,

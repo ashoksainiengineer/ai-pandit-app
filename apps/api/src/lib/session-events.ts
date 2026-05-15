@@ -12,7 +12,7 @@ export {
   emitEstimatedTime,
   emitDecision,
   cleanupSession,
-} from '@ai-pandit/shared/session-events';
+} from '@ai-pandit/worker-runtime/session-events';
 
 export type {
   ProgressEvent,
