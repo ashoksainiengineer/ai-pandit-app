@@ -21,7 +21,8 @@ Rules while using this snapshot:
 - `apps/worker`: standalone worker process (polling + job execution runtime)
 - `services/ephemeris`: Python FastAPI Skyfield ephemeris microservice
 - `packages/db`: Drizzle schema + Postgres/Neon data access
-- `packages/shared`: shared TS types + Zod contracts used by web/api
+- `packages/shared`: shared TS types, Zod contracts, crypto, event-store, safe-json-parse
+- `packages/worker-runtime`: queue client, worker runtime factory, progress-tracker, session-events
 
 ## 3. Runtime Architecture (Current)
 
@@ -43,6 +44,12 @@ Rules while using this snapshot:
    - Dedicated queue execution loop
    - Graceful drain on SIGTERM/SIGINT
    - Cloud Run health endpoints (`/health`, `/ready`, `/live`)
+   - Imports Event Store, Session Events, Progress Tracker from **shared packages** (no dynamic imports to API)
+
+4. Packages (`packages/`)
+   - `@ai-pandit/shared`: Types, schemas, crypto, **event-store**, **event-store-adapter**, **safe-json-parse**
+   - `@ai-pandit/worker-runtime`: Queue client, worker runtime, **session-events**, **progress-tracker**
+   - `@ai-pandit/db`: Drizzle schema, jobs, database access
 
 4. Ephemeris (`services/ephemeris`)
    - FastAPI + Skyfield kernel (`de440s.bsp`)
@@ -61,6 +68,63 @@ Rules while using this snapshot:
 5. Worker/API queue loop claims job, runs BTR pipeline, updates progress/events/artifacts.
 6. Frontend receives live progress via SSE (`/api/stream`) and/or polling (`/api/queue/progress`).
 7. Final result persisted in DB and returned via progress/stream endpoints.
+
+## 3.3 Shared Package Architecture
+
+### 3.3.1 Package Dependency Graph
+
+```
+@ai-pandit/shared (leaf)
+  ├── types, schemas, crypto, errors
+  ├── event-store (Redis event store - console.* logging)
+  ├── event-store-adapter (ioredis adapter)
+  └── safe-json-parse
+  Dependencies: ioredis, zod
+
+@ai-pandit/db
+  ├── drizzle schema, client, jobs
+  Dependencies: @ai-pandit/shared
+
+@ai-pandit/worker-runtime
+  ├── queue client (redis-queue)
+  ├── session-events (event emitter + Redis persister)
+  ├── progress-tracker (BTR progress tracking)
+  └── worker runtime factory
+  Dependencies: @ai-pandit/db, @ai-pandit/shared, drizzle-orm, ioredis
+```
+
+### 3.3.2 Key Design Decisions
+
+1. **No circular deps:** `@ai-pandit/shared` does NOT depend on `@ai-pandit/db`. Session events
+   live in `@ai-pandit/worker-runtime` (which depends on both db and shared) because they
+   persist to both Redis (streaming) and DB (job events).
+
+2. **Static imports only:** Worker imports all shared modules via npm package names, not
+   fragile relative file paths. No more `import('../../api/src/lib/...')` runtime hacks.
+
+3. **console.* in shared packages:** Shared packages use `console.error/warn/info` instead
+   of the API's Pino logger to avoid introducing unnecessary dependencies. Cloud Run captures
+   console output to Cloud Logging.
+
+4. **Backward-compatible API:** API modules still export the same symbols — they now
+   re-export from shared packages. Zero import changes in API route handlers.
+
+### 3.3.3 Worker Startup Flow (Fixed)
+
+```
+worker.ts startup:
+  1. Load env vars, validate ENCRYPTION_SECRET
+  2. Create Redis queue client  →  @ai-pandit/worker-runtime
+  3. Create Redis client        →  ioredis
+  4. Init Redis Event Store     →  @ai-pandit/shared (STATIC IMPORT ✅)
+  5. Verify DB, Ephemeris
+  6. Create worker runtime      →  @ai-pandit/worker-runtime
+  7. Subscribe to job notifications (Pub/Sub)
+  8. Run loop: claim job → process → publish progress
+     Progress publishing → ProgressTracker → @ai-pandit/worker-runtime
+     Event emitting     → sessionEvents   → @ai-pandit/worker-runtime
+     Redis persistence  → RedisEventStore → @ai-pandit/shared
+```
 
 ## 4. Ephemeris Architecture (Current)
 

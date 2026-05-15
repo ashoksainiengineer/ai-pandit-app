@@ -16,10 +16,18 @@ This file defines how coding agents (Codex/Copilot/Claude/etc.) must operate in 
 - `apps/api`: Express + TypeScript backend
 - `apps/worker`: external job worker
 - `packages/db`: Drizzle schema/client
-- `packages/shared`: shared types/schemas
-- `packages/worker-runtime`: worker runtime library
-- `services/ephemeris`: Python FastAPI Skyfield service
-- `e2e`: Playwright tests
+- `packages/shared`: shared types/schemas, crypto, **event-store**, safe-json-parse
+- `packages/worker-runtime`: worker runtime library, queue client, **session-events**, **progress-tracker**
+
+## Shared Package Exports
+
+- `@ai-pandit/shared`: types, schemas, crypto, errors, event-store, safe-json-parse
+- `@ai-pandit/shared/event-store`: RedisEventStore, getRedisEventStore, initRedisEventStore, adaptIORedis
+- `@ai-pandit/worker-runtime`: createWorkerRuntime, createRedisQueueClient, ProgressTracker, ANALYSIS_STEPS
+- `@ai-pandit/worker-runtime/session-events`: sessionEvents, emitProgress, emitAIThinking, emitCandidateScore, ...
+- `@ai-pandit/worker-runtime/progress-tracker`: ProgressTracker, ANALYSIS_STEPS, getSessionProgress
+- `@ai-pandit/db`: db, executeWithRetry, completeJob, failJob, updateJobProgress
+- `@ai-pandit/db/jobs`: getLatestJobForSession, appendJobEvent, listActiveJobs
 
 ## Day-1 Setup
 

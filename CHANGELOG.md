@@ -8,6 +8,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Changed
+- **Architecture Refactor:** Extracted Redis Event Store, Session Events, and Progress Tracker
+  into shared packages to eliminate fragile dynamic imports between API and Worker:
+  - `@ai-pandit/shared` now exports `event-store`, `event-store-adapter`, `safe-json-parse`
+  - `@ai-pandit/worker-runtime` now exports `session-events`, `progress-tracker`
+  - Worker imports from shared packages via **static imports** — no more fragile `import('../../api/src/lib/...')` runtime path resolution
+  - API re-exports from shared packages for backward compatibility
+  - Circular dependency avoided: session-events lives in worker-runtime (not shared) because it depends on `@ai-pandit/db`
+
+### Fixed
+- **AI Stream to Frontend:** Worker's `initRedisEventStore()` now uses static import from `@ai-pandit/shared` instead of dynamic import with fragile file path. Event Store initializes reliably, AI thinking events publish to Redis, API SSE endpoint streams them to frontend.
+- **Job Routing:** Worker no longer silently fails on Event Store initialization. Queue → Worker → BTR pipeline is robust.
+
 ### Added
 - Live analysis engine components (AIThinkingBox, EphemerisTable, CandidateComparisonTable)
 - Comprehensive README with architecture diagram and 13 sections

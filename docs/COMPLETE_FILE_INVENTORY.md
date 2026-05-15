@@ -864,14 +864,14 @@
 ## 6. Packages - Shared
 
 **Location:** `packages/shared/`  
-**Purpose:** Shared types and schemas
-
-### 6.1 Configuration
 
 | File | Purpose |
 |------|---------|
 | `package.json` | Package config |
 | `tsconfig.json` | TypeScript config |
+| `src/event-store.ts` | Redis Event Store (shared between API and Worker) |
+| `src/event-store-adapter.ts` | ioredis → RedisClient adapter |
+| `src/safe-json-parse.ts` | Safe JSON parsing utility |
 | `vitest.config.ts` | Test config |
 
 ### 6.2 Source Code
@@ -893,7 +893,23 @@
 
 ---
 
-## 7. Services - Ephemeris
+## 7. Packages - Worker Runtime
+
+**Location:** `packages/worker-runtime/`  
+
+| File | Purpose |
+|------|---------|
+| `package.json` | Package config |
+| `tsconfig.json` | TypeScript config |
+| `src/index.ts` | Worker runtime factory, queue client exports |
+| `src/redis-queue.ts` | Redis queue client |
+| `src/types.ts` | Worker runtime types |
+| `src/session-events.ts` | Session event manager + SSE emitters (moved from API) |
+| `src/progress-tracker.ts` | BTR progress tracker (moved from API) |
+
+---
+
+## 8. Services - Ephemeris
 
 **Location:** `services/ephemeris/`  
 **Framework:** FastAPI  
@@ -966,7 +982,7 @@
 
 ---
 
-## 8. E2E Tests
+## 9. E2E Tests
 
 **Location:** `e2e/`  
 **Framework:** Playwright
@@ -1162,8 +1178,8 @@
 
 ### Streaming System
 - **Stream Ticket Manager:** `apps/api/src/lib/stream-ticket-manager.ts`
-- **Progress Tracker:** `apps/api/src/lib/progress-tracker.ts`
-- **Session Events:** `apps/api/src/lib/session-events.ts`
+- **Progress Tracker:** `packages/worker-runtime/src/progress-tracker.ts` (re-exports from API)
+- **Session Events:** `packages/worker-runtime/src/session-events.ts` (re-exports from API)
 - **Frontend Hook:** `apps/web/lib/use-stream-progress.ts`
 
 ### Authentication
