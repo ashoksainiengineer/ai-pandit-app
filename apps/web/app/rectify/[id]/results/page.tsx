@@ -3,8 +3,9 @@ import { redirect } from 'next/navigation';
 import { currentUser } from '@clerk/nextjs/server';
 import { db } from '@ai-pandit/db';
 import { sessions } from '@ai-pandit/db/schema';
+import type { Session } from '@ai-pandit/db/schema';
 import { eq } from 'drizzle-orm';
-import { ResultsDashboardClient } from './ResultsDashboardClient';
+import { ResultsDashboardClient, ResultsDashboardClientProps } from './ResultsDashboardClient';
 import Layout from '@/components/Layout';
 import Link from 'next/link';
 import { Breadcrumbs, predefinedBreadcrumbs } from '@/components/ui/Breadcrumbs';
@@ -17,7 +18,7 @@ export const revalidate = 0;
 
 
 const crypto = getWebEncryption();
-const getSessionResults = cache(async (sessionId: string, userId: string): Promise<any> => {
+const getSessionResults = cache(async (sessionId: string, userId: string): Promise<Record<string, unknown> | null> => {
     try {
         // 1. Primary Query
         let session = await db.query.sessions.findFirst({
@@ -28,7 +29,7 @@ const getSessionResults = cache(async (sessionId: string, userId: string): Promi
         if (!session) {
             const results = await db.select().from(sessions).where(eq(sessions.id, sessionId)).limit(1);
             if (results && results.length > 0) {
-                session = results[0] as any;
+                session = results[0] as unknown as Session;
             }
         }
 
@@ -122,7 +123,7 @@ export default async function ResultsPage({ params }: { params: Promise<{ id: st
 
     return (
         <Suspense fallback={<ResultsSkeleton />}>
-            <ResultsDashboardClient id={id} initialSession={session as any} />
+            <ResultsDashboardClient id={id} initialSession={session as unknown as ResultsDashboardClientProps['initialSession']} />
         </Suspense>
     );
 }

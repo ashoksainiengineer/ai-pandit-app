@@ -3,11 +3,13 @@ import { notFound, redirect } from 'next/navigation';
 import { currentUser } from '@clerk/nextjs/server';
 import { db } from '@ai-pandit/db';
 import { sessions } from '@ai-pandit/db/schema';
+import type { Session } from '@ai-pandit/db/schema';
 import { eq } from 'drizzle-orm';
-import { EditSessionClient } from './EditSessionClient';
+import { EditSessionClient, EditSessionClientProps } from './EditSessionClient';
 import Layout from '@/components/Layout';
 import { getWebEncryption } from '@/lib/crypto';
 import { logger } from '@/lib/secure-logger';
+import type { LifeEvent } from '@/lib/types';
 import '@/app/globals.css';
 
 export const dynamic = 'force-dynamic';
@@ -15,7 +17,7 @@ export const revalidate = 0;
 
 
 const crypto = getWebEncryption();
-const getSessionData = cache(async (sessionId: string, userId: string): Promise<any> => {
+const getSessionData = cache(async (sessionId: string, userId: string): Promise<Record<string, unknown> | null> => {
     try {
         // 1. Primary Query using Drizzle Relation API
         let session = await db.query.sessions.findFirst({
@@ -26,7 +28,7 @@ const getSessionData = cache(async (sessionId: string, userId: string): Promise<
         if (!session) {
             const results = await db.select().from(sessions).where(eq(sessions.id, sessionId)).limit(1);
             if (results && results.length > 0) {
-                session = results[0] as any;
+                session = results[0] as unknown as Session;
             }
         }
 
@@ -50,7 +52,7 @@ const getSessionData = cache(async (sessionId: string, userId: string): Promise<
         return {
             ...session,
             birthData,
-            lifeEvents: crypto.parseField(session.lifeEvents, sessionUserId, []),
+            lifeEvents: crypto.parseField(session.lifeEvents, sessionUserId, []) as LifeEvent[],
             spouseData: crypto.parseField(session.spouseData, sessionUserId),
             offsetConfig: crypto.parseField(session.offsetConfig, sessionUserId),
         };
@@ -85,7 +87,7 @@ export default async function EditSessionPage({ params }: { params: Promise<{ id
 
     return (
         <Suspense fallback={<EditPageSkeleton />}>
-            <EditSessionClient sessionId={id} initialData={initialData as any} />
+            <EditSessionClient sessionId={id} initialData={initialData as unknown as EditSessionClientProps['initialData']} />
         </Suspense>
     );
 }

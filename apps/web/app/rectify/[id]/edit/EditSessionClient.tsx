@@ -19,13 +19,13 @@ import { SecurityBadge } from '@/components/rectify/SecurityBadge';
 import { StepIndicator } from '@/components/rectify/StepIndicator';
 import RectifySubmitBar from '@/components/rectify/RectifySubmitBar';
 import { useWarmup } from '@/hooks/use-warmup';
-interface EditSessionClientProps {
+export interface EditSessionClientProps {
     sessionId: string;
     initialData: {
         birthData: BirthData;
         lifeEvents: LifeEvent[];
         spouseData?: SpouseData;
-        offsetConfig?: any;
+        offsetConfig?: Record<string, unknown>;
     };
 }
 
@@ -43,10 +43,10 @@ export function EditSessionClient({ sessionId, initialData }: EditSessionClientP
     };
 
     const [step, setStep] = useState(getInitialStep);
-    const [maxUnlockedStep, setMaxUnlockedStep] = useState(getInitialStep);
+    const [_maxUnlockedStep, setMaxUnlockedStep] = useState(getInitialStep);
     const [birthData, setBirthData] = useState<BirthData | null>(initialData.birthData);
     const [lifeEvents, setLifeEvents] = useState<LifeEvent[]>(initialData.lifeEvents || []);
-    const [offsetConfig, setOffsetConfig] = useState<any>(initialData.offsetConfig || { preset: '1hour', customMinutes: 60, description: '±1 hour' });
+    const [offsetConfig, setOffsetConfig] = useState<Record<string, unknown>>(initialData.offsetConfig || { preset: '1hour', customMinutes: 60, description: '±1 hour' });
     const [spouseData, setSpouseData] = useState<SpouseData>(initialData.spouseData || {
         dateOfBirth: '',
         birthTime: '',
@@ -252,7 +252,7 @@ export function EditSessionClient({ sessionId, initialData }: EditSessionClientP
                     setIsSubmitting(false);
                     return;
                 }
-            } catch (err: any) {
+            } catch (err: unknown) {
                 setError(toErrorMessage(err, 'Failed to restart analysis'));
                 setIsSubmitting(false);
                 return;
@@ -265,7 +265,7 @@ export function EditSessionClient({ sessionId, initialData }: EditSessionClientP
 
             router.push(`/rectify/${sessionId}`);
 
-        } catch (err: any) {
+        } catch (err: unknown) {
             setError(toErrorMessage(err, 'Network error'));
             setIsSubmitting(false);
         }
@@ -319,7 +319,7 @@ export function EditSessionClient({ sessionId, initialData }: EditSessionClientP
                                 data={birthData}
                                 updateData={(updates: Partial<import('@/lib/types').BirthData>) => setBirthData(prev => prev ? { ...prev, ...updates } : updates as import('@/lib/types').BirthData)}
                                 offsetConfig={offsetConfig}
-                                updateOffset={setOffsetConfig}
+                                updateOffset={(config) => setOffsetConfig(config as Record<string, unknown>)}
                                 spouseData={spouseData}
                                 updateSpouse={(updates: Partial<SpouseData>) => setSpouseData(prev => ({ ...prev, ...updates }))}
                             />

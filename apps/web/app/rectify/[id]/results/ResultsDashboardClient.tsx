@@ -4,12 +4,12 @@ import React, { useEffect, useState } from 'react';
 import { ResultsDashboard } from '@/components/rectify/ResultsDashboard';
 import Layout from '@/components/Layout';
 import { Breadcrumbs, predefinedBreadcrumbs } from '@/components/ui/Breadcrumbs';
-import { Session } from '@/lib/types';
+import { Session, AnalysisResult, BirthData } from '@/lib/types';
+import type { FinalResult } from '@/components/rectify/dashboard/types';
 import { logger } from '@/lib/secure-logger';
 
 const safeSetItem = (key: string, value: string): void => {
     try {
-        // localStorage quota is ~5MB per origin. Serialized reasoningLogs can exceed this.
         if (value.length > 1_000_000) {
             logger.warn('[ResultsDashboard] Skipping localStorage write — value too large', {
                 key,
@@ -18,27 +18,24 @@ const safeSetItem = (key: string, value: string): void => {
             return;
         }
         localStorage.setItem(key, value);
-    } catch (err) {
-        logger.warn('[ResultsDashboard] localStorage write failed', {
-            key,
-            error: err instanceof Error ? err.message : String(err),
-        });
+    } catch {
+        logger.warn('[ResultsDashboard] localStorage write failed', { key });
     }
 };
 
-interface ResultsDashboardClientProps {
+export interface ResultsDashboardClientProps {
     id: string;
     initialSession: Session & {
-        analysisResult?: any;
-        reasoningLogs?: any;
-        birthData: any;
+        analysisResult?: AnalysisResult | null;
+        reasoningLogs?: unknown;
+        birthData: BirthData;
     };
 }
 
 export function ResultsDashboardClient({ id, initialSession }: ResultsDashboardClientProps) {
-    const [resultData, setResultData] = useState<any>(initialSession);
-    const [birthData, setBirthData] = useState<any>(initialSession?.birthData);
-    const [reasoningLogs, setReasoningLogs] = useState<any>(initialSession?.reasoningLogs);
+    const [resultData, setResultData] = useState<FinalResult | null>(null);
+    const [birthData, setBirthData] = useState<BirthData>(initialSession?.birthData);
+    const [reasoningLogs, setReasoningLogs] = useState<unknown>(initialSession?.reasoningLogs);
 
     useEffect(() => {
         if (initialSession) {
@@ -59,7 +56,7 @@ export function ResultsDashboardClient({ id, initialSession }: ResultsDashboardC
                 confidence: initialSession.confidence ?? analysisResult?.confidence ?? null,
             };
 
-            setResultData(sessionData);
+            setResultData(sessionData as unknown as FinalResult);
             setBirthData(initialSession.birthData);
             setReasoningLogs(initialSession.reasoningLogs);
 
@@ -75,7 +72,17 @@ export function ResultsDashboardClient({ id, initialSession }: ResultsDashboardC
                 }
             }
         }
-    }, [id, initialSession, setResultData, setBirthData, setReasoningLogs]);
+    }, [id, initialSession]);
+
+    if (!resultData) {
+        return (
+            <Layout>
+                <div className="max-w-7xl mx-auto px-6 pt-6">
+                    <p className="text-center text-black/60 py-12">Loading results...</p>
+                </div>
+            </Layout>
+        );
+    }
 
     return (
         <Layout>
@@ -86,7 +93,7 @@ export function ResultsDashboardClient({ id, initialSession }: ResultsDashboardC
                 sessionId={id}
                 data={resultData}
                 birthData={birthData}
-                reasoningLogs={reasoningLogs}
+                reasoningLogs={reasoningLogs as string | undefined}
             />
         </Layout>
     );
