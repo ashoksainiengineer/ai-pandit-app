@@ -5,7 +5,6 @@ import '@/app/globals.css';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
-import { APIClient } from '@/lib/api-client';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Activity,
@@ -33,6 +32,7 @@ import { logger } from '@/lib/secure-logger';
 import { env } from '@/lib/config';
 import { AnalysisErrorBoundary, SectionErrorBoundary } from '@/components/rectify/AnalysisErrorBoundary';
 import { TestModeProvider } from '@/lib/test-mode-context';
+import type { AIThinking } from '@/components/rectify/UnifiedAIPanel/types';
 const AdvancedSignalsDashboard = dynamic(() => import('@/components/rectify/advanced-signals/AdvancedSignalsDashboard'), { ssr: false });
 const UnifiedAIPanel = dynamic(() => import('@/components/rectify/UnifiedAIPanel').then(mod => mod.UnifiedAIPanel), { ssr: false });
 const AnalysisStatusBanner = dynamic(() => import('@/components/rectify/analysis/AnalysisStatusBanner').then(mod => mod.AnalysisStatusBanner), { ssr: false });
@@ -219,7 +219,7 @@ export default function AnalysisPage() {
 
   const isConnected = connectionState.status === 'streaming' || connectionState.status === 'polling';
 
-  const [isCancelling, setIsCancelling] = useState(false);
+  const [isCancelling, _setIsCancelling] = useState(false);
   const [cancelled, setCancelled] = useState(false);
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
 
@@ -330,20 +330,6 @@ export default function AnalysisPage() {
 
   const hasError = streamError || connectionState.status === 'error';
   const errorMessage = streamError || connectionState.lastError || 'Unknown error';
-
-  const connectionLabel = useMemo(() => {
-    switch (connectionState.status) {
-      case 'streaming': return 'Connected';
-      case 'polling': return 'Monitoring';
-      case 'connecting': return 'Connecting...';
-      case 'rate_limited': return 'Rate limited';
-      case 'finished': return 'Complete';
-      case 'error': return 'Disconnected';
-      default: return 'Initializing...';
-    }
-  }, [connectionState.status]);
-
-  const isLive = connectionState.status === 'streaming' || connectionState.status === 'polling';
 
   // Guard: Show loading ONLY if we have NO data at all AND no active/recovering connection
   const hasData = progress || candidateScores.length > 0 || Object.keys(candidatesByStage).length > 0;
@@ -604,7 +590,7 @@ export default function AnalysisPage() {
                             <UnifiedAIPanel
                               thinking={isCurrentStage && !isStageCompleted && stageCandidates
                                 ? (() => {
-                                  const entries = Object.values(stageCandidates) as any[];
+                                  const entries = Object.values(stageCandidates) as AIThinking[];
                                   if (entries.length === 0) return null;
                                   return entries.sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0))[0];
                                 })()

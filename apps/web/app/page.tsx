@@ -9,6 +9,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { motion, useScroll, useTransform, AnimatePresence } from 'framer-motion';
 import {
   ArrowRight,
@@ -253,13 +254,13 @@ function Hero() {
             {TECH_LOGOS.map((tech) => (
               <div key={tech.name} className="flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-white/50 transition-colors group">
                 {tech.icon ? (
-                  <img
+                  <Image
                     src={`https://cdn.jsdelivr.net/npm/simple-icons@latest/icons/${tech.icon}.svg`}
                     alt={tech.name}
-                    className="h-5 w-auto flex-shrink-0 transition-all duration-300"
-                    style={{ filter: 'grayscale(100%) opacity(0.5)' }}
-                    onMouseEnter={(e) => { (e.target as HTMLImageElement).style.filter = 'grayscale(0%) opacity(1)'; }}
-                    onMouseLeave={(e) => { (e.target as HTMLImageElement).style.filter = 'grayscale(100%) opacity(0.5)'; }}
+                    width={20}
+                    height={20}
+                    className="tech-logo h-5 w-auto flex-shrink-0 transition-all duration-300 grayscale opacity-50 group-hover:grayscale-0 group-hover:opacity-100"
+                    unoptimized
                   />
                 ) : (
                   <span className="w-2 h-2 rounded-full flex-shrink-0 ring-1 ring-black/10 bg-black/20" />

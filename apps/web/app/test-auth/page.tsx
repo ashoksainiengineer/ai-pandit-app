@@ -1,5 +1,4 @@
 import { SignIn } from '@clerk/nextjs';
-import Link from 'next/link';
 import '@/app/globals.css';
 
 export default function SignInPage() {
