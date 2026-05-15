@@ -110,23 +110,10 @@ export async function stage2BatchTournament(
             const systemPrompt = 'You are the SUPREME VEDIC ASTROLOGER. Analyze candidate birth times for primary astrological alignment.';
             const userPrompt = getBatchPrompt(batchEnriched, input.lifeEvents, i + 1, batches.length, survivorsPerBatch, input.spouseData, offsetMinutes);
             
-            // Save batch metadata
-            btrDataCapture.saveBatchMetadata(
-                input.sessionId,
-                2,
-                roundNumber,
-                i + 1,
-                batchTimes.map(c => c.time),
-                survivorsPerBatch
-            );
-
             const memBefore = process.memoryUsage();
-            if (memBefore.heapUsed > 150 * 1024 * 1024) {
-                logger.warn('[STAGE-2] High memory before data capture, skipping', {
-                    heapUsedMB: Math.round(memBefore.heapUsed / 1024 / 1024),
-                    batch: i + 1,
-                });
-            } else {
+            const shouldCapture = memBefore.heapUsed <= 150 * 1024 * 1024;
+            
+            if (shouldCapture) {
                 btrDataCapture.saveBatchMetadata(
                     input.sessionId,
                     2,
@@ -136,7 +123,6 @@ export async function stage2BatchTournament(
                     survivorsPerBatch
                 );
 
-                // Save ephemeris data for each candidate in batch
                 for (const candidate of batchEnriched) {
                     btrDataCapture.saveEphemeris(
                         input.sessionId,

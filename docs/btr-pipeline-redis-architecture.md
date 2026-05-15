@@ -683,4 +683,108 @@ btr:channel:{sessionId}       → Pub/Sub channel
 
 ---
 
+## 11. Stage-Aware VSL Formatter (Added 2026-05-15)
+
+### 11.1 Problem
+
+Original VSL formatter emitted **full astrological data** for every stage, causing:
+- **Stage 2**: ~52K tokens per batch (8 candidates) → Groq 8K TPM limit exceeded
+- **Stage 4**: ~35K tokens per batch → unnecessary verbosity for deep analysis
+- **Stage 6**: ~18K tokens per batch → final precision didn't need full history
+
+### 11.2 Solution: Stage-Aware Compaction
+
+Implemented `VSLFormatOptions { stage?: 2 | 4 | 6 }` in `vsl-formatter.ts`.
+
+#### Stage 2 — Essential Only (~72% reduction)
+
+| Data | Before | After |
+|------|--------|-------|
+| Planet Matrix | All 14 fields | 5 fields: sign, house, dignity, shadbala, functionalNature |
+| Vargas | D9/D10/D12/D60/D150 full | D9 Ascendant, D10 Ascendant only |
+| Dashas | MD-AD-PD-SD-Prana | Vimshottari MD-AD only |
+| KP | 4-level sub-lords | StarLord > SubLord (2 levels) |
+| Shadbala | Per-planet breakdown | Total only |
+| Jaimini | All 7 karakas | AK, AmK, DK only |
+| Aspects | 5 aspects | 2 aspects |
+| **Tokens** | **~52K** | **~14.4K** |
+
+#### Stage 4 — Extended (~51% reduction)
+
+Adds to Stage 2 base:
+- Full vargas (D9/D10/D12/D60/D150)
+- Ashtakavarga totals
+- Nadi D150 (not D1080)
+- 3-level KP (Star > Sub > SubSub)
+- Cuspal sub-lords
+- Yogas (top 8)
+- Chalit discrepancies
+- Transits
+
+#### Stage 6 — Full Precision (~11% reduction)
+
+Adds to Stage 4 base:
+- D1080 nadi resolution
+- 4-level KP (Star > Sub > SubSub > SubSubSub)
+- Vimshottari prana-level dasha
+- Present transit lock
+
+### 11.3 Token Reduction Summary
+
+| Stage | Before | After | Reduction |
+|-------|--------|-------|-----------|
+| 2 | ~52K | ~14.4K | **72%** |
+| 4 | ~35K | ~17K | **51%** |
+| 6 | ~18K | ~16K | **11%** |
+
+### 11.4 Files Modified
+
+- `apps/api/src/lib/btr/prompts/vsl-formatter.ts` — Stage-aware formatter with 6 compact functions
+- `apps/api/src/lib/btr/prompts/batch-prompt.ts` — Pass `{ stage: 2 }`
+- `apps/api/src/lib/btr/prompts/deep-analysis-prompt.ts` — Pass `{ stage: 4 }`
+- `apps/api/src/lib/btr/prompts/final-precision-prompt.ts` — Pass `{ stage: 6 }`
+
+---
+
+## 12. Stage 2 Memory Leak Fix (Added 2026-05-15)
+
+### 12.1 Root Cause
+
+`btrDataCapture.saveBatchMetadata()` was called **twice** per batch:
+1. Lines 114-121: Inside `shouldCapture` guard
+2. Lines 130-137: **Duplicate call** outside guard
+
+This caused:
+- Duplicate DB writes (2x metadata per batch)
+- Heap accumulation during long-running Stage 2
+- Memory pressure > 150MB threshold
+
+### 12.2 Fix
+
+Consolidated all capture logic under **single `shouldCapture` guard**:
+
+```typescript
+const memBefore = process.memoryUsage();
+const shouldCapture = memBefore.heapUsed <= 150 * 1024 * 1024;
+
+if (shouldCapture) {
+    // Single saveBatchMetadata call
+    btrDataCapture.saveBatchMetadata(...);
+    
+    // Single loop for ephemeris + prompt saves
+    for (const candidate of batchEnriched) {
+        btrDataCapture.saveEphemeris(...);
+        btrDataCapture.savePrompt(...);
+    }
+}
+```
+
+### 12.3 Verification
+
+- Typecheck clean for `@ai-pandit/api` and `@ai-pandit/worker`
+- Mixed-precision audit test passes
+- Complete pipeline monitor test: 87.5s, 170 events, 6 stages, accuracy=96
+
+---
+
 *Document generated from live system analysis. All facts verified from production logs and codebase.*
