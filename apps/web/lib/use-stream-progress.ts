@@ -165,17 +165,22 @@ break;
                         }
                     };
 
-sse.onerror = () => {
-if (!mountedRef.current || machine.getCurrentSessionId() !== sid) return;
-if (sse.readyState === EventSource.CLOSED) {
-// Clear stale ref so reconnect can proceed
-sseSourceRef.current = null;
-}
-const readyState = sse.readyState;
-const result = machine.onSseError(readyState, sseConnected);
-setConnectionState(result.state);
-applyEffects(result.effects);
-};
+                    const thisSse = sse;
+                    thisSse.onerror = () => {
+                        if (!mountedRef.current || machine.getCurrentSessionId() !== sid) return;
+                        if (thisSse.readyState === EventSource.CLOSED) {
+                            // Only clear ref if it still points to THIS SSE instance,
+                            // guarding against a newer connection replacing the ref
+                            // before this deferred error handler fires.
+                            if (sseSourceRef.current === thisSse) {
+                                sseSourceRef.current = null;
+                            }
+                        }
+                        const readyState = thisSse.readyState;
+                        const result = machine.onSseError(readyState, sseConnected);
+                        setConnectionState(result.state);
+                        applyEffects(result.effects);
+                    };
                     break;
                 }
 
@@ -504,9 +509,12 @@ return;
     }, [sessionId, backendUrl, forcePollingTransport]);
 
     // ── proactive token refresh ───────────────────────────────────────────────
+    // getToken from Clerk changes reference on every render. Using a ref-backed
+    // empty deps array so the interval is set up once and uses the latest token
+    // via getTokenRef.current inside the callback.
 
     useEffect(() => {
-        if (!getToken) return;
+        if (!getTokenRef.current) return;
 
         const REFRESH_INTERVAL = 45 * 60 * 1000; // 45 minutes
         logger.info('[Token] Setting up proactive token refresh service');
@@ -514,7 +522,8 @@ return;
         const refresh = async () => {
             try {
                 logger.debug('[Token] Proactively refreshing Clerk token...');
-                const currentGetToken = getTokenRef.current ?? getToken;
+                const currentGetToken = getTokenRef.current;
+                if (!currentGetToken) return;
                 const refreshedToken = await getTokenWithRetry(currentGetToken, { skipCache: true });
                 if (refreshedToken) {
                     machine.setCachedToken(refreshedToken);
@@ -537,8 +546,9 @@ return;
         }, REFRESH_INTERVAL);
 
         return () => clearInterval(interval);
+    // Run once; getTokenRef.current stays updated by the parent effect.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [getToken]);
+    }, []);
 
     return { connectionState };
 }

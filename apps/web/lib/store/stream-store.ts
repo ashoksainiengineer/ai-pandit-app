@@ -378,8 +378,13 @@ export const useStreamStore = create<StreamStore>()(
                         const bufferKey = `${stage}_${candidateTime}`;
                         const existing = thinkingBuffer.chunks.get(bufferKey);
 
+                        // Cap per-candidate buffer at 100KB to prevent memory spikes when
+                        // rAF is delayed (background tab, CPU contention, etc.)
+                        const MAX_BUFFER_PER_CANDIDATE = 100_000;
                         if (existing) {
-                            existing.text += chunk;
+                            if (existing.text.length < MAX_BUFFER_PER_CANDIDATE) {
+                                existing.text += chunk;
+                            }
                         } else {
                             thinkingBuffer.chunks.set(bufferKey, { stage, candidateTime, text: chunk });
                         }
@@ -431,6 +436,12 @@ const message = (typeof p.message === 'string' ? p.message : typeof p.liveMessag
 const steps = Array.isArray(p.steps) ? p.steps as Array<Record<string, unknown>> : undefined;
 
 const updates: Partial<StreamState> = {};
+
+// Backend sends startedAt in every progress event; capture it so the
+// elapsed timer can begin even if initial_state lacked it.
+if (p.startedAt && typeof p.startedAt === 'string') {
+    updates.startedAt = p.startedAt;
+}
 
 // Never allow progress to go backwards, but still process candidate scores
 if (!pctBackwards) {
@@ -655,25 +666,6 @@ return updates;
 );
 
 // ── Flush pending IndexedDB writes on tab close ──
-if (typeof window !== 'undefined') {
-    window.addEventListener('beforeunload', () => {
-        const state = useStreamStore.getState();
-        // Write current state directly, bypassing the debounce
-        const payload = JSON.stringify({
-            state: {
-                sessionId: state.sessionId,
-                isComplete: state.isComplete,
-                candidateScores: state.candidateScores,
-                progress: state.progress,
-                activeAIStage: state.activeAIStage,
-                result: state.result,
-                startedAt: state.startedAt
-            },
-            version: 0,
-        });
-        // Use synchronous set via a best-effort approach
-        try {
-            set('btr-stream-storage', payload).catch((err) => { console.warn('[StreamStore] Failed to persist state', err); });
-        } catch (err) { console.warn('[StreamStore] set() threw synchronously', err); }
-    });
-}
+// Zustand persist already handles debounced saves via createIdbStorage.
+// The beforeunload flush was removed because it wrote to a mismatched key
+// ('btr-stream-storage' vs 'BTR-StreamStore') and duplicated the persist logic.

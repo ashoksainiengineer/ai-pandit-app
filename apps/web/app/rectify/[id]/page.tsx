@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useId, useMemo, useState } from 'react';
+import React, { useEffect, useId, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { useAuth } from '@clerk/nextjs';
@@ -27,6 +27,7 @@ import {
   MapPin,
 } from 'lucide-react';
 import { logger } from '@/lib/secure-logger';
+import Layout from '@/components/Layout';
 import { AnalysisErrorBoundary } from '@/components/rectify/AnalysisErrorBoundary';
 import { useAnalysisSession } from '@/hooks/use-analysis-session';
 import { useAnalysisActions } from '@/hooks/use-analysis-actions';
@@ -107,15 +108,15 @@ function Header({
   pageTitleId: string;
 }) {
   return (
-    <header className="sticky top-0 z-40 border-b backdrop-blur-md bg-white/80 border-black/[0.06]" role="banner">
+    <header className="sticky top-[3.5rem] z-40 border-b backdrop-blur-md bg-white/80 border-black/[0.06]" role="banner">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 sm:py-4">
         <nav aria-label="Breadcrumb" className="mb-1">
-          <ol className="flex items-center gap-2 text-xs text-[var(--prism-graphite)]">
+          <ol className="flex items-center gap-1 text-xs text-[var(--prism-graphite)]" aria-label="Breadcrumb">
             <li><Link href="/" className="flex items-center gap-1.5 hover:text-black transition-colors"><Home className="w-4 h-4" />Home</Link></li>
-            <span className="opacity-50">/</span>
+            <li aria-hidden="true" className="opacity-50">/</li>
             <li><Link href="/dashboard" className="flex items-center gap-1.5 hover:text-black transition-colors"><LayoutDashboard className="w-4 h-4" />Dashboard</Link></li>
-            <span className="opacity-50">/</span>
-            <li className="flex items-center gap-1.5 font-semibold text-black"><Activity className="w-4 h-4" />Analysis</li>
+            <li aria-hidden="true" className="opacity-50">/</li>
+            <li className="flex items-center gap-1.5 font-semibold text-black" aria-current="page"><Activity className="w-4 h-4" />Analysis</li>
           </ol>
         </nav>
 
@@ -473,35 +474,148 @@ function StageCandidates({ scores, stage }: { scores: CandidateScore[]; stage: n
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════════
-   REASONING PANEL  (Prism light — all candidates for this stage)
+   REASONING BATCH CARD  (expandable card for one batch candidate)
+   ═══════════════════════════════════════════════════════════════════════════════ */
+function BatchCard({
+  candidate,
+  isSelected,
+  onSelect,
+}: {
+  candidate: AIThinking;
+  isSelected: boolean;
+  onSelect: () => void;
+}) {
+  const candidateTime = candidate.candidateTime || 'Unknown';
+  const truncatedText = candidate.fullText
+    ? candidate.fullText.length > 160
+      ? candidate.fullText.slice(0, 160) + '…'
+      : candidate.fullText
+    : '';
+
+  return (
+    <motion.button
+      type="button"
+      onClick={onSelect}
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.25 }}
+      className={`w-full text-left rounded-lg border transition-all duration-200 overflow-hidden ${
+        isSelected
+          ? 'border-[#184131] bg-[#184131]/5 shadow-sm ring-1 ring-[#184131]/20'
+          : 'border-[rgba(0,0,0,0.06)] bg-white hover:border-[#C65D3B]/30 hover:shadow-sm'
+      }`}
+    >
+      <div className="px-3 py-2.5">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 min-w-0">
+            <Brain className="w-3.5 h-3.5 text-[#C65D3B] shrink-0" />
+            <span className="text-[13px] font-mono font-medium text-[var(--prism-ink)] truncate">
+              {candidateTime}
+            </span>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            {candidate.chunks && candidate.chunks.length > 0 && (
+              <span className="text-[9px] text-[var(--prism-slate)] font-mono">{candidate.chunks.length} chunks</span>
+            )}
+            {isSelected ? (
+              <ChevronUp className="w-3.5 h-3.5 text-[#184131]" />
+            ) : (
+              <ChevronDown className="w-3.5 h-3.5 text-[var(--prism-slate)]" />
+            )}
+          </div>
+        </div>
+        {!isSelected && truncatedText && (
+          <p className="text-[10px] text-[var(--prism-graphite)] mt-1.5 leading-relaxed line-clamp-2">
+            {truncatedText}
+          </p>
+        )}
+      </div>
+    </motion.button>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   REASONING EXPANDED VIEW  (full-width reasoning for selected batch)
+   ═══════════════════════════════════════════════════════════════════════════════ */
+function ExpandedReasoning({
+  candidate,
+  onClose,
+}: {
+  candidate: AIThinking;
+  onClose: () => void;
+}) {
+  const candidateTime = candidate.candidateTime || 'Unknown';
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      className="bg-white rounded-xl border border-[rgba(0,0,0,0.08)] overflow-hidden shadow-sm"
+    >
+      <div className="flex items-center justify-between px-4 py-3 bg-[var(--prism-canvas)] border-b border-[rgba(0,0,0,0.06)]">
+        <div className="flex items-center gap-2 min-w-0">
+          <Brain className="w-4 h-4 text-[#C65D3B] shrink-0" />
+          <span className="text-[13px] font-mono font-medium text-[var(--prism-ink)]">{candidateTime}</span>
+        </div>
+        <button
+          type="button"
+          onClick={onClose}
+          className="flex items-center gap-1 px-2.5 py-1.5 text-[11px] font-medium text-[var(--prism-slate)] hover:text-[var(--prism-ink)] rounded-lg hover:bg-[rgba(0,0,0,0.04)] transition-colors"
+        >
+          <ChevronDown className="w-3.5 h-3.5" />
+          Collapse
+        </button>
+      </div>
+      <div className="p-4 max-h-[480px] overflow-y-auto">
+        {candidate.fullText ? (
+          <div className="text-[12px] text-[var(--prism-graphite)] font-mono leading-relaxed whitespace-pre-wrap">
+            {candidate.fullText}
+          </div>
+        ) : candidate.chunks && candidate.chunks.length > 0 ? (
+          <div className="text-[12px] text-[var(--prism-graphite)] font-mono leading-relaxed whitespace-pre-wrap">
+            {candidate.chunks.join('')}
+          </div>
+        ) : (
+          <div className="text-[11px] text-[var(--prism-slate)] font-mono text-center py-8">
+            No reasoning content available for this batch.
+          </div>
+        )}
+      </div>
+    </motion.div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   REASONING PANEL  (batch cards + candidate scores for AI stages)
    ═══════════════════════════════════════════════════════════════════════════════ */
 function ReasoningPanel({
   stageCandidates,
-  stageHistory,
-  stage,
   isActive,
+  selectedBatch,
+  onSelectBatch,
 }: {
   stageCandidates: Record<string, AIThinking>;
-  stageHistory: Record<number, string>;
-  stage: number;
   isActive: boolean;
+  selectedBatch: string | null;
+  onSelectBatch: (candidateTime: string | null) => void;
 }) {
-  const activeThinking = useMemo(() => {
-    const entries = Object.values(stageCandidates);
-    if (entries.length === 0) return null;
-    return entries.sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0))[0];
+  const sortedBatches = useMemo(() => {
+    return Object.entries(stageCandidates)
+      .map(([time, data]) => ({ time, ...data }))
+      .sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
   }, [stageCandidates]);
 
-  const displayText = useMemo(() => {
-    if (activeThinking?.fullText) return activeThinking.fullText;
-    if (stageHistory?.[stage]) return stageHistory[stage];
-    return '';
-  }, [activeThinking, stageHistory, stage]);
-
-  const allCandidates = useMemo(() => Object.values(stageCandidates), [stageCandidates]);
+  if (selectedBatch && stageCandidates[selectedBatch]) {
+    return (
+      <ExpandedReasoning
+        candidate={stageCandidates[selectedBatch]}
+        onClose={() => onSelectBatch(null)}
+      />
+    );
+  }
 
   return (
-    <div className="flex flex-col h-full bg-white rounded-xl border border-[rgba(0,0,0,0.08)] overflow-hidden shadow-sm">
+    <div className="flex flex-col bg-white rounded-xl border border-[rgba(0,0,0,0.08)] overflow-hidden shadow-sm">
       <div className="flex items-center gap-2 px-4 py-2.5 bg-[var(--prism-canvas)] border-b border-[rgba(0,0,0,0.06)] shrink-0">
         <div className="w-7 h-7 rounded-md bg-[#C65D3B]/10 flex items-center justify-center">
           <Brain className="w-3.5 h-3.5 text-[#C65D3B]" />
@@ -510,42 +624,34 @@ function ReasoningPanel({
           <h3 className="text-[11px] font-medium text-[var(--prism-ink)] uppercase tracking-wider truncate">AI Reasoning Engine</h3>
         </div>
         {isActive && (
-          <motion.div animate={{ opacity: [1, 0.3, 1] }} transition={{ duration: 1.5, repeat: Infinity }} className="flex items-center gap-1 px-2 py-0.5 bg-[#C65D3B]/10 rounded-full border border-[#C65D3B]/20">
+          <motion.div
+            animate={{ opacity: [1, 0.3, 1] }}
+            transition={{ duration: 1.5, repeat: Infinity }}
+            className="flex items-center gap-1 px-2 py-0.5 bg-[#C65D3B]/10 rounded-full border border-[#C65D3B]/20"
+          >
             <Radio className="w-2 h-2 text-[#C65D3B]" />
             <span className="text-[8px] font-medium text-[#C65D3B] uppercase">Live</span>
           </motion.div>
         )}
       </div>
 
-      <div className="flex-1 min-h-0 overflow-y-auto p-3 space-y-3">
-        {/* Current reasoning stream */}
-        {displayText ? (
-          <div className="text-[11px] text-[var(--prism-graphite)] font-mono leading-relaxed whitespace-pre-wrap">
-            {displayText}
-          </div>
+      <div className="flex-1 min-h-0 overflow-y-auto p-3 space-y-2">
+        {sortedBatches.length > 0 ? (
+          sortedBatches.map((batch) => (
+            <BatchCard
+              key={batch.time}
+              candidate={batch}
+              isSelected={selectedBatch === batch.time}
+              onSelect={() => onSelectBatch(selectedBatch === batch.time ? null : batch.time)}
+            />
+          ))
         ) : (
-          <div className="text-[11px] text-[var(--prism-slate)] font-mono text-center py-4">
-            Waiting for reasoning data…
-          </div>
-        )}
-
-        {/* All candidates for this stage */}
-        {allCandidates.length > 0 && (
-          <div className="border-t border-[rgba(0,0,0,0.06)] pt-3">
-            <p className="text-[9px] font-medium text-[var(--prism-slate)] uppercase tracking-wider mb-2">All Candidates</p>
-            <div className="space-y-1.5">
-              {allCandidates.map((cand, i) => (
-                <div key={cand.candidateTime || i} className="px-2 py-1.5 rounded bg-[var(--prism-canvas)] border border-[rgba(0,0,0,0.06)]">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-mono text-[#C65D3B]">{cand.candidateTime || `Candidate ${i + 1}`}</span>
-                    <span className="text-[8px] text-[var(--prism-slate)]">{cand.chunks?.length || 0} chunks</span>
-                  </div>
-                  {cand.fullText && (
-                    <p className="text-[9px] text-[var(--prism-graphite)] mt-0.5 line-clamp-2">{cand.fullText.slice(0, 120)}…</p>
-                  )}
-                </div>
-              ))}
-            </div>
+          <div className="text-[11px] text-[var(--prism-slate)] font-mono text-center py-8">
+            {isActive ? (
+              <span>Waiting for reasoning data…</span>
+            ) : (
+              <span>No reasoning available for this stage.</span>
+            )}
           </div>
         )}
       </div>
@@ -555,11 +661,12 @@ function ReasoningPanel({
 
 /* ═══════════════════════════════════════════════════════════════════════════════
    STAGE PANEL  (one per active/completed stage, S1–S6)
+   - Odd stages (1,3,5): Non-AI, single container
+   - Even stages (2,4,6): AI reasoning + candidates with expandable batch cards
    ═══════════════════════════════════════════════════════════════════════════════ */
 function StagePanel({
   stageNum,
   candidatesByStage,
-  stageHistory,
   allSteps,
   currentStageIndex,
   isComplete,
@@ -567,7 +674,6 @@ function StagePanel({
 }: {
   stageNum: number;
   candidatesByStage: Record<number, Record<string, AIThinking>>;
-  stageHistory: Record<number, string>;
   allSteps: { id?: string; name?: string }[];
   currentStageIndex: number;
   isComplete: boolean;
@@ -579,7 +685,10 @@ function StagePanel({
   const candidateCount = Object.keys(stageCandidates).length;
 
   const stepDef = allSteps?.[stageNum] ?? { id: `stage-${stageNum}`, name: STAGES[stageNum]?.name || `Stage ${stageNum}` };
-  const isAIStage = stageNum >= 2 && stageNum <= 6;
+  // Even stages (2,4,6) are AI reasoning stages; odd stages (1,3,5) are grid computation
+  const isAIStage = stageNum % 2 === 0;
+
+  const [selectedBatch, setSelectedBatch] = useState<string | null>(null);
 
   // Don't render future stages with zero data
   if (candidateCount === 0 && !isCurrentStage && !isStageCompleted) return null;
@@ -590,7 +699,6 @@ function StagePanel({
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, ease: 'easeOut' }}
-      className="mb-8 last:mb-0"
     >
       {/* Stage header */}
       <div className="flex items-center gap-2 mb-4">
@@ -612,15 +720,23 @@ function StagePanel({
       </div>
 
       {isAIStage ? (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          <ReasoningPanel
-            stageCandidates={stageCandidates}
-            stageHistory={stageHistory}
-            stage={stageNum}
-            isActive={isCurrentStage}
+        selectedBatch ? (
+          /* Expanded batch: show full reasoning across the entire stage width */
+          <ExpandedReasoning
+            candidate={stageCandidates[selectedBatch]}
+            onClose={() => setSelectedBatch(null)}
           />
-          <StageCandidates scores={candidateScores} stage={stageNum} />
-        </div>
+        ) : (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <ReasoningPanel
+              stageCandidates={stageCandidates}
+              isActive={isCurrentStage}
+              selectedBatch={selectedBatch}
+              onSelectBatch={setSelectedBatch}
+            />
+            <StageCandidates scores={candidateScores} stage={stageNum} />
+          </div>
+        )
       ) : (
         <div className="bg-white/50 rounded-xl border border-[rgba(0,0,0,0.06)] p-4 shadow-sm">
           <div className="flex items-center justify-between">
@@ -743,37 +859,37 @@ export default function AnalysisPage() {
   const session = useAnalysisSession(sessionId, isLoaded ?? false, isSignedIn ?? false, getToken);
   const actions = useAnalysisActions(sessionId);
 
-  useEffect(() => {
-    if (session.metadata?.status === 'cancelled') actions.setCancelled(true);
-    else if (session.metadata?.status && ['pending', 'queued', 'processing', 'retrying'].includes(session.metadata.status)) {
-      actions.setCancelled(false);
-    }
-  }, [session.metadata?.status, session.isComplete, actions]);
+  const setCancelledRef = useRef(actions.setCancelled);
+  setCancelledRef.current = actions.setCancelled;
 
   useEffect(() => {
-    if (session.isComplete) {
-      if (session.connectionState.status === 'idle' || session.connectionState.status === 'connecting') return;
-      if (session.result) {
-        try {
-          localStorage.setItem(`rectification_result_${sessionId}`, JSON.stringify({
-            rectifiedTime: session.result.rectifiedTime,
-            accuracy: session.result.accuracy,
-            confidence: session.result.confidence,
-          }));
-        } catch (err) {
-          logger.warn('[Rectify] localStorage unavailable', { error: err instanceof Error ? err.message : String(err) });
-        }
+    if (session.metadata?.status === 'cancelled') setCancelledRef.current(true);
+    else if (session.metadata?.status && ['pending', 'queued', 'processing', 'retrying'].includes(session.metadata.status)) {
+      setCancelledRef.current(false);
+    }
+  }, [session.metadata?.status, session.isComplete]);
+
+  useEffect(() => {
+    if (session.isComplete && session.result) {
+      try {
+        localStorage.setItem(`rectification_result_${sessionId}`, JSON.stringify({
+          rectifiedTime: session.result.rectifiedTime,
+          accuracy: session.result.accuracy,
+          confidence: session.result.confidence,
+        }));
+      } catch (err) {
+        logger.warn('[Rectify] localStorage unavailable', { error: err instanceof Error ? err.message : String(err) });
       }
       logger.info('Analysis complete. Staying on page for review.', { sessionId });
     }
-  }, [session.isComplete, session.result, sessionId, session.connectionState.status]);
+  }, [session.isComplete, session.result, sessionId]);
 
   if (!isLoaded) return <LoadingState />;
   if (!isSignedIn && typeof window !== 'undefined' && !(window as { isTestEnv?: boolean }).isTestEnv) {
     router.push('/sign-in');
     return <LoadingState />;
   }
-  if (!session.isConnected && !session.hasError && !session.result && !session.hasData && session.connectionState.status !== 'polling' && session.connectionState.status !== 'connecting') {
+  if (!actions.cancelled && !session.isConnected && !session.hasError && !session.result && !session.hasData && session.connectionState.status !== 'polling' && session.connectionState.status !== 'connecting') {
     return <LoadingState />;
   }
   if (session.hasError && !session.result && session.connectionState.status === 'error') {
@@ -785,11 +901,12 @@ export default function AnalysisPage() {
   // Build sorted list of stages that have data or are active (S1–S6 only)
   const incomingStageNumbers = Object.keys(session.candidatesByStage).map(Number).filter(n => n > 0);
   const activeStageNumbers = new Set([1, 2, 3, 4, 5, 6].filter(n => n <= currentStageIndex || incomingStageNumbers.includes(n)));
-  const sortedStages = Array.from(activeStageNumbers).sort((a, b) => b - a); // newest first
+  const sortedStages = Array.from(activeStageNumbers).sort((a, b) => a - b); // chronological order
 
   return (
     <AnalysisErrorBoundary sectionName="Analysis Page">
-      <main className="min-h-screen font-sans bg-[var(--prism-canvas)]" aria-labelledby={pageTitleId}>
+      <Layout hideFooter fullWidth>
+        <div className="font-sans bg-[var(--prism-canvas)] min-h-screen pt-14" aria-labelledby={pageTitleId}>
         <Header
           sessionId={sessionId}
           metadata={session.metadata}
@@ -852,7 +969,6 @@ export default function AnalysisPage() {
                   key={stageNum}
                   stageNum={stageNum}
                   candidatesByStage={session.candidatesByStage}
-                  stageHistory={session.stageHistory}
                   allSteps={session.allSteps}
                   currentStageIndex={currentStageIndex}
                   isComplete={session.isComplete}
@@ -862,7 +978,8 @@ export default function AnalysisPage() {
             </div>
           )}
         </div>
-      </main>
+        </div>
+      </Layout>
       <SSEDebugPanel />
     </AnalysisErrorBoundary>
   );
