@@ -5,14 +5,7 @@ import { useWarmup } from '../use-warmup';
 // Mutable mock env
 let mockWarmupEnabled = true;
 
-// Mock Clerk auth
-vi.mock('@clerk/nextjs', () => ({
-    useAuth: () => ({
-        getToken: vi.fn().mockResolvedValue('mock-token'),
-    }),
-}));
-
-// Mock env config
+// Mock env config (no Clerk auth needed — warmup is a public endpoint)
 vi.mock('@/lib/config/env', () => ({
     env: {
         api: { backendUrl: 'http://localhost:3001' },
@@ -20,11 +13,6 @@ vi.mock('@/lib/config/env', () => ({
             return { enabled: mockWarmupEnabled };
         },
     },
-}));
-
-// Mock auth-utils
-vi.mock('@/lib/auth-utils', () => ({
-    getTokenWithRetry: vi.fn().mockImplementation(async (getToken: any) => getToken()),
 }));
 
 // Mock logger
@@ -39,7 +27,7 @@ describe('useWarmup', () => {
         vi.useFakeTimers({ shouldAdvanceTime: true });
         vi.clearAllMocks();
         mockWarmupEnabled = true;
-        global.fetch = vi.fn().mockResolvedValue({ ok: true });
+        global.fetch = vi.fn().mockResolvedValue({ ok: true, status: 200 });
     });
 
     afterEach(() => {
@@ -53,7 +41,7 @@ describe('useWarmup', () => {
         expect(result.current).toBeUndefined();
     });
 
-    it('should ping backend endpoints after delay', async () => {
+    it('should ping /api/warmup after 1s delay (no auth headers)', async () => {
         renderHook(() => useWarmup());
 
         expect(global.fetch).not.toHaveBeenCalled();
@@ -63,28 +51,20 @@ describe('useWarmup', () => {
         });
 
         await vi.waitFor(() => {
-            expect(global.fetch).toHaveBeenCalledTimes(2);
+            expect(global.fetch).toHaveBeenCalledTimes(1);
         });
-
-        expect(global.fetch).toHaveBeenCalledWith(
-            'http://localhost:3001/api/health',
-            expect.objectContaining({
-                method: 'GET',
-                headers: expect.objectContaining({
-                    Authorization: 'Bearer mock-token',
-                }),
-            })
-        );
 
         expect(global.fetch).toHaveBeenCalledWith(
             'http://localhost:3001/api/warmup',
             expect.objectContaining({
                 method: 'GET',
-                headers: expect.objectContaining({
-                    Authorization: 'Bearer mock-token',
-                }),
+                mode: 'cors',
             })
         );
+
+        // Assert NO auth header is sent (warmup is public)
+        const callArgs = (global.fetch as any).mock.calls[0][1];
+        expect(callArgs.headers.Authorization).toBeUndefined();
     });
 
     it('should only warm up once across re-renders', async () => {
@@ -95,7 +75,7 @@ describe('useWarmup', () => {
         });
 
         await vi.waitFor(() => {
-            expect(global.fetch).toHaveBeenCalledTimes(2);
+            expect(global.fetch).toHaveBeenCalledTimes(1);
         });
 
         rerender();
@@ -104,7 +84,8 @@ describe('useWarmup', () => {
             vi.advanceTimersByTime(1000);
         });
 
-        expect(global.fetch).toHaveBeenCalledTimes(2);
+        // Still 1 call (didn't re-warm)
+        expect(global.fetch).toHaveBeenCalledTimes(1);
     });
 
     it('should not warm up when disabled', () => {
@@ -121,6 +102,20 @@ describe('useWarmup', () => {
 
     it('should handle fetch failures gracefully', async () => {
         (global.fetch as any).mockRejectedValue(new Error('Network error'));
+
+        renderHook(() => useWarmup());
+
+        act(() => {
+            vi.advanceTimersByTime(1000);
+        });
+
+        await vi.waitFor(() => {
+            expect(global.fetch).toHaveBeenCalled();
+        });
+    });
+
+    it('should handle non-OK responses gracefully', async () => {
+        (global.fetch as any).mockResolvedValue({ ok: false, status: 429 });
 
         renderHook(() => useWarmup());
 

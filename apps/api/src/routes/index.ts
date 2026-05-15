@@ -76,7 +76,10 @@ router.use(selectiveApiRateLimiter);
 // Health check - own rate limit
 router.use('/health', healthRateLimiter, healthRouter);
 
-// Warmup endpoint removed for security realignment
+// Warmup — public, no auth, fire-and-forget ephemeris pre-warm
+// Rate-limited to avoid abuse (same as health endpoint)
+import warmupRouter from './warmup.js';
+router.use('/warmup', healthRateLimiter, warmupRouter);
 
 // PROTECTED ROUTES (Authentication required)
 
