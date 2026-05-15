@@ -1,68 +1,11 @@
-# --- Dependencies ---
-**/node_modules
-.pnp
-.pnp.js
-
-# --- Build Artifacts ---
+node_modules
+.git
+.gitignore
+*.md
+.env
+.env.local
+.env.*
 dist
 .next
-.turbo
-out
-build
+.vitest
 coverage
-.nyc_output
-*.tsbuildinfo
-*.js.map
-
-# --- Secrets & Environment ---
-.env
-.env.*
-!.env.example
-secrets/
-*.key
-*.pem
-*.pfx
-
-# --- Source Control & CI/CD ---
-.git
-.github
-.gitignore
-.dockerignore
-cloudbuild.yaml
-.travis.yml
-.circleci
-
-# --- IDE & System ---
-.vscode/
-.idea/
-.project
-.classpath
-.DS_Store
-Thumbs.db
-*.swp
-*.swo
-
-# --- Logs & Temp ---
-*.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
-tmp/
-temp/
-*.tmp
-
-# --- Project Specific ---
-apps/web/public/dia-assets/
-services/ephemeris/.venv
-local/
-scratch/
-debug/
-e2e/test-results/
-playwright-report/
-docs/
-*.md
-requeue-job.js
-verify-*.ts
-test-*.ts
-debug-*.ts
