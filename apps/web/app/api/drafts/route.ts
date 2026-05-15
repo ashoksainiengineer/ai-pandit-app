@@ -125,9 +125,10 @@ export async function POST(request: NextRequest) {
 
         return NextResponse.json({ success: true, message: 'Draft saved to cloud', sessionId: newSessionId });
 
-        } catch (error: any) {
+        } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
         logger.error('Draft save error:', error);
-        await logAuditEvent({ action: 'DRAFT_SAVE_FAILED', ipAddress, userAgent, details: { error: error.message } });
+        await logAuditEvent({ action: 'DRAFT_SAVE_FAILED', ipAddress, userAgent, details: { error: errorMessage } });
         return NextResponse.json({ success: false, error: 'Failed to save draft' }, { status: 500 });
     }
 }

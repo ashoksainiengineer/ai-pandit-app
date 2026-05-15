@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@ai-pandit/db';
 import { sessions } from '@ai-pandit/db/schema';
+import type { NewSession } from '@ai-pandit/db/schema';
 import { getServerAuth } from '@/lib/server/auth';
 import { logger } from '@/lib/secure-logger';
 import { randomUUID } from 'crypto';
@@ -46,12 +47,12 @@ export async function POST(
         const newSessionId = randomUUID();
 
         // 3. Create clone payload omitting results but keeping encrypted strings
-        const clonePayload = {
+        const clonePayload: NewSession = {
             id: newSessionId,
-            userId: ownershipContext.internalUserId ?? originalSession.userId,
-            externalId,
+            externalId: originalSession.externalId,
+            userId: originalSession.userId,
 
-            // Core Data (Already Encrypted from DB)
+            // Personal Data (Decrypted fields)
             fullName: originalSession.fullName,
             dateOfBirth: originalSession.dateOfBirth,
             tentativeTime: originalSession.tentativeTime,
@@ -69,7 +70,7 @@ export async function POST(
             offsetConfig: originalSession.offsetConfig,
 
             // Status and Reset fields (Resetting results)
-            status: 'draft' as const,
+            status: 'draft',
             rectifiedTime: null,
             accuracy: null,
             confidence: null,
@@ -88,7 +89,7 @@ export async function POST(
         };
 
         // 4. Insert clone gracefully
-        await db.insert(sessions).values(clonePayload as any);
+        await db.insert(sessions).values(clonePayload);
 
         return NextResponse.json({
             success: true,

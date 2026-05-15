@@ -61,7 +61,7 @@ export async function GET(): Promise<NextResponse<HealthStatus>> {
       },
       version: '1.0.0',
     });
-  } catch (error) {
+  } catch {
     return NextResponse.json(
       {
         status: 'unhealthy',

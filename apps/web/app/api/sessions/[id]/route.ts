@@ -6,7 +6,7 @@ import {
   resolveSessionOwnershipContext,
 } from '@/lib/server/session-ownership';
 import { db, sessions } from '@ai-pandit/db';
-import { eq, and } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import { getProtectedFieldsPresent } from '@/lib/server/session-write-guards';
 import { getBuildPhaseRouteResponse } from '@/lib/server/build-phase-route-guard';
 

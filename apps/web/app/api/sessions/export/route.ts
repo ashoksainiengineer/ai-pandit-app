@@ -134,7 +134,8 @@ export async function POST(req: NextRequest) {
         },
       });
     }
-  } catch (error: any) {
-    return NextResponse.json({ success: false, error: error.message || 'Export failed' }, { status: 500 });
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Export failed';
+    return NextResponse.json({ success: false, error: errorMessage }, { status: 500 });
   }
 }
