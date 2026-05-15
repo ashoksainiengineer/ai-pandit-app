@@ -92,7 +92,7 @@ export function adaptIORedis(redis: IORedis): RedisClient {
     },
 
     async subscribe(channel: string, callback: (message: string) => void): Promise<void> {
-      redis.subscribe(channel);
+      await redis.subscribe(channel);
       redis.on('message', (chan: string, msg: string) => {
         if (chan === channel) {
           callback(msg);

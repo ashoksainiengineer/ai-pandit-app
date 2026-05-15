@@ -432,8 +432,21 @@ class SessionEventManager {
      * Subscribe to cross-process Redis events for a session.
      * Essential for worker-to-API event bridging in distributed environments.
      */
-    async subscribeToSession(sessionId: string): Promise<void> {
-        if (!this.redisSubscriber || !this.useRedis) return;
+    async subscribeToSession(sessionId: string, retries = 5): Promise<void> {
+        // Retry loop: the Redis subscriber client is initialized asynchronously
+        // during container startup (initializeStartupDependencies). If the SSE
+        // handler calls us before init completes, we wait and retry.
+        for (let attempt = 0; attempt < retries; attempt++) {
+            if (this.redisSubscriber && this.useRedis) break;
+            if (attempt < retries - 1) {
+                await new Promise(r => setTimeout(r, 500 * (attempt + 1)));
+            } else {
+                logger.warn('[SessionEventManager] Redis subscriber not available, skipping subscription', {
+                    sessionId: sessionId.slice(0, 8),
+                });
+                return;
+            }
+        }
         if (this.subscribedSessions.has(sessionId)) return;
 
         this.subscribedSessions.add(sessionId);
@@ -443,7 +456,7 @@ class SessionEventManager {
         // Redis operations (set, get, ping, etc.).
         const channel = `session:events:${sessionId}`;
         try {
-            await this.redisSubscriber.subscribe(channel, (message: string) => {
+            await this.redisSubscriber!.subscribe(channel, (message: string) => {
                 try {
                     this.redisReceivedCount++;
                     const event = JSON.parse(message);
