@@ -259,6 +259,9 @@ export const useStreamStore = create<StreamStore>()(
                         thinkingBuffer.rafId = null;
                     }
                     thinkingBuffer.chunks.clear();
+                    // Immediately clear persisted IndexedDB state so page refresh
+                    // doesn't rehydrate stale data from a previous failed session.
+                    try { del('btr-stream-storage'); } catch {} // idb-keyval may not be available in test
                     set({ ...createInitialState() });
                 },
 
