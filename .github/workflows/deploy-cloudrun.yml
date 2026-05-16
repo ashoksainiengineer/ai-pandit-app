@@ -47,7 +47,7 @@ jobs:
       WEB_FRONTEND_URL: ${{ vars.FRONTEND_URL }}
       FRONTEND_URL: ${{ vars.FRONTEND_URL }}
       JOB_EXECUTION_MODE: external_worker
-      WORKER_POLL_INTERVAL_MS: 2000
+      WORKER_POLL_INTERVAL_MS: 60000
       USE_ASYNC_JOB_PIPELINE: true
       REDIS_TLS: true
       API_SERVICE_NAME: api-service
