@@ -191,7 +191,10 @@ class SessionEventManager {
 
         try {
             const job = await getLatestJobForSession(sessionId);
-            if (!job) return;
+            if (!job) {
+                console.warn('[SessionEventManager] No job found for session, skipping persist', { sessionId, eventType: event.type, seq });
+                return;
+            }
 
             const stage = 'stage' in event && typeof event.stage !== 'undefined'
                 ? String(event.stage) : null;
