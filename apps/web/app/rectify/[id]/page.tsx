@@ -35,6 +35,7 @@ import { env } from '@/lib/config/env';
 import dynamic from 'next/dynamic';
 import { STAGES } from '@/lib/constants/stages';
 import type { AIThinking, CandidateScore } from '@/lib/store/stream-types';
+import { BirthDetailsBanner } from '@/components/rectify/dashboard/BirthDetailsBanner';
 import '@/app/globals.css';
 
 const SSEDebugPanel = env.app.isDevelopment
@@ -927,17 +928,29 @@ export default function AnalysisPage() {
           {/* Status Banner */}
           <StatusBanner
             currentStage={currentStageIndex}
-            isConnected={true}
+            isConnected={session.isConnected ?? true}
             isComplete={session.isComplete}
             elapsedSeconds={session.elapsedSeconds}
           />
+
+          {/* Birth Details Banner */}
+          {session.metadata && (
+            <BirthDetailsBanner
+              birthData={{
+                fullName: session.metadata.fullName || '',
+                dateOfBirth: session.metadata.dateOfBirth,
+                tentativeTime: session.metadata.tentativeTime,
+                birthPlace: session.metadata.birthPlace,
+              }}
+            />
+          )}
 
           {/* Pipeline */}
           {!actions.cancelled && (
             <Pipeline
               currentStage={currentStageIndex}
               isComplete={session.isComplete}
-              isConnected={true}
+              isConnected={session.isConnected ?? true}
               percentage={session.progress?.percentage}
             />
           )}

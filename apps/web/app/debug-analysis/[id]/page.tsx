@@ -23,7 +23,7 @@ import {
   MapPin,
   Timer
 } from 'lucide-react';
-import { useAnalysisPolling } from '@/lib/use-analysis-polling';
+import { useAnalysisSSE } from '@/lib/use-analysis-sse';
 import { useStreamStore } from '@/lib/store/stream-store';
 import { useShallow } from 'zustand/react/shallow';
 import type { CandidateScore } from '@/lib/store/stream-types';
@@ -166,7 +166,7 @@ export default function AnalysisPage() {
   const sessionId = params.id as string;
   const pageTitleId = useId();
 
-  useAnalysisPolling(sessionId);
+  const { isConnected } = useAnalysisSSE(sessionId);
 
   // Polling is always active — no SSE connection state to track
   const connectionState = { status: 'polling' as const, url: '', lastError: null };
