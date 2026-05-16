@@ -410,6 +410,37 @@ export interface EstimatedTimeEvent {
 }
 
 /**
+ * Emitted after each batch's AI call completes in stages 2, 4, 6.
+ * Contains the final AI conclusion text for that batch — persisted to DB.
+ */
+export interface BatchConclusionEvent {
+  type: 'batch_conclusion';
+  stage: number;
+  round: number;
+  batch: number;
+  totalBatches: number;
+  /** The final merged AI response (thinking + content) for this batch */
+  conclusion: string;
+  candidatesInBatch: number;
+  survivorsCount: number;
+}
+
+/**
+ * Emitted when an AI stage (2, 4, 6) completes all rounds.
+ * Contains the accumulated reasoning and stage summary — persisted to DB.
+ */
+export interface StageConclusionEvent {
+  type: 'stage_conclusion';
+  stage: number;
+  stageName: string;
+  candidatesIn: number;
+  candidatesOut: number;
+  /** Accumulated AI reasoning across all rounds/batches for this stage */
+  conclusion: string;
+  topCandidateTimes: string[];
+}
+
+/**
  * Union type of all session events
  */
 export type SessionEvent =
@@ -424,7 +455,9 @@ export type SessionEvent =
   | CalculationLogEvent
   | StageStatsEvent
   | EstimatedTimeEvent
-  | DecisionEvent;
+  | DecisionEvent
+  | BatchConclusionEvent
+  | StageConclusionEvent;
 
 // ═════════════════════════════════════════════════════════════════════════════
 // AI CLIENT TYPES

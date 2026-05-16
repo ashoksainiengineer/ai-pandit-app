@@ -15,6 +15,8 @@ import type {
     StageStatsEvent,
     EstimatedTimeEvent,
     DecisionEvent,
+    BatchConclusionEvent,
+    StageConclusionEvent,
     SessionEvent
 } from '@ai-pandit/shared/types';
 
@@ -31,6 +33,8 @@ export type {
     StageStatsEvent,
     EstimatedTimeEvent,
     DecisionEvent,
+    BatchConclusionEvent,
+    StageConclusionEvent,
     SessionEvent
 };
 
@@ -49,6 +53,8 @@ const PERSISTED_EVENT_TYPES = new Set([
     'candidate_scores',
     'decision',
     'ai_context',
+    'batch_conclusion',
+    'stage_conclusion',
 ]);
 
 function extractPersistenceErrorCode(error: unknown): string | null {
@@ -550,6 +556,20 @@ export function emitEstimatedTime(sessionId: string, seconds: number): void {
 
 export function emitDecision(sessionId: string, data: Omit<DecisionEvent, 'type'>): void {
     sessionEvents.emit(sessionId, { type: 'decision', ...data } as DecisionEvent);
+}
+
+export function emitBatchConclusion(
+    sessionId: string,
+    data: Omit<BatchConclusionEvent, 'type'>
+): void {
+    sessionEvents.emit(sessionId, { type: 'batch_conclusion', ...data } as BatchConclusionEvent);
+}
+
+export function emitStageConclusion(
+    sessionId: string,
+    data: Omit<StageConclusionEvent, 'type'>
+): void {
+    sessionEvents.emit(sessionId, { type: 'stage_conclusion', ...data } as StageConclusionEvent);
 }
 
 export function cleanupSession(sessionId: string): void {

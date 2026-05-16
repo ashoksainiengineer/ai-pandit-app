@@ -11,6 +11,8 @@ export {
   emitStageStats,
   emitEstimatedTime,
   emitDecision,
+  emitBatchConclusion,
+  emitStageConclusion,
   cleanupSession,
 } from '@ai-pandit/worker-runtime/session-events';
 
@@ -27,5 +29,7 @@ export type {
   StageStatsEvent,
   EstimatedTimeEvent,
   DecisionEvent,
+  BatchConclusionEvent,
+  StageConclusionEvent,
   SessionEvent,
 } from '@ai-pandit/shared';
