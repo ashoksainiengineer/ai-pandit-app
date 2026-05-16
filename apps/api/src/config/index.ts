@@ -91,7 +91,7 @@ const envSchema = z.object({
         .default('false')
         .transform((v) => ['1', 'true', 'yes', 'on'].includes(v.toLowerCase())),
     REDIS_QUEUE_NAME: z.string().default('ai-pandit:btr:jobs'),
-    WORKER_POLL_INTERVAL_MS: z.string().transform(Number).default('2000'),
+    WORKER_POLL_INTERVAL_MS: z.string().transform(Number).default('60000'),
     WORKER_RECOVERY_ALERT_THRESHOLD: z.string().transform(Number).default('1'),
     JOB_SYNC_POLL_INTERVAL_MS: z.string().transform(Number).default('2000'),
     OTEL_ENABLED: z

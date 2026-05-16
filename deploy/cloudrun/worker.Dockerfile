@@ -51,7 +51,7 @@ RUN mkdir -p /app/apps/worker/node_modules/@ai-pandit && \
 USER node
 ENV NODE_ENV=production
 ENV JOB_EXECUTION_MODE=external_worker
-ENV WORKER_POLL_INTERVAL_MS=2000
+ENV WORKER_POLL_INTERVAL_MS=60000
 ENV NODE_OPTIONS=--max-old-space-size=1024
 ENV DB_POOL_MAX=3
 

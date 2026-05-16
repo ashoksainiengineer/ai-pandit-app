@@ -20,7 +20,7 @@ ENV NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_Y2xlcmsuZXhhbXBsZS5hcHAk
 ENV NEXT_PUBLIC_BACKEND_URL=http://localhost:8080
 ENV AI_API_KEY=build_ai_key_placeholder
 ENV JOB_EXECUTION_MODE=external_worker
-ENV WORKER_POLL_INTERVAL_MS=2000
+ENV WORKER_POLL_INTERVAL_MS=60000
 
 RUN npm ci --include=dev --loglevel=error
 RUN npm --workspace @ai-pandit/shared run build \
