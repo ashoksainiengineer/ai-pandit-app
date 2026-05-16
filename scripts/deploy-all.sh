@@ -1,12 +1,11 @@
 #!/usr/bin/env bash
 #
 # AI-Pandit Unified Deployment Script
-# Handles Cloud Run (API, Worker, Ephemeris) + Vercel (Web) deployments
+# Handles Cloud Run (API, Ephemeris) + Vercel (Web) deployments
 #
 # Usage:
 #   scripts/deploy-all.sh                    # Deploy everything
 #   scripts/deploy-all.sh api                # Deploy only API
-#   scripts/deploy-all.sh worker             # Deploy only Worker
 #   scripts/deploy-all.sh web                # Deploy only Web (Vercel)
 #   scripts/deploy-all.sh ephemeris          # Deploy only Ephemeris
 #   scripts/deploy-all.sh --dry-run          # Validate without deploying
@@ -48,12 +47,12 @@ for arg in "$@"; do
     --skip-cloudrun)
       SKIP_CLOUDRUN=true
       ;;
-    api|worker|web|ephemeris)
+    api|web|ephemeris)
       DEPLOY_TARGET="$arg"
       ;;
     *)
       echo "Unknown argument: $arg"
-      echo "Usage: $0 [api|worker|web|ephemeris] [--dry-run] [--skip-vercel] [--skip-cloudrun]"
+      echo "Usage: $0 [api|web|ephemeris] [--dry-run] [--skip-vercel] [--skip-cloudrun]"
       exit 1
       ;;
   esac
@@ -102,7 +101,7 @@ run_preflight() {
   fi
 
   # 5. vercel available (if deploying web)
-  if [ "$SKIP_VERCEL" = false ] && [ "$DEPLOY_TARGET" != "api" ] && [ "$DEPLOY_TARGET" != "worker" ] && [ "$DEPLOY_TARGET" != "ephemeris" ]; then
+  if [ "$SKIP_VERCEL" = false ] && [ "$DEPLOY_TARGET" != "api" ] && [ "$DEPLOY_TARGET" != "ephemeris" ]; then
     if ! command -v vercel >/dev/null 2>&1; then
       log_err "vercel CLI not found. Install: npm i -g vercel"
       failed=1
@@ -265,7 +264,7 @@ main() {
   if [ "$SKIP_CLOUDRUN" = false ]; then
     if [ "$DEPLOY_TARGET" = "all" ] || [ "$DEPLOY_TARGET" = "ephemeris" ]; then
       deploy_cloudrun ephemeris
-      # Get ephemeris URL for API/Worker deploy
+      # Get ephemeris URL for API deploy
       EPHEMERIS_URL=$(gcloud run services describe ephemeris-service \
         --project="${GCP_PROJECT_ID}" \
         --region="${CLOUD_RUN_REGION}" \
@@ -282,16 +281,6 @@ main() {
       export WEB_BACKEND_URL="${API_URL}"
     fi
 
-    if [ "$DEPLOY_TARGET" = "all" ] || [ "$DEPLOY_TARGET" = "worker" ]; then
-      deploy_cloudrun worker
-    fi
-  fi
-
-  # Health check backend
-  if [ "$SKIP_CLOUDRUN" = false ] && [ "$DEPLOY_TARGET" != "web" ]; then
-    echo ""
-    log_info "Running backend health checks..."
-
     if [ "$DEPLOY_TARGET" = "all" ] || [ "$DEPLOY_TARGET" = "api" ]; then
       API_URL=$(gcloud run services describe api-service \
         --project="${GCP_PROJECT_ID}" \
@@ -299,16 +288,6 @@ main() {
         --format='value(status.url)' 2>/dev/null || echo "")
       if [ -n "$API_URL" ]; then
         check_health "$API_URL" "API Service" || true
-      fi
-    fi
-
-    if [ "$DEPLOY_TARGET" = "all" ] || [ "$DEPLOY_TARGET" = "worker" ]; then
-      WORKER_URL=$(gcloud run services describe worker-service \
-        --project="${GCP_PROJECT_ID}" \
-        --region="${CLOUD_RUN_REGION}" \
-        --format='value(status.url)' 2>/dev/null || echo "")
-      if [ -n "$WORKER_URL" ]; then
-        check_health "$WORKER_URL" "Worker Service" || true
       fi
     fi
 
@@ -324,7 +303,7 @@ main() {
   fi
 
   # Deploy Vercel
-  if [ "$SKIP_VERCEL" = false ] && [ "$DEPLOY_TARGET" != "api" ] && [ "$DEPLOY_TARGET" != "worker" ] && [ "$DEPLOY_TARGET" != "ephemeris" ]; then
+  if [ "$SKIP_VERCEL" = false ] && [ "$DEPLOY_TARGET" != "api" ] && [ "$DEPLOY_TARGET" != "ephemeris" ]; then
     echo ""
     deploy_vercel
   fi

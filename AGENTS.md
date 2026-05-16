@@ -13,8 +13,7 @@ This file defines how coding agents (Codex/Copilot/Claude/etc.) must operate in 
 ## Repo Map
 
 - `apps/web`: Next.js 15 frontend
-- `apps/api`: Express + TypeScript backend
-- `apps/worker`: external job worker
+- `apps/api`: Express + TypeScript backend (BTR engine runs in-process, JOB_EXECUTION_MODE=inline)
 - `packages/db`: Drizzle schema/client
 - `packages/shared`: shared types/schemas, crypto, **event-store**, safe-json-parse
 - `packages/worker-runtime`: worker runtime library, queue client, **session-events**, **progress-tracker**
@@ -50,8 +49,6 @@ This file defines how coding agents (Codex/Copilot/Claude/etc.) must operate in 
 - Coverage: `npm run test:coverage`
 - API only: `npm -w @ai-pandit/api run test`
 - Web only: `npm -w @ai-pandit/web run test`
-- Worker only: `npm -w @ai-pandit/worker run test`
-- Worker typecheck: `npm -w @ai-pandit/worker run typecheck`
 - Python tests: `cd services/ephemeris && .venv/bin/pytest tests/ -v`
 - Security scan: `npm run test:security`
 
@@ -63,9 +60,6 @@ This file defines how coding agents (Codex/Copilot/Claude/etc.) must operate in 
 - If `apps/web/**` changed:
   - `npm -w @ai-pandit/web run lint`
   - `npm -w @ai-pandit/web run test`
-- If `apps/worker/**` changed:
-  - `npm -w @ai-pandit/worker run typecheck`
-  - `npm -w @ai-pandit/worker run test`
 - If shared packages changed (`packages/**`):
   - `npm run lint`
   - `npm run test`
@@ -112,5 +106,4 @@ For these files: prefer test-first edits and avoid behavior drift.
 - Cloud Run deploy scripts live in `scripts/deploy-cloud-run.sh`.
 - Idle cost guard scripts:
   - `scripts/enforce-idle-cost-guards.sh`
-  - `scripts/enable-production-worker-mode.sh`
 - Never change runtime scaling defaults without explicit request.

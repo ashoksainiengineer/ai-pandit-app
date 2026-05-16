@@ -14,13 +14,6 @@ export default [
     },
   },
   {
-    extends: './apps/worker/vitest.config.ts',
-    test: {
-      name: 'worker',
-      environment: 'node',
-    },
-  },
-  {
     extends: './packages/db/vitest.config.ts',
     test: {
       name: 'db',

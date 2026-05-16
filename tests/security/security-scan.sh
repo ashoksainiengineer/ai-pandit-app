@@ -212,7 +212,7 @@ scan_containers() {
     if command -v trivy &> /dev/null; then
         echo "Running Trivy on Docker images..."
         
-        for image in ai-pandit-api ai-pandit-web ai-pandit-worker; do
+        for image in ai-pandit-api ai-pandit-web; do
             if docker image inspect "$image" &> /dev/null; then
                 echo "Scanning $image..."
                 trivy image --format json --output "$REPORT_DIR/trivy-$image-$TIMESTAMP.json" "$image" || true

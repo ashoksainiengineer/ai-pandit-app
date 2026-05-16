@@ -60,11 +60,9 @@
     "deploy:cloudrun:api": "sh ./scripts/deploy-cloud-run.sh api",
     "deploy:cloudrun:ephemeris": "sh ./scripts/deploy-cloud-run.sh ephemeris",
     "deploy:cloudrun:web": "sh ./scripts/deploy-cloud-run.sh web",
-    "deploy:cloudrun:worker": "sh ./scripts/deploy-cloud-run.sh worker",
     "deploy:staging:preflight": "sh ./scripts/staging-preflight.sh",
     "deploy:staging:sequence": "sh ./scripts/deploy-staging-sequence.sh",
     "deploy:cloudrun:idle-guards": "sh ./scripts/enforce-idle-cost-guards.sh",
-    "deploy:cloudrun:prod-worker": "sh ./scripts/enable-production-worker-mode.sh",
     "cleanup:artifacts": "sh ./scripts/cleanup-artifact-images.sh"
   },
   "devDependencies": {

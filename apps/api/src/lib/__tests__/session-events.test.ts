@@ -3,7 +3,7 @@
  * Tests SessionEventManager: getEmitter, emit, cleanup, hasListeners,
  * thinking buffers, calculation buffers, candidate scores, decisions, GC
  */
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { EventEmitter } from 'events';
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -22,6 +22,15 @@ import {
     emitError,
     emitCandidateScore,
 } from '../session-events.js';
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ENSURES: Reset fake timers and internal singleton state between all tests
+// SessionEventManager is a global singleton — without this isolation,
+// state from one describe block leaks into another.
+// ═══════════════════════════════════════════════════════════════════════════
+afterEach(() => {
+    vi.useRealTimers();
+});
 
 // ═══════════════════════════════════════════════════════════════════════════
 // EMITTER LIFECYCLE
@@ -225,7 +234,10 @@ describe('SessionEventManager - AI Context', () => {
 describe('SessionEventManager - Helper Emit Functions', () => {
     const SESSION_ID = 'test-helpers';
 
-    beforeEach(() => sessionEvents.cleanup(SESSION_ID));
+    beforeEach(() => {
+        vi.useRealTimers();
+        sessionEvents.cleanup(SESSION_ID);
+    });
 
     it('emitProgress should emit progress event', () => {
         const emitter = sessionEvents.getEmitter(SESSION_ID);

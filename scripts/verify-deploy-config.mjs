@@ -32,7 +32,7 @@ const assertions = [
     message: '`package.json` must expose `deploy:cloudrun:ephemeris`.',
   },
   {
-    ok: deployScript.includes('Usage: scripts/deploy-cloud-run.sh <api|web|worker|ephemeris>'),
+    ok: deployScript.includes('Usage: scripts/deploy-cloud-run.sh <api|web|ephemeris>'),
     message: '`scripts/deploy-cloud-run.sh` usage must include `ephemeris`.',
   },
   {

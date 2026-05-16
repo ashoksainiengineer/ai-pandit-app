@@ -5,7 +5,6 @@ PROJECT_ID="${GCP_PROJECT_ID:-${GOOGLE_CLOUD_PROJECT:-}}"
 REGION="${CLOUD_RUN_REGION:-asia-southeast1}"
 API_SERVICE_NAME="${API_SERVICE_NAME:-api-service}"
 WEB_SERVICE_NAME="${WEB_SERVICE_NAME:-web-service}"
-WORKER_SERVICE_NAME="${WORKER_SERVICE_NAME:-worker-service}"
 EPHEMERIS_SERVICE_NAME="${EPHEMERIS_SERVICE_NAME:-ephemeris-service}"
 
 if [ -z "${PROJECT_ID}" ]; then
@@ -41,7 +40,6 @@ update_if_exists() {
 
 update_if_exists "${API_SERVICE_NAME}" 2
 update_if_exists "${WEB_SERVICE_NAME}" 2
-update_if_exists "${WORKER_SERVICE_NAME}" 1
 update_if_exists "${EPHEMERIS_SERVICE_NAME}" 1
 
 echo "Zero-idle guards applied successfully"

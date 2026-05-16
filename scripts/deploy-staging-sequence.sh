@@ -11,10 +11,7 @@ echo "[deploy] continue only after ephemeris /health and /ready are green."
 echo "[deploy] 2/4 deploying api"
 npm run deploy:cloudrun:api
 
-echo "[deploy] 3/4 deploying worker"
-npm run deploy:cloudrun:worker
-
-echo "[deploy] 4/4 deploying web"
+echo "[deploy] 3/3 deploying web"
 npm run deploy:cloudrun:web
 
 echo "[deploy] applying idle cost guards"

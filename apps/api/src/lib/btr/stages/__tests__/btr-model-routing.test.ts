@@ -84,7 +84,9 @@ vi.mock('../../../session-events.js', () => ({
     emitCandidateScore: vi.fn(),
     emitAIContext: vi.fn(),
     emitDecision: vi.fn(),
-    emitAIThinking: vi.fn()
+    emitAIThinking: vi.fn(),
+    emitBatchConclusion: vi.fn(),
+    emitStageConclusion: vi.fn(),
 }));
 
 // Mock precision integrator
