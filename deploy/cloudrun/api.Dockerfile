@@ -8,7 +8,6 @@ COPY package.json package-lock.json turbo.json ./
 
 # Copy all workspace package.json files to cache npm ci
 COPY apps/api/package.json ./apps/api/
-COPY apps/worker/package.json ./apps/worker/
 COPY apps/web/package.json ./apps/web/
 COPY packages/db/package.json ./packages/db/
 COPY packages/shared/package.json ./packages/shared/
@@ -42,7 +41,7 @@ USER node
 ENV NODE_ENV=production
 ENV PORT=8080
 ENV NODE_OPTIONS=--max-old-space-size=1536
-ENV JOB_EXECUTION_MODE=external_worker
+ENV JOB_EXECUTION_MODE=inline
 
 EXPOSE 8080
 

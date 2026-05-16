@@ -19,8 +19,7 @@ ENV ENCRYPTION_SECRET=build_encryption_secret_32_chars_minimum_placeholder
 ENV NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_Y2xlcmsuZXhhbXBsZS5hcHAk
 ENV NEXT_PUBLIC_BACKEND_URL=http://localhost:8080
 ENV AI_API_KEY=build_ai_key_placeholder
-ENV JOB_EXECUTION_MODE=external_worker
-ENV WORKER_POLL_INTERVAL_MS=60000
+ENV JOB_EXECUTION_MODE=inline
 
 RUN npm ci --include=dev --loglevel=error
 RUN npm --workspace @ai-pandit/shared run build \
@@ -45,7 +44,7 @@ USER node
 ENV NODE_ENV=production
 ENV PORT=8080
 ENV NODE_OPTIONS=--max-old-space-size=1536
-ENV JOB_EXECUTION_MODE=external_worker
+ENV JOB_EXECUTION_MODE=inline
 
 EXPOSE 8080
 

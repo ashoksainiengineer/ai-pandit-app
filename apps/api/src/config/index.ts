@@ -35,7 +35,7 @@ const envSchema = z.object({
     AI_REASONING_MODE: z.enum(['include_reasoning', 'none', 'auto', 'reasoning_format_raw']).default('auto'),
     AI_MAX_TOKENS: z.string().transform(Number).default('32768'),
     AI_TIMEOUT_MS: z.string().transform(Number).default('3600000'),
-    REQUEST_TIMEOUT_MS: z.string().transform(Number).default('3600000'),
+    REQUEST_TIMEOUT_MS: z.string().transform(Number).default('4200000'),
 
     // BTR Specific AI Config - MAX TOKENS for GPT-OSS-120B (Groq API)
     // Using max available tokens for deep analysis

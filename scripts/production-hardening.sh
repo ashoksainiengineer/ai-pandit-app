@@ -27,40 +27,18 @@ echo "📦 Hardening API Service..."
 gcloud run services update api-service \
     --project="$PROJECT_ID" \
     --region="$REGION" \
-    --memory="8Gi" \
-    --cpu="2" \
+    --memory="512Mi" \
+    --cpu="1" \
     --concurrency=20 \
-    --min-instances=0 \
+    --min-instances=1 \
     --max-instances=2 \
-    --cpu-throttling \
-    --timeout=300s \
+    --no-cpu-throttling \
+    --timeout=3900s \
     --execution-environment=gen2 \
     --no-traffic \
     2>/dev/null || echo "⚠️  API service update may require deploy instead"
 
 echo "✅ API Service hardened"
-echo ""
-
-# ═══════════════════════════════════════════════════════════════════════════════
-# WORKER SERVICE HARDENING
-# ═══════════════════════════════════════════════════════════════════════════════
-echo "📦 Hardening Worker Service..."
-
-gcloud run services update worker-service \
-    --project="$PROJECT_ID" \
-    --region="$REGION" \
-    --memory="12Gi" \
-    --cpu="4" \
-    --concurrency=1 \
-    --min-instances=1 \
-    --max-instances=1 \
-    --no-cpu-throttling \
-    --timeout=3600s \
-    --execution-environment=gen2 \
-    --no-traffic \
-    2>/dev/null || echo "⚠️  Worker service update may require deploy instead"
-
-echo "✅ Worker Service hardened"
 echo ""
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -100,19 +78,9 @@ gcloud run services describe api-service --region="$REGION" --format="table(
 )" 2>/dev/null || echo "  Could not retrieve details"
 
 echo ""
-echo "Worker Service:"
-gcloud run services describe worker-service --region="$REGION" --format="table(
-    spec.template.spec.containers[0].resources.limits.memory,
-    spec.template.spec.containers[0].resources.limits.cpu,
-    spec.template.metadata.annotations['autoscaling.knative.dev/minScale'],
-    spec.template.metadata.annotations['autoscaling.knative.dev/maxScale']
-)" 2>/dev/null || echo "  Could not retrieve details"
-
-echo ""
 echo "✅ Production Hardening Complete!"
 echo ""
 echo "Next steps:"
 echo "1. Review the configuration changes above"
 echo "2. Run: ./scripts/deploy-cloud-run.sh api"
-echo "3. Run: ./scripts/deploy-cloud-run.sh worker"
-echo "4. Monitor logs for 24 hours"
+echo "3. Monitor logs for 24 hours"
