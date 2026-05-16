@@ -578,6 +578,17 @@ export function listJobEventsSince(jobId: string, sequenceNo: number, limit = 10
   );
 }
 
+export function listJobEventsSinceTime(jobId: string, sinceTime: string, limit = 1000): Promise<JobEvent[]> {
+  return executeWithRetry(() =>
+    db
+      .select()
+      .from(jobEvents)
+      .where(and(eq(jobEvents.jobId, jobId), gt(jobEvents.createdAt, sinceTime)))
+      .orderBy(jobEvents.createdAt)
+      .limit(limit)
+  );
+}
+
 export async function createIdempotencyKey(input: CreateIdempotencyKeyInput): Promise<IdempotencyKey> {
   const [record] = await executeWithRetry(() =>
     db

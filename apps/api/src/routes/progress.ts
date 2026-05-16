@@ -10,7 +10,7 @@ const crypto = getApiEncryption();
 import { logger } from '../utils/logger.js';
 import { isSessionOwnedByContext, resolveSessionOwnershipContext } from '../lib/session-ownership.js';
 import { getPersistedSessionEvents, type PersistedSessionEvent } from '../lib/jobs/job-event-stream.js';
-import { listJobEventsSince } from '@ai-pandit/db/jobs';
+import { listJobEventsSince, listJobEventsSinceTime } from '@ai-pandit/db/jobs';
 import { sendSuccess, sendError } from '../utils/response.js';
 import { AppError, ErrorCodes } from '../errors/index.js';
 
@@ -21,7 +21,8 @@ router.get('/:sessionId', authMiddleware, async (req: AuthenticatedRequest, res:
         const { sessionId } = req.params;
         const externalId = req.externalId!;
         const since = Number(req.query.since) || 0;
-        await handleProgressRequest(sessionId, externalId, since, res);
+        const sinceTime = req.query.sinceTime as string | undefined;
+        await handleProgressRequest(sessionId, externalId, since, sinceTime, res);
     } catch (error) {
         logger.error('Progress fetch failed:', error);
         sendError(res, error);
@@ -33,7 +34,8 @@ router.get('/', authMiddleware, async (req: AuthenticatedRequest, res: Response)
         const sessionId = req.query.sessionId as string;
         const externalId = req.externalId!;
         const since = Number(req.query.since) || 0;
-        await handleProgressRequest(sessionId, externalId, since, res);
+        const sinceTime = req.query.sinceTime as string | undefined;
+        await handleProgressRequest(sessionId, externalId, since, sinceTime, res);
     } catch (error) {
         logger.error('Progress fetch failed:', error);
         sendError(res, error);
@@ -44,6 +46,7 @@ async function handleProgressRequest(
     sessionId: string,
     externalId: string,
     sinceSeq: number,
+    sinceTime: string | undefined,
     res: Response
 ) {
     if (!sessionId) {
@@ -103,9 +106,12 @@ async function handleProgressRequest(
     // Get NEW events since last sequence number (incremental polling)
     let newEvents: PersistedSessionEvent[] = [];
     let lastSeq = sinceSeq;
+    let lastEventTime = sinceTime || '';
 
     if (job) {
-        const rawEvents = await listJobEventsSince(job.id, sinceSeq, 500);
+        const rawEvents = sinceTime
+            ? await listJobEventsSinceTime(job.id, sinceTime, 500)
+            : await listJobEventsSince(job.id, sinceSeq, 500);
         for (const eventRow of rawEvents) {
             try {
                 const payload = eventRow.payloadJson;
@@ -114,6 +120,7 @@ async function handleProgressRequest(
                         seq: eventRow.sequenceNo,
                         event: payload as PersistedSessionEvent['event'],
                     });
+                    lastEventTime = eventRow.createdAt;
                 }
             } catch {
                 // Skip unparseable events
@@ -160,6 +167,7 @@ async function handleProgressRequest(
         },
         events: newEvents,
         lastSeq,
+        lastEventTime,
     });
 }
 

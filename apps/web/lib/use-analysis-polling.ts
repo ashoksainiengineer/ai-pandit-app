@@ -11,7 +11,7 @@ export function useAnalysisPolling(sessionId: string | null) {
     const setSessionId = useStreamStore((s) => s.setSessionId);
     const { getToken } = useAuth();
 
-    const lastSeqRef = useRef(0);
+    const lastTimeRef = useRef('');
     const pollTimerRef = useRef<ReturnType<typeof setTimeout>>();
     const mountedRef = useRef(true);
     const completeRef = useRef(false);
@@ -21,8 +21,10 @@ export function useAnalysisPolling(sessionId: string | null) {
 
         try {
             const token = await getToken();
-            const since = lastSeqRef.current;
-            const url = `/api/analysis/progress?sessionId=${encodeURIComponent(sessionId)}&since=${since}`;
+            const sinceTime = lastTimeRef.current;
+            const url = sinceTime
+                ? `/api/analysis/progress?sessionId=${encodeURIComponent(sessionId)}&sinceTime=${encodeURIComponent(sinceTime)}`
+                : `/api/analysis/progress?sessionId=${encodeURIComponent(sessionId)}`;
 
             const res = await fetch(url, {
                 headers: { Authorization: token ? `Bearer ${token}` : '' },
@@ -42,8 +44,8 @@ export function useAnalysisPolling(sessionId: string | null) {
 
             const data = result.data;
 
-            if (data.lastSeq > lastSeqRef.current) {
-                lastSeqRef.current = data.lastSeq;
+            if (data.lastEventTime) {
+                lastTimeRef.current = data.lastEventTime;
             }
 
             if (data.events && data.events.length > 0) {
@@ -75,7 +77,7 @@ export function useAnalysisPolling(sessionId: string | null) {
 
     useEffect(() => {
         mountedRef.current = true;
-        lastSeqRef.current = 0;
+        lastTimeRef.current = '';
         completeRef.current = false;
 
         if (sessionId) {
