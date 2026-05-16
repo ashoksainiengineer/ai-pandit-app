@@ -168,9 +168,7 @@ export default function AnalysisPage() {
 
   const { isConnected } = useAnalysisSSE(sessionId);
 
-  // Polling is always active — no SSE connection state to track
-  const connectionState = { status: 'polling' as const, url: '', lastError: null };
-  const isConnected = true;
+  const connectionState = { status: isConnected ? 'connected' as const : 'polling' as const, url: '', lastError: null };
 
   // ═══════════════════════════════════════════════════════════════════════════
   // INDUSTRY PATTERN: Batched shallow selectors (Linear/Vercel/Figma pattern)

@@ -74,17 +74,17 @@ export function useAnalysisSSE(sessionId: string | null) {
                                     useStreamStore.getState().setLastEventId(seq);
                                 }
                             }
+
+                            if (parsed.type === 'complete' || parsed.type === 'error') {
+                                logger.info('[SSE] Terminal event received', {
+                                    sessionId: sessionId.slice(0, 8),
+                                    type: parsed.type,
+                                });
+                                controller.abort();
+                            }
                         }
                     } catch {
                         // Skip non-JSON messages (e.g., heartbeats are comment lines)
-                    }
-
-                    if (parsed?.type === 'complete' || parsed?.type === 'error') {
-                        logger.info('[SSE] Terminal event received', {
-                            sessionId: sessionId.slice(0, 8),
-                            type: parsed.type,
-                        });
-                        controller.abort();
                     }
                 },
 
