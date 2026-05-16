@@ -5,7 +5,6 @@ from datetime import datetime, timedelta, timezone
 import concurrent.futures
 import threading
 import time
-import time
 
 from skyfield import almanac
 from skyfield.api import wgs84
@@ -605,30 +604,36 @@ def calculate_chart_raw(timestamp_utc: str, request: SingleEphemerisRequest) -> 
 calculate_chart = _cached_calculate_chart
 
 
-import multiprocessing
+import os
 
 _batch_executor = None
 
+
 def _init_process_worker():
     from app.services.runtime import runtime
-    # Force fresh load in child process to prevent mmap corruption
+
     runtime._kernel = None
     runtime._timescale = None
     runtime.ensure_loaded()
 
+
 def get_batch_executor():
     global _batch_executor
     if _batch_executor is None:
-        import os
-        # 'spawn' is safest for Skyfield mmap array serialization across processes
-        ctx = multiprocessing.get_context("spawn")
         max_workers = min(10, os.cpu_count() or 4)
         _batch_executor = concurrent.futures.ProcessPoolExecutor(
             max_workers=max_workers,
-            mp_context=ctx,
-            initializer=_init_process_worker
+            initializer=_init_process_worker,
         )
     return _batch_executor
+
+
+def warm_up_batch_executor():
+    executor = get_batch_executor()
+    max_workers = executor._max_workers  # type: ignore[attr-defined]
+    futures = [executor.submit(int, 1) for _ in range(max_workers)]
+    for f in futures:
+        f.result()
 
 def calculate_batch(request: BatchEphemerisRequest) -> BatchChartResponse:
     executor = get_batch_executor()

@@ -6,6 +6,7 @@ from app.errors import register_exception_handlers
 from app.logging import configure_logging
 from app.routes.health import router as health_router
 from app.routes.v1.ephemeris import router as ephemeris_router
+from app.services.calculations import warm_up_batch_executor
 from app.services.runtime import runtime
 
 
@@ -13,6 +14,7 @@ from app.services.runtime import runtime
 async def lifespan(app: FastAPI):
     configure_logging()
     await runtime.bootstrap()
+    warm_up_batch_executor()
     yield
 
 
