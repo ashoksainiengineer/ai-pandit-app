@@ -96,6 +96,7 @@ export async function callAIWithStream(
 
             const isReasonerModel = config.ai.reasonerIdentifiers.some(id => configLocal.model.toLowerCase().includes(id.toLowerCase()));
             const isOpenRouter = AI_CONFIG.baseUrl.includes('openrouter');
+            const isDeepSeek = AI_CONFIG.baseUrl.includes('deepseek');
 
             const requestBody: AICompletionRequest = {
                 model: configLocal.model,
@@ -113,7 +114,10 @@ export async function callAIWithStream(
 
             const reasoningMode = config.ai.reasoningMode;
             if (isReasonerModel) {
-                if (reasoningMode === 'include_reasoning') {
+                if (isDeepSeek) {
+                    requestBody.thinking = { type: 'enabled' };
+                    requestBody.reasoning_effort = 'high';
+                } else if (reasoningMode === 'include_reasoning') {
                     requestBody.include_reasoning = true;
                 } else if (reasoningMode === 'reasoning_format_raw') {
                     requestBody.reasoning_format = 'raw';

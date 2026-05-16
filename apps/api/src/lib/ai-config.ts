@@ -46,4 +46,5 @@ export interface AICompletionRequest {
     include_reasoning?: boolean;
     reasoning_format?: 'raw' | 'parsed' | 'hidden';
     reasoning_effort?: 'low' | 'medium' | 'high' | 'default';
+    thinking?: { type: 'enabled' | 'disabled' };
 }
