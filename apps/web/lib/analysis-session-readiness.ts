@@ -6,20 +6,19 @@ function sleep(ms: number): Promise<void> {
 }
 
 export async function waitForAnalysisSessionReady(
-  _backendUrl: string,
+  backendUrl: string,
   sessionId: string,
-  _getToken: () => Promise<string | null>
+  getToken: () => Promise<string | null>
 ): Promise<boolean> {
   for (let attempt = 1; attempt <= READINESS_MAX_ATTEMPTS; attempt++) {
     try {
-      // BUG-FIX: Use getToken callback for auth headers instead of auth-free fetch
-      const token = _getToken ? await _getToken() : null;
+      const token = getToken ? await getToken() : null;
       const headers: Record<string, string> = { 'Content-Type': 'application/json' };
       if (token) headers['Authorization'] = `Bearer ${token}`;
-      const res = await fetch(`/api/analysis/progress?sessionId=${encodeURIComponent(sessionId)}`, {
+      const baseUrl = backendUrl.replace(/\/$/, '');
+      const res = await fetch(`${baseUrl}/api/queue/progress?sessionId=${encodeURIComponent(sessionId)}`, {
         method: 'GET',
         cache: 'no-store',
-        credentials: 'same-origin',
         headers,
       });
 

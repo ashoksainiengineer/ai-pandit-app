@@ -18,8 +18,8 @@ const mockStreamStoreState = {
 };
 let mockTestMode = false;
 
-vi.mock('@/lib/use-analysis-polling', () => ({
-    useAnalysisPolling: vi.fn(),
+vi.mock('@/lib/use-analysis-sse', () => ({
+    useAnalysisSSE: vi.fn(() => ({ isConnected: true, isConnecting: false, connectionState: 'connected' })),
 }));
 
 vi.mock('@/lib/store/stream-store', () => ({
