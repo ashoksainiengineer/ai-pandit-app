@@ -6,6 +6,7 @@ import calculateRouter from './calculate.js';
 import queueRouter from './queue.js';
 import jobsRouter from './jobs.js';
 import progressRouter from './progress.js';
+import streamRouter from './stream.js';
 import sessionsRouter from './sessions.js';
 import candidateDetailRouter from './candidate-detail.js';
 import { config } from '../config/index.js';
@@ -81,6 +82,10 @@ router.use('/calculate', authMiddleware, calculateRateLimiter, calculateRouter);
 // Lenient rate limit for frequent polling during analysis
 // NOTE: auth is enforced within progressRouter to avoid duplicate auth verification.
 router.use('/queue/progress', progressRateLimiter, progressRouter);
+
+// SSE Stream endpoint - persistent connection for real-time analysis events
+// Uses same lenient rate limiter as progress since reconnections are infrequent
+router.use('/stream', progressRateLimiter, streamRouter);
 
 // Queue management - strict rate limit (matches /queue but NOT /queue/progress)
 // NOTE: auth is enforced within queueRouter to avoid duplicate auth verification.
