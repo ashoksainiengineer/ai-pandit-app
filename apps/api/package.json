@@ -50,9 +50,7 @@
         "smoke:duplicate-flow": "tsx src/scripts/smoke-duplicate-route-flow.ts",
         "smoke:cloudrun-job-flow": "tsx src/scripts/smoke-cloudrun-job-flow.ts",
         "smoke:duplicate-flow:local": "NODE_ENV=test tsx src/scripts/smoke-duplicate-route-flow-local.ts",
-        "smoke:duplicate-flow:deterministic": "vitest run src/routes/__tests__/sessions.test.ts src/routes/__tests__/queue.test.ts",
-        "verify:worker-health": "tsx src/scripts/verify-worker-health.ts",
-        "verify:stack:deployed": "npm run verify:worker-health && npm run smoke:duplicate-flow"
+        "smoke:duplicate-flow:deterministic": "vitest run src/routes/__tests__/sessions.test.ts src/routes/__tests__/queue.test.ts"
     },
     "dependencies": {
         "@ai-pandit/db": "*",
