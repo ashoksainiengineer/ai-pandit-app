@@ -12,6 +12,7 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@ai-pandit/api": "*",
     "@ai-pandit/db": "*",
     "@ai-pandit/shared": "*",
     "@ai-pandit/worker-runtime": "*",

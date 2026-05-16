@@ -130,41 +130,9 @@ let activeCount = 0;
  * the module path (which would bring API source files into the worker compilation).
  * The generic type parameter provides the expected shape at the call site.
  */
-import { existsSync } from 'node:fs';
 
-async function apiDynamicImport<T>(relativePath: string): Promise<T> {
-  const resolvedPath = new URL(relativePath, import.meta.url).pathname;
-  let exists = existsSync(resolvedPath);
-  let finalPath = relativePath;
 
-  // tsx/dev mode fallback: if .js is requested but doesn't exist, try .ts
-  if (!exists && relativePath.endsWith('.js')) {
-    const tsPath = resolvedPath.replace(/\.js$/, '.ts');
-    if (existsSync(tsPath)) {
-      exists = true;
-      finalPath = relativePath.replace(/\.js$/, '.ts');
-      console.log({ event: 'dynamic_import_dev_fallback', original: relativePath, fallback: finalPath });
-    }
-  }
 
-  console.log({ event: 'dynamic_import_attempt', relativePath, finalPath, resolvedPath, exists });
-  
-  if (!exists) {
-    console.error({ event: 'dynamic_import_file_missing', resolvedPath });
-    throw new Error(`Dynamic import failed: file missing at ${resolvedPath}`);
-  }
-
-  try {
-    const module = await import(finalPath);
-    console.log({ event: 'dynamic_import_success', finalPath });
-    return module as T;
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    const stack = error instanceof Error ? error.stack : '';
-    console.error({ event: 'dynamic_import_error', relativePath, resolvedPath, error: message, stack });
-    throw error;
-  }
-}
 
 async function gracefulShutdown(signal: 'SIGTERM' | 'SIGINT' | 'uncaughtException' | 'unhandledRejection'): Promise<void> {
   if (shutdownRequested) {
@@ -320,10 +288,9 @@ async function processJob(): Promise<void> {
     }
 
     console.log({ event: 'worker_import_start', jobId: job.id });
-    const { executeSecondsPrecisionRectification } =
-      await apiDynamicImport<{
-        executeSecondsPrecisionRectification: (input: SecondsPrecisionInput) => Promise<SecondsPrecisionResult>;
-      }>('../../api/src/lib/seconds-precision-btr.js');
+    const { executeSecondsPrecisionRectification } = await import('@ai-pandit/api/btr-engine') as {
+      executeSecondsPrecisionRectification: (input: SecondsPrecisionInput) => Promise<SecondsPrecisionResult>;
+    };
     console.log({ event: 'worker_import_success', jobId: job.id });
 
     const btrInput: SecondsPrecisionInput = {
@@ -562,10 +529,9 @@ async function recoverInterruptedJobs(): Promise<{
   abandonedAttempts: number;
 }> {
   try {
-    const { recoverInterruptedJobsOnStartup } =
-      await apiDynamicImport<{
-        recoverInterruptedJobsOnStartup: () => Promise<{ recoveredJobs: number; abandonedAttempts: number }>;
-      }>('../../api/src/lib/metrics-reporter.js');
+    const { recoverInterruptedJobsOnStartup } = await import('@ai-pandit/api/metrics-reporter') as {
+      recoverInterruptedJobsOnStartup: () => Promise<{ recoveredJobs: number; abandonedAttempts: number }>;
+    };
     return await recoverInterruptedJobsOnStartup();
   } catch (error) {
     console.error('[WORKER] Recovery import/execution failed:', error);
@@ -692,7 +658,7 @@ void (async () => {
     workerHealthy = true;
 
     try {
-      const { recoverInterruptedJobsOnStartup } = await import('../../api/src/lib/metrics-reporter.js');
+      const { recoverInterruptedJobsOnStartup } = await import('@ai-pandit/api/metrics-reporter');
       const recovery = await recoverInterruptedJobsOnStartup();
       console.log(`[WORKER] Job recovery complete: ${recovery.recoveredJobs} recovered, ${recovery.abandonedAttempts} abandoned`);
     } catch (recoveryError) {

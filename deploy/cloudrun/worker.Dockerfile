@@ -42,14 +42,12 @@ COPY --from=builder --chown=node:node /app/packages/shared ./packages/shared
 COPY --from=builder --chown=node:node /app/packages/db ./packages/db
 COPY --from=builder --chown=node:node /app/packages/worker-runtime ./packages/worker-runtime
 
-# Worker dynamically imports the BTR engine from API at runtime:
-#   worker.ts:  import('../../api/src/lib/seconds-precision-btr.js')
-# This resolves to: /app/apps/worker/dist/apps/api/src/lib/seconds-precision-btr.js
-# Copy API dist to that path so the BTR engine and its transitive deps are available.
-# NOTE: Event store, session events, and progress tracker are now in shared packages
-# (@ai-pandit/shared, @ai-pandit/worker-runtime) and do NOT rely on this copy.
-RUN mkdir -p /app/apps/worker/dist/apps/api/src && \
-    cp -r /app/apps/api/dist/* /app/apps/worker/dist/apps/api/src/
+# Worker imports the BTR engine via '@ai-pandit/api/btr-engine' (workspace dependency).
+# npm ci creates a symlink in node_modules/@ai-pandit/api pointing to apps/api.
+# The API's exports field in package.json resolves ./btr-engine to its dist.
+# Keep API built output available so the workspace dependency resolves at runtime.
+RUN mkdir -p /app/apps/worker/node_modules/@ai-pandit && \
+    ln -sfn /app/apps/api /app/apps/worker/node_modules/@ai-pandit/api
 USER node
 ENV NODE_ENV=production
 ENV JOB_EXECUTION_MODE=external_worker

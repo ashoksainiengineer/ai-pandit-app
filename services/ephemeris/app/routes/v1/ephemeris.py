@@ -1,14 +1,15 @@
 import asyncio
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 
+from app.auth import verify_ephemeris_api_key
 from app.models.chart import BatchChartResponse, ChartResponse
 from app.models.ephemeris import BatchEphemerisRequest, SingleEphemerisRequest, SunriseRequest
 from app.models.sunrise import SunriseResponse
 from app.services.calculations import calculate_batch, calculate_chart, calculate_sunrise, calculate_sunset
 from app.services.runtime import runtime
 
-router = APIRouter(prefix="/v1", tags=["ephemeris"])
+router = APIRouter(prefix="/v1", tags=["ephemeris"], dependencies=[Depends(verify_ephemeris_api_key)])
 
 
 @router.post("/positions", response_model=ChartResponse)

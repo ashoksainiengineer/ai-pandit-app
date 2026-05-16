@@ -4,6 +4,11 @@
     "description": "AI Pandit API - High-performance Vedic astrology calculation and analysis engine.",
     "type": "module",
     "main": "dist/server.js",
+    "exports": {
+        ".": "./dist/server.js",
+        "./btr-engine": "./dist/lib/seconds-precision-btr.js",
+        "./metrics-reporter": "./dist/lib/metrics-reporter.js"
+    },
     "scripts": {
         "dev": "tsx watch --env-file=../../.env src/server.ts",
         "dev:debug": "node --inspect -r tsx/esm src/server.ts",

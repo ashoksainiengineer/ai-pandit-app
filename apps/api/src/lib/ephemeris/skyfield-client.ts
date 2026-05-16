@@ -22,6 +22,7 @@ import { logger } from '../../utils/logger.js';
 interface ResolvedEphemerisClientConfig {
   serviceUrl: string;
   serviceTimeoutMs: number;
+  apiKey?: string;
 }
 
 const DEFAULT_EPHEMERIS_CLIENT_CONFIG: ResolvedEphemerisClientConfig = {
@@ -30,9 +31,12 @@ const DEFAULT_EPHEMERIS_CLIENT_CONFIG: ResolvedEphemerisClientConfig = {
 };
 
 function getEphemerisClientConfig(): ResolvedEphemerisClientConfig {
+  const ephemeralCfg = (config as { ephemeris?: Record<string, unknown> } | undefined)?.ephemeris;
   return {
     ...DEFAULT_EPHEMERIS_CLIENT_CONFIG,
-    ...(config as { ephemeris?: Partial<ResolvedEphemerisClientConfig> } | undefined)?.ephemeris,
+    serviceUrl: (ephemeralCfg?.serviceUrl as string) ?? DEFAULT_EPHEMERIS_CLIENT_CONFIG.serviceUrl,
+    serviceTimeoutMs: (ephemeralCfg?.serviceTimeoutMs as number) ?? DEFAULT_EPHEMERIS_CLIENT_CONFIG.serviceTimeoutMs,
+    apiKey: ephemeralCfg?.apiKey as string | undefined,
   };
 }
 
@@ -105,11 +109,16 @@ async function requestJson<TRequest, TResponse>(
         await new Promise(r => setTimeout(r, attempt * 1000));
       }
 
+      const headers: Record<string, string> = {
+        'content-type': 'application/json',
+      };
+      if (ephemerisConfig.apiKey) {
+        headers['x-api-key'] = ephemerisConfig.apiKey;
+      }
+
       const response = await fetch(new URL(path, ephemerisConfig.serviceUrl), {
         method: 'POST',
-        headers: {
-          'content-type': 'application/json',
-        },
+        headers,
         body: JSON.stringify(body),
         signal: controller.signal,
       });

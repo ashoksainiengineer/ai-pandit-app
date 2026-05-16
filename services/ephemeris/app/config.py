@@ -14,6 +14,7 @@ class Settings(BaseSettings):
     data_dir: Path = Field(default=Path("./data"), alias="EPHEMERIS_DATA_DIR")
     kernel_file: str = Field(default="de440s.bsp", alias="EPHEMERIS_KERNEL_FILE")
     load_kernel_on_startup: bool = Field(default=True, alias="EPHEMERIS_LOAD_KERNEL_ON_STARTUP")
+    api_key: str | None = Field(default=None, alias="EPHEMERIS_API_KEY")
 
     model_config = SettingsConfigDict(
         env_file=".env",

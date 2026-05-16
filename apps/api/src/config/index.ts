@@ -66,6 +66,7 @@ const envSchema = z.object({
     EPHEMERIS_SERVICE_TIMEOUT_MS: z.string().transform(Number).default('15000'),
     EPHEMERIS_BATCH_SIZE: z.string().transform(Number).default('250'),
     EPHEMERIS_HOUSE_SYSTEM: z.enum(['whole_sign', 'equal', 'placidus']).default('whole_sign'),
+    EPHEMERIS_API_KEY: z.string().optional(),
 
     // Security Configuration
     CLERK_SECRET_KEY: z.string().min(1, 'CLERK_SECRET_KEY is required'),
@@ -272,6 +273,7 @@ function buildFullConfig() {
             serviceUrl: e.EPHEMERIS_SERVICE_URL,
             serviceTimeoutMs: e.EPHEMERIS_SERVICE_TIMEOUT_MS,
             batchSize: e.EPHEMERIS_BATCH_SIZE,
+            apiKey: e.EPHEMERIS_API_KEY,
             houseSystem: e.EPHEMERIS_HOUSE_SYSTEM as EphemerisHouseSystem,
         },
         timeouts: {
