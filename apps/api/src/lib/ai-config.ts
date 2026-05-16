@@ -1,4 +1,5 @@
 import { config } from '../config/index.js';
+import { getGCPAccessToken } from './gcp-auth.js';
 import type { AIResponse, AIMessage } from '@ai-pandit/shared';
 
 export type { AIResponse, AIMessage };
@@ -12,6 +13,7 @@ export const AI_CONFIG = {
     retryAttempts: config.ai.retryAttempts,
     retryDelayMs: config.ai.retryDelayMs,
     timeoutMs: config.ai.timeoutMs,
+    authType: config.ai.authType,
 };
 
 export const USE_DETERMINISTIC_AI_MOCK_IN_TESTS =
@@ -33,6 +35,25 @@ export function buildDeterministicMockAIResponse(userPrompt: string): AIResponse
         content: 'MOCK_RESULT: deterministic AI output for test mode',
         tokensUsed: Math.ceil(userPrompt.length / 4),
     };
+}
+
+export async function getAiAuthHeaders(): Promise<Record<string, string>> {
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+
+    if (AI_CONFIG.authType === 'gcp') {
+        const token = await getGCPAccessToken();
+        headers['Authorization'] = `Bearer ${token}`;
+    } else {
+        headers['Authorization'] = `Bearer ${AI_CONFIG.apiKey}`;
+    }
+
+    const isOpenRouter = AI_CONFIG.baseUrl.includes('openrouter');
+    if (isOpenRouter) {
+        headers['HTTP-Referer'] = 'https://aipandit.com';
+        headers['X-Title'] = 'AI Pandit BTR';
+    }
+
+    return headers;
 }
 
 export interface AICompletionRequest {

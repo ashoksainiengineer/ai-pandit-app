@@ -35,6 +35,7 @@ const envSchema = z.object({
     AI_REASONING_MODE: z.enum(['include_reasoning', 'none', 'auto', 'reasoning_format_raw']).default('auto'),
     AI_MAX_TOKENS: z.string().transform(Number).default('32768'),
     AI_TIMEOUT_MS: z.string().transform(Number).default('3600000'),
+    AI_AUTH_TYPE: z.enum(['api_key', 'gcp']).default('api_key'),
     REQUEST_TIMEOUT_MS: z.string().transform(Number).default('4200000'),
 
     // BTR Specific AI Config - MAX TOKENS for GPT-OSS-120B (Groq API)
@@ -235,6 +236,7 @@ function buildFullConfig() {
             survivalRateBase: e.AI_SURVIVAL_RATE_BASE,
             survivalElasticityFactor: e.AI_SURVIVAL_ELASTICITY_FACTOR,
             reasonerModel: e.AI_MODEL,
+            authType: e.AI_AUTH_TYPE,
         },
         db: { url: e.RESOLVED_DATABASE_URL, provider: 'postgres' as const },
         encryption: { secret: e.ENCRYPTION_SECRET },

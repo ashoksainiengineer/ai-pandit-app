@@ -16,6 +16,7 @@ import {
     USE_DETERMINISTIC_AI_MOCK_IN_TESTS,
     isFetchMockedByTestRunner,
     buildDeterministicMockAIResponse,
+    getAiAuthHeaders,
     type AICompletionRequest,
 } from './ai-config.js';
 import { sleep } from './ai-helpers.js';
@@ -134,16 +135,10 @@ export async function callAIWithStream(
             }
 
             logger.info('🔱 Sending fetch request to AI', { sessionId, stage, model: configLocal.model, url: `${AI_CONFIG.baseUrl}/chat/completions` });
+            const headers = await getAiAuthHeaders();
             const response = await fetch(`${AI_CONFIG.baseUrl}/chat/completions`, {
                 method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${AI_CONFIG.apiKey}`,
-                    'Content-Type': 'application/json',
-                    ...(isOpenRouter && {
-                        'HTTP-Referer': 'https://aipandit.com',
-                        'X-Title': 'AI Pandit BTR',
-                    }),
-                },
+                headers,
                 body: JSON.stringify(requestBody),
                 signal: controller.signal,
             });

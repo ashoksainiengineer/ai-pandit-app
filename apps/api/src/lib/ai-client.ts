@@ -6,6 +6,7 @@ import {
     USE_DETERMINISTIC_AI_MOCK_IN_TESTS,
     isFetchMockedByTestRunner,
     buildDeterministicMockAIResponse,
+    getAiAuthHeaders,
     type AICompletionRequest,
     type AIResponse,
     type AIMessage,
@@ -85,7 +86,6 @@ export async function callAI(
             const timeoutId = setTimeout(() => controller.abort(), AI_CONFIG.timeoutMs);
 
             const isReasonerModel = config.ai.reasonerIdentifiers.some(id => configLocal.model.toLowerCase().includes(id.toLowerCase()));
-            const isOpenRouter = AI_CONFIG.baseUrl.includes('openrouter');
 
             const requestBody: AICompletionRequest = {
                 model: configLocal.model,
@@ -123,16 +123,11 @@ export async function callAI(
                 }
             }
 
+            const headers = await getAiAuthHeaders();
+
             const response = await fetch(`${AI_CONFIG.baseUrl}/chat/completions`, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${AI_CONFIG.apiKey}`,
-                    ...(isOpenRouter && {
-                        'HTTP-Referer': 'https://aipandit.com',
-                        'X-Title': 'AI Pandit BTR',
-                    }),
-                },
+                headers,
                 body: JSON.stringify(requestBody),
                 signal: controller.signal,
             });
