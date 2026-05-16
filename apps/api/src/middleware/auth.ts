@@ -2,7 +2,6 @@ import { Request, Response, NextFunction } from 'express';
 import { clerkAuthProvider } from '../lib/auth/clerk-provider.js';
 import { config } from '../config/index.js';
 import { logger } from '../utils/logger.js';
-import { consumeStreamTicket } from '../lib/stream-ticket-manager.js';
 import { getClerkAdminClient } from '../lib/auth/clerk-provider.js';
 import { UnauthorizedError } from '../errors/index.js';
 
@@ -33,38 +32,15 @@ export function requireExternalId(req: AuthenticatedRequest): string {
  */
 function sendAuthError(
     res: Response,
-    isStreamRequest: boolean,
     message: string,
     code: string,
     statusCode: number = 401
 ): void {
-    if (isStreamRequest) {
-        res.setHeader('Content-Type', 'text/event-stream');
-        res.setHeader('Cache-Control', 'no-cache');
-        res.setHeader('Connection', 'keep-alive');
-        res.setHeader('X-Accel-Buffering', 'no');
-        res.flushHeaders();
-
-        res.write(':' + ' '.repeat(1024) + '\n\n');
-
-        res.write(`data: ${JSON.stringify({
-            type: 'error',
-            message,
-            error: message,
-            code,
-            isAuthError: true
-        })}\n\n`);
-
-        const flushable = res as { flush?: () => void };
-        flushable.flush?.();
-        res.end();
-    } else {
-        res.status(statusCode).json({
-            success: false,
-            error: message,
-            code
-        });
-    }
+    res.status(statusCode).json({
+        success: false,
+        error: message,
+        code
+    });
 }
 
 /**
@@ -97,48 +73,16 @@ export async function authMiddleware(
         if (safeHeaders.cookie) safeHeaders.cookie = '[REDACTED]';
 
 
-        const isStreamRequest = req.originalUrl.includes('/stream');
-
         let token = '';
         const authHeader = req.headers.authorization;
-        const streamTicket = req.query.ticket as string | undefined;
-
-        // 🔍 DETAILED LOGGING (Sanitized)
         const hasAuthHeader = !!authHeader;
 
         logger.debug('🔑 [Auth] Token detection initiated', {
             path: req.path,
             hasAuthHeader,
             authHeaderPrefix: hasAuthHeader ? 'Bearer [REDACTED]' : 'NONE',
-            hasStreamTicket: !!streamTicket,
             requestId: (req as AuthenticatedRequest & { requestId?: string }).requestId
         });
-
-        // 🔑 Stream Ticket Auth (EventSource workaround)
-        // -----------------------------------------------------------------
-        // Browser-native EventSource API does not support custom HTTP headers,
-        // so Authorization: Bearer <token> cannot be sent on SSE requests.
-        // Instead, the frontend obtains a single-use ticket via POST
-        // /api/stream/ticket/:sessionId (authenticated with Bearer token),
-        // then passes it as ?ticket= in the EventSource URL.
-        //
-        // This block consumes the ticket to authenticate the SSE connection
-        // when no Authorization header is present. See:
-        //   - lib/stream-ticket-manager.ts (ticket lifecycle)
-        //   - routes/stream.ts POST /ticket/:sessionId (ticket creation)
-        //   - web/lib/use-stream-progress.ts (frontend ticket acquisition)
-        if (!authHeader && isStreamRequest && streamTicket) {
-            const ticketPayload = await consumeStreamTicket(streamTicket);
-            if (ticketPayload) {
-                req.externalId = ticketPayload.externalId;
-                req.sessionId = ticketPayload.sessionId;
-                logger.debug('🔑 [Auth] Stream ticket accepted', {
-                    sessionId: ticketPayload.sessionId,
-                    externalIdPrefix: ticketPayload.externalId.slice(0, 12),
-                });
-                return next();
-            }
-        }
 
         if (authHeader && authHeader.startsWith('Bearer ')) {
             token = authHeader.substring(7).trim();
@@ -154,13 +98,12 @@ export async function authMiddleware(
             logger.warn('🔒 [Auth] Authentication failed: No token provided', {
                 path: req.originalUrl,
                 method: req.method,
-                isStreamRequest,
                 incomingHeaders: Object.keys(req.headers),
                 authorizationPresent: !!req.headers.authorization,
                 cookiePresent: !!req.headers.cookie
             });
 
-            sendAuthError(res, isStreamRequest, 'Unauthorized: No valid session token', 'UNAUTHORIZED');
+            sendAuthError(res, 'Unauthorized: No valid session token', 'UNAUTHORIZED');
             return;
         }
 
@@ -192,7 +135,7 @@ export async function authMiddleware(
                     path: req.originalUrl,
                     error: result.error,
                 });
-                sendAuthError(res, isStreamRequest, result.error || 'Invalid or expired session', 'INVALID_SESSION');
+                sendAuthError(res, result.error || 'Invalid or expired session', 'INVALID_SESSION');
             }
         } catch (error: unknown) {
             const errorStr = error instanceof Error
@@ -204,7 +147,7 @@ export async function authMiddleware(
                 rawPrefix: token.substring(0, 10),
                 path: req.originalUrl,
             });
-            sendAuthError(res, isStreamRequest, 'Authentication failed', 'AUTH_FAILED');
+            sendAuthError(res, 'Authentication failed', 'AUTH_FAILED');
         }
 
     } catch (error) {

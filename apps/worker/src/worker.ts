@@ -319,13 +319,9 @@ async function processJob(): Promise<void> {
     // connection timeouts during long-running AI pipeline stages.
     // Redis SET with EX automatically expires if worker crashes, enabling
     // fast detection of orphaned jobs by the queue health monitor.
-    const heartbeatInterval = setInterval(() => {
-      redisClient
-        .set(`btr:heartbeat:${job.sessionId}`, Date.now().toString(), 'EX', 60)
-        .catch((err) => console.warn('[WORKER] Redis heartbeat failed:', err));
-    }, 15_000);
+    /* Redis heartbeat removed — DB heartbeat (jobAttempts.heartbeatAt + syncJobHeartbeat) is sufficient */
 
-    const BTR_TIMEOUT_MS = 45 * 60 * 1000;
+    const BTR_TIMEOUT_MS = Number(process.env.BTR_TIMEOUT_MS) || 4 * 60 * 60 * 1000;
     const timeoutPromise = new Promise<never>((_, reject) => {
       activeJobTimeout = setTimeout(() => {
         console.error(`[WORKER] BTR analysis timed out after ${BTR_TIMEOUT_MS}ms`, {
@@ -352,7 +348,6 @@ async function processJob(): Promise<void> {
       }
       throw error;
     } finally {
-      clearInterval(heartbeatInterval);
       if (activeJobTimeout) {
         clearTimeout(activeJobTimeout);
         activeJobTimeout = null;
@@ -623,15 +618,8 @@ void (async () => {
        process.exit(1);
      }
 
-    try {
-      initRedisEventStore(adaptIORedis(redisClient));
-      redisEventsReady = true;
-      console.log('[WORKER] Redis Event Store initialised (events will be published to API)');
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      redisEventsReady = false;
-      console.warn(`[WORKER] Redis Event Store init failed — progress events will not be published: ${message}`);
-    }
+    // Redis Event Store removed — all events go to DB via persistEvent() → job_events table
+    // SSE streaming replaced by DB-polling based progress endpoint
 
     // Subscribe to job notifications (Pub/Sub) for instant wake-up.
     // When the API enqueues a new job, it publishes to 'btr:job:notify'.

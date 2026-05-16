@@ -49,12 +49,11 @@ describe('Production Readiness Audit', () => {
         expect(res.body.checks.memory).toBeDefined();
     });
 
-    it('should return realtime metrics including SSE and Queue counts', async () => {
+    it('should return realtime metrics including Queue counts', async () => {
         const res = await request(app).get('/api/health/metrics');
 
         expect(res.status).toBe(200);
         expect(res.body.realtime).toBeDefined();
-        expect(typeof res.body.realtime.activeSseConnections).toBe('number');
         expect(typeof res.body.realtime.activeQueueProcessing).toBe('number');
         expect(res.body.cpu).toBeDefined();
     });

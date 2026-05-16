@@ -62,10 +62,6 @@ vi.mock('../../lib/observability/otlp-exporter.js', () => ({
   getOtlpExporterStats: vi.fn(() => ({ exported: 0, dropped: 0 })),
 }));
 
-vi.mock('../../routes/stream.js', () => ({
-  getActiveSseCount: vi.fn(() => 0),
-}));
-
 vi.mock('../../lib/queue-manager.js', () => ({
   getActiveProcessingCount: vi.fn(() => 0),
   getQueueCircuitBreakerStatus: vi.fn(() => []),

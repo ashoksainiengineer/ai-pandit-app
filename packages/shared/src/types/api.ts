@@ -264,6 +264,7 @@ export interface CandidateScore {
   batch?: number;
   minifiedEph?: { sun: string; moon: string; ascendant: string };
   fullEph?: Record<string, string>;
+  reason?: string; // AI's one-line astrological verdict per batch
 
   // Advanced God-Tier Properties
   timeString?: string;
@@ -332,6 +333,7 @@ export interface CandidateScoreEvent {
   rank?: number;
   minifiedEph?: { sun: string; moon: string; ascendant: string };
   fullEph?: Record<string, string>;
+  reason?: string; // AI's one-line astrological verdict per batch
 }
 
 export interface CandidateScoresEvent {

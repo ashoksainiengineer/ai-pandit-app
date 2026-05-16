@@ -1,6 +1,5 @@
 import { Router, Response } from 'express';
 import { getSessionProgress } from '../lib/progress-tracker.js';
-import { getQueueStatus } from '../lib/queue-manager.js';
 import { AuthenticatedRequest, authMiddleware } from '../middleware/auth.js';
 import { db, executeWithRetry, getLatestJobForSession } from '@ai-pandit/db';
 import { sessions, type Session } from '@ai-pandit/db/schema';
@@ -10,45 +9,43 @@ const crypto = getApiEncryption();
 
 import { logger } from '../utils/logger.js';
 import { isSessionOwnedByContext, resolveSessionOwnershipContext } from '../lib/session-ownership.js';
-import { getPersistedSessionEvents } from '../lib/jobs/job-event-stream.js';
+import { getPersistedSessionEvents, type PersistedSessionEvent } from '../lib/jobs/job-event-stream.js';
+import { listJobEventsSince } from '@ai-pandit/db/jobs';
 import { sendSuccess, sendError } from '../utils/response.js';
 import { AppError, ErrorCodes } from '../errors/index.js';
 
 const router = Router();
-logger.info('Progress route initialized');
 
-/**
- * GET /api/queue/progress/:sessionId - Get detailed progress for a session
- */
 router.get('/:sessionId', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
     try {
         const { sessionId } = req.params;
         const externalId = req.externalId!;
-        await handleProgressRequest(sessionId, externalId, res);
+        const since = Number(req.query.since) || 0;
+        await handleProgressRequest(sessionId, externalId, since, res);
     } catch (error) {
         logger.error('Progress fetch failed:', error);
         sendError(res, error);
     }
 });
 
-/**
- * GET /api/queue/progress/?sessionId=... - Get detailed progress (Query Param Support)
- */
 router.get('/', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
     try {
         const sessionId = req.query.sessionId as string;
         const externalId = req.externalId!;
-        await handleProgressRequest(sessionId, externalId, res);
+        const since = Number(req.query.since) || 0;
+        await handleProgressRequest(sessionId, externalId, since, res);
     } catch (error) {
         logger.error('Progress fetch failed:', error);
         sendError(res, error);
     }
 });
 
-/**
- * Handle progress request with ownership verification
- */
-async function handleProgressRequest(sessionId: string, externalId: string, res: Response) {
+async function handleProgressRequest(
+    sessionId: string,
+    externalId: string,
+    sinceSeq: number,
+    res: Response
+) {
     if (!sessionId) {
         sendError(res, new AppError(ErrorCodes.INVALID_INPUT, 'Session ID is required'));
         return;
@@ -75,7 +72,6 @@ async function handleProgressRequest(sessionId: string, externalId: string, res:
         }
 
         if (!isSessionOwnedByContext(sessionCheck[0], ownershipContext)) {
-            logger.warn(`[IDOR] Unauthorized progress access attempt: externalId ${externalId.slice(0, 12)}... tried to access session ${sessionId}`);
             sendError(res, new AppError(ErrorCodes.UNAUTHORIZED, 'Access denied'));
             return;
         }
@@ -87,74 +83,72 @@ async function handleProgressRequest(sessionId: string, externalId: string, res:
         return;
     }
 
-    // Get queue status
-    let queueStatus = await getQueueStatus(sessionId);
-    if (!queueStatus) {
-        logger.warn('Queue status unavailable, falling back to DB session row', { sessionId });
-        const fallbackSession = await executeWithRetry(() =>
-            db.select()
-                .from(sessions)
-                .where(eq(sessions.id, sessionId))
-                .limit(1)
-        );
+    // Read from DB directly — no Redis
+    const sessionRow = await executeWithRetry(() =>
+        db.select()
+            .from(sessions)
+            .where(eq(sessions.id, sessionId))
+            .limit(1)
+    );
 
-        if (fallbackSession.length === 0) {
-            sendError(res, new AppError(ErrorCodes.SESSION_NOT_FOUND, 'Session not found'));
-            return;
-        }
-
-        const fallback = fallbackSession[0];
-        const validStatus = (fallback.status as string) === 'queued' ||
-                           (fallback.status as string) === 'processing' ||
-                           (fallback.status as string) === 'complete' ||
-                           (fallback.status as string) === 'failed'
-                           ? fallback.status as import('@ai-pandit/shared').QueueStatus
-                           : 'queued';
-        queueStatus = {
-            sessionId,
-            status: validStatus,
-            position: 0,
-            estimatedWaitSeconds: 0,
-            totalInQueue: 0,
-            createdAt: fallback.createdAt || '',
-            session: fallback,
-        };
+    if (sessionRow.length === 0) {
+        sendError(res, new AppError(ErrorCodes.SESSION_NOT_FOUND, 'Session not found'));
+        return;
     }
 
-    // Get detailed progress
+    const session = sessionRow[0];
+    const sessionStatus = session.status || 'pending';
+    const job = await getLatestJobForSession(sessionId);
+
+    // Get NEW events since last sequence number (incremental polling)
+    let newEvents: PersistedSessionEvent[] = [];
+    let lastSeq = sinceSeq;
+
+    if (job) {
+        const rawEvents = await listJobEventsSince(job.id, sinceSeq, 500);
+        for (const eventRow of rawEvents) {
+            try {
+                const payload = eventRow.payloadJson;
+                if (payload && typeof payload === 'object' && 'type' in payload) {
+                    newEvents.push({
+                        seq: eventRow.sequenceNo,
+                        event: payload as PersistedSessionEvent['event'],
+                    });
+                }
+            } catch {
+                // Skip unparseable events
+            }
+        }
+        if (newEvents.length > 0) {
+            lastSeq = newEvents[newEvents.length - 1].seq;
+        }
+    }
+
+    // Get progress from DB (reads sessions.progressData)
     const progress = await getSessionProgress(sessionId);
-    const sessionSnapshot = queueStatus?.session as Partial<Session> | undefined;
-    const jobSnapshot = await getLatestJobForSession(sessionId);
-    const persistedEvents = await getPersistedSessionEvents(sessionId);
-    const terminalResult = extractTerminalResult(
-        sessionSnapshot?.analysisResult,
-        internalUserId!
-    );
-    const isCompleteStatus = queueStatus && ['complete', 'success', 'finished'].includes(queueStatus.status);
+    const terminalResult = extractTerminalResult(session.analysisResult, internalUserId!);
+    const isComplete = ['complete', 'success', 'finished'].includes(sessionStatus);
 
     sendSuccess(res, {
         sessionId,
-        status: queueStatus?.status ?? 'pending',
-        position: queueStatus?.position ?? 0,
-        estimatedWaitSeconds: queueStatus?.estimatedWaitSeconds ?? 0,
-        jobId: jobSnapshot?.id,
-        jobStatus: jobSnapshot?.status,
-        errorMessage: sessionSnapshot?.errorMessage || undefined,
-        result: isCompleteStatus ? terminalResult ?? undefined : undefined,
-        rectifiedTime: isCompleteStatus && typeof terminalResult?.rectifiedTime === 'string' ? terminalResult.rectifiedTime : undefined,
-        accuracy: isCompleteStatus && typeof terminalResult?.accuracy === 'number' ? terminalResult.accuracy : undefined,
-        confidence: isCompleteStatus && typeof terminalResult?.confidence === 'string' ? terminalResult.confidence : undefined,
-        // Include session metadata for frontend "Blueprint" display
+        status: sessionStatus,
+        jobId: job?.id,
+        jobStatus: job?.status,
+        errorMessage: session.errorMessage || undefined,
+        result: isComplete ? terminalResult ?? undefined : undefined,
+        rectifiedTime: isComplete && typeof terminalResult?.rectifiedTime === 'string' ? terminalResult.rectifiedTime : undefined,
+        accuracy: isComplete && typeof terminalResult?.accuracy === 'number' ? terminalResult.accuracy : undefined,
+        confidence: isComplete && typeof terminalResult?.confidence === 'string' ? terminalResult.confidence : undefined,
         metadata: {
-            fullName: crypto.parseField(sessionSnapshot?.fullName, internalUserId!),
-            dateOfBirth: crypto.parseField(sessionSnapshot?.dateOfBirth, internalUserId!),
-            tentativeTime: crypto.parseField(sessionSnapshot?.tentativeTime, internalUserId!),
-            birthPlace: crypto.parseField(sessionSnapshot?.birthPlace, internalUserId!),
-            offsetConfig: crypto.parseField(sessionSnapshot?.offsetConfig, internalUserId!),
-            timezone: sessionSnapshot?.timezone,
-            status: queueStatus?.status ?? 'pending',
-            errorMessage: sessionSnapshot?.errorMessage || undefined,
-            updatedAt: sessionSnapshot?.updatedAt || undefined,
+            fullName: crypto.parseField(session.fullName, internalUserId!),
+            dateOfBirth: crypto.parseField(session.dateOfBirth, internalUserId!),
+            tentativeTime: crypto.parseField(session.tentativeTime, internalUserId!),
+            birthPlace: crypto.parseField(session.birthPlace, internalUserId!),
+            offsetConfig: crypto.parseField(session.offsetConfig, internalUserId!),
+            timezone: session.timezone,
+            status: sessionStatus,
+            errorMessage: session.errorMessage || undefined,
+            updatedAt: session.updatedAt || undefined,
         },
         progress: progress || {
             currentStep: 0,
@@ -164,7 +158,8 @@ async function handleProgressRequest(sessionId: string, externalId: string, res:
             lastUpdate: new Date().toISOString(),
             liveMessage: 'Waiting in queue...',
         },
-        recentEvents: persistedEvents.slice(-10),
+        events: newEvents,
+        lastSeq,
     });
 }
 

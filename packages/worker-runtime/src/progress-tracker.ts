@@ -9,8 +9,6 @@ import {
   emitEstimatedTime,
   emitAIThinking,
 } from './session-events.js';
-import { safeJsonParse } from '@ai-pandit/shared';
-import { getRedisEventStore } from '@ai-pandit/shared/event-store';
 import type { CandidateScore, ProgressStep, AIThinkingData, AIContextData, ProgressData } from '@ai-pandit/shared';
 
 export const ANALYSIS_STEPS: Omit<ProgressStep, 'status'>[] = [
@@ -136,10 +134,7 @@ export class ProgressTracker {
             this.saveProgress(true).catch(err => console.warn('Heartbeat pulse failed', { error: (err as Error)?.message || err }));
         }
 
-        if (now - this.lastSaveTime > 2000) {
-            const redisStore = getRedisEventStore();
-            redisStore.storeThinking(this.sessionId, candidateTime, { stage, text: updatedLog }).catch(() => {});
-        }
+        // Thinking data stored in job_events table via persistEvent() — no Redis needed
     }
 
     async addCalculationLog(candidateTime: string, log: string): Promise<void> {
@@ -323,6 +318,7 @@ export class ProgressTracker {
             score.minifiedEph,
             score.fullEph,
             score.batch,
+            score.reason, // forward AI verdict from <FINAL_SCORES> extraction
         );
         await this.saveProgress();
     }
@@ -338,14 +334,6 @@ export class ProgressTracker {
             this.lastSaveTime = now;
 
             if (!includeThinking) {
-                const redisStore = getRedisEventStore();
-                await redisStore.storeContext(this.sessionId, {
-                    currentStep: this.progress.currentStep,
-                    percentage: this.progress.percentage,
-                    liveMessage: this.progress.liveMessage,
-                    estimatedTimeRemaining: this.progress.estimatedTimeRemaining,
-                    lastUpdate: now,
-                });
                 return;
             }
 
@@ -411,59 +399,23 @@ export async function getSessionProgress(sessionId: string): Promise<ProgressDat
         return activeInstance.getProgress();
     }
 
-    const redisStore = getRedisEventStore();
     try {
-        const [context, thinking, rawScores] = await Promise.all([
-            redisStore.getContext(sessionId),
-            redisStore.getThinking(sessionId),
-            redisStore.getCandidateScores(sessionId),
-        ]);
+        const session = await db.select({ progressData: sessions.progressData })
+            .from(sessions)
+            .where(eq(sessions.id, sessionId))
+            .limit(1);
 
-        if (context && typeof context === 'object') {
-            const ctx = context as Partial<ProgressData> & { lastUpdate?: number };
-
-            let lastAIThinking: AIThinkingData | undefined;
-            const thinkingEntries = Array.from(thinking.entries());
-            if (thinkingEntries.length > 0) {
-                const [ct, data] = thinkingEntries[0];
-                lastAIThinking = {
-                    stage: data.stage,
-                    candidateTime: ct,
-                    chunks: [],
-                    fullText: data.text,
-                };
-            }
-
-            const candidateScores: CandidateScore[] = (rawScores as Array<Record<string, unknown>>)
-                .filter(s => s && s.time)
-                .map(s => ({
-                    time: String(s.time),
-                    score: Number(s.score) || 0,
-                    stage: Number(s.stage) || 0,
-                    rank: s.rank as number | undefined,
-                    batch: s.batch as number | undefined,
-                    minifiedEph: s.minifiedEph as CandidateScore['minifiedEph'],
-                    fullEph: s.fullEph as CandidateScore['fullEph'],
-                }));
-
-            const redisProgress: ProgressData = {
-                currentStep: ctx.currentStep ?? 0,
-                totalSteps: ANALYSIS_STEPS.length,
-                percentage: ctx.percentage ?? 0,
-                steps: ANALYSIS_STEPS.map(step => ({ ...step, status: 'pending' as const })),
-                lastUpdate: ctx.lastUpdate ? new Date(ctx.lastUpdate).toISOString() : new Date().toISOString(),
-                candidateScores,
-                estimatedTimeRemaining: ctx.estimatedTimeRemaining ?? 0,
-                liveMessage: ctx.liveMessage,
-                lastAIThinking,
-                stageHistory: Object.fromEntries(
-                    thinkingEntries.map(([ct, data]) => [data.stage, data.text]),
-                ),
+        if (session.length > 0 && session[0].progressData) {
+            const progressData = typeof session[0].progressData === 'string'
+                ? JSON.parse(session[0].progressData) as ProgressData
+                : session[0].progressData as ProgressData;
+            return {
+                ...progressData,
+                lastUpdate: new Date().toISOString(),
             };
-            return redisProgress;
         }
     } catch (error) {
-        console.warn('[PROGRESS-TRACKER] Redis read failed', { sessionId, error });
+        console.warn('[PROGRESS-TRACKER] DB read failed', { sessionId, error });
     }
 
     return null;

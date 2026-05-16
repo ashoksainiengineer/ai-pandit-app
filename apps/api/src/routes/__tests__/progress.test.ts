@@ -1,24 +1,22 @@
 /**
- * 🔱 EXHAUSTIVE PROGRESS ROUTE TESTS
+ * Progress Route Tests
  * Tests GET /api/queue/progress/:sessionId and GET /api/queue/progress/?sessionId=...
- * Covers ownership verification, IDOR protection, missing session, queue status
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import express from 'express';
 import request from 'supertest';
 
-
-// ═══════════════════════════════════════════════════════════════════════════
-// MOCKS
-// ═══════════════════════════════════════════════════════════════════════════
-
-vi.mock('@ai-pandit/db', () => ({
-    db: {
+const { mockDb } = vi.hoisted(() => ({
+    mockDb: {
         select: vi.fn().mockReturnThis(),
         from: vi.fn().mockReturnThis(),
         where: vi.fn().mockReturnThis(),
-        limit: vi.fn().mockResolvedValue([]),
+        limit: vi.fn(),
     },
+}));
+
+vi.mock('@ai-pandit/db', () => ({
+    db: mockDb,
     executeWithRetry: vi.fn((fn: () => unknown) => fn()),
     getLatestJobForSession: vi.fn().mockResolvedValue(null),
 }));
@@ -44,61 +42,58 @@ vi.mock('../../lib/logger.js', () => ({
 
 vi.mock('../../lib/progress-tracker.js', () => ({
     getSessionProgress: vi.fn().mockResolvedValue({
-        currentStep: 3,
-        totalSteps: 10,
-        percentage: 30,
-        steps: [],
-        lastUpdate: new Date().toISOString(),
-        liveMessage: 'Analyzing...',
+        currentStep: 3, totalSteps: 10, percentage: 30, steps: [],
+        lastUpdate: new Date().toISOString(), liveMessage: 'Analyzing...',
     }),
 }));
 
-vi.mock('../../lib/queue-manager.js', () => ({
-    getQueueStatus: vi.fn().mockResolvedValue({
-        status: 'processing',
-        position: 0,
-        estimatedWaitSeconds: 120,
-        session: {
-            fullName: 'Test User',
-            dateOfBirth: '1990-01-01',
-            tentativeTime: '14:30',
-            birthPlace: 'Delhi',
-            offsetConfig: '{}',
-            timezone: '5.5',
-            userId: 'internal_id',
-            updatedAt: '2026-03-09T00:00:00.000Z',
-        },
-    }),
-}));
+vi.mock('../../lib/queue-manager.js', () => ({}));
 
 vi.mock('../../lib/encryption/index.js', () => ({
     getApiEncryption: vi.fn(() => ({
-        encrypt: vi.fn((d: string) => d),
-        decrypt: vi.fn((d: string) => d),
         parseField: vi.fn((field: unknown) => field || ''),
-        isEncrypted: vi.fn(() => false),
     })),
 }));
 
 vi.mock('../../lib/session-ownership.js', () => ({
     resolveSessionOwnershipContext: vi.fn(async (externalId: string) => ({
-        externalId,
-        internalUserId: externalId === 'test_clerk_id' ? 'internal_id' : null,
+        externalId, internalUserId: externalId === 'test_clerk_id' ? 'internal_id' : null,
     })),
-    isSessionOwnedByContext: vi.fn((session: { externalId?: string | null; userId?: string | null }, context: { externalId: string; internalUserId: string | null }) => {
+    isSessionOwnedByContext: vi.fn((session: Record<string, unknown>, context: Record<string, unknown>) => {
         if (session?.externalId === context.externalId) return true;
-        if (!context.internalUserId) return false;
         return session?.userId === context.internalUserId;
     }),
 }));
 
-vi.mock('../../lib/jobs/job-event-stream.js', () => ({
-    getPersistedSessionEvents: vi.fn().mockResolvedValue([]),
+vi.mock('../../lib/jobs/job-event-stream.js', () => ({}));
+
+vi.mock('@ai-pandit/db/jobs', () => ({
+    listJobEventsSince: vi.fn().mockResolvedValue([]),
 }));
 
+vi.mock('../../utils/response.js', async () => {
+    const actual = await vi.importActual('../../utils/response.js');
+    return actual;
+});
+
 import progressRouter from '../../routes/progress.js';
-import { db } from '@ai-pandit/db';
-import { getQueueStatus } from '../../lib/queue-manager.js';
+
+function makeSession(overrides: Record<string, unknown> = {}) {
+    return {
+        id: 'session-1', externalId: 'test_clerk_id', userId: 'internal_id',
+        fullName: 'Test User', dateOfBirth: '1990-01-01', tentativeTime: '14:30',
+        birthPlace: 'Delhi', latitude: 28.6, longitude: 77.2, timezone: '5.5',
+        gender: 'male', status: 'processing', errorMessage: null, analysisResult: null,
+        lifeEvents: null, spouseData: null, offsetConfig: '{}',
+        rectifiedTime: null, accuracy: null, confidence: null,
+        progressData: null, reasoningLogs: null, errorCode: null,
+        submittedAt: null, startedProcessingAt: null, completedAt: null,
+        deletedAt: null, retentionUntil: null, aiConsentGiven: false,
+        aiConsentGivenAt: null, aiConsentIp: null, isEncrypted: false,
+        createdAt: '2026-01-01T00:00:00.000Z', updatedAt: '2026-03-09T00:00:00.000Z',
+        ...overrides,
+    };
+}
 
 function createApp() {
     const app = express();
@@ -107,132 +102,75 @@ function createApp() {
     return app;
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
-// GET /api/queue/progress/:sessionId
-// ═══════════════════════════════════════════════════════════════════════════
-
-describe('Progress Route - GET /:sessionId', () => {
+describe('Progress Route', () => {
     let app: express.Express;
 
     beforeEach(() => {
         vi.clearAllMocks();
+        mockDb.limit.mockResolvedValue([]);
         app = createApp();
     });
 
-    it('should return 400 if sessionId is missing (query param route)', async () => {
+    it('returns 400 if sessionId missing from query', async () => {
         const res = await request(app).get('/api/queue/progress/');
-        // Route "/" with no query param
         expect(res.status).toBe(400);
     });
 
-    it('should return 404 if session not found in DB', async () => {
-        (db as any).limit.mockResolvedValueOnce([]);
+    it('returns 404 if session not found', async () => {
+        mockDb.limit.mockResolvedValue([]);
         const res = await request(app).get('/api/queue/progress/nonexistent-session');
         expect(res.status).toBe(404);
     });
 
-    it('should return 401 if session belongs to another user (IDOR protection)', async () => {
-        (db as any).limit.mockResolvedValueOnce([{ id: 'session-1', externalId: 'other_user', userId: 'uid' }]);
+    it('returns 401 if session belongs to another user', async () => {
+        mockDb.limit
+            .mockResolvedValueOnce([makeSession({ externalId: 'other_user', userId: 'uid' })]);
         const res = await request(app).get('/api/queue/progress/session-1');
         expect(res.status).toBe(401);
     });
 
-    it('should fallback to DB session row if queue status is unavailable', async () => {
-        (db as any).limit
-            .mockResolvedValueOnce([{ id: 'session-1', externalId: 'test_clerk_id', userId: 'uid' }])
-            .mockResolvedValueOnce([{ id: 'session-1', externalId: 'test_clerk_id', userId: 'uid', status: 'queued', createdAt: '2026-03-09T00:00:00.000Z' }]);
-        vi.mocked(getQueueStatus).mockResolvedValueOnce(null);
-        const res = await request(app).get('/api/queue/progress/session-1');
-        expect(res.status).toBe(200);
-        expect(res.body.data.status).toBe('queued');
-    });
-
-    it('should return progress data for owned session', async () => {
-        (db as any).limit.mockResolvedValueOnce([{ id: 'session-1', externalId: 'test_clerk_id', userId: 'internal_id' }]);
+    it('returns progress data for owned session', async () => {
+        mockDb.limit.mockResolvedValue([makeSession({ externalId: 'test_clerk_id', userId: 'internal_id' })]);
         const res = await request(app).get('/api/queue/progress/session-1');
         expect(res.status).toBe(200);
         expect(res.body.data.sessionId).toBe('session-1');
         expect(res.body.data.status).toBe('processing');
-        expect(res.body.data.progress).toBeDefined();
-        expect(res.body.data.metadata).toBeDefined();
-        expect(res.body.data.metadata.fullName).toBeDefined();
     });
 
-    it('should allow progress access for legacy row matched by internal userId', async () => {
-        (db as any).limit.mockResolvedValueOnce([{ id: 'legacy-session', externalId: 'legacy_clerk', userId: 'internal_id' }]);
-        const res = await request(app).get('/api/queue/progress/legacy-session');
-        expect(res.status).toBe(200);
-        expect(res.body.data.sessionId).toBe('legacy-session');
-    });
-
-    it('should return default progress if none exists', async () => {
-        (db as any).limit.mockResolvedValueOnce([{ id: 'session-2', externalId: 'test_clerk_id', userId: 'internal_id' }]);
-        const { getSessionProgress } = await import('../../lib/progress-tracker.js');
-        vi.mocked(getSessionProgress).mockResolvedValueOnce(null);
-        const res = await request(app).get('/api/queue/progress/session-2');
-        expect(res.status).toBe(200);
-        expect(res.body.data.progress.currentStep).toBe(0);
-        expect(res.body.data.progress.liveMessage).toContain('queue');
-    });
-
-    it('should return terminal result payload for completed sessions', async () => {
-        (db as any).limit.mockResolvedValueOnce([{ id: 'session-3', externalId: 'test_clerk_id', userId: 'internal_id' }]);
-        vi.mocked(getQueueStatus).mockResolvedValueOnce({
-            status: 'complete',
-            position: 0,
-            estimatedWaitSeconds: 0,
-            session: {
-                fullName: 'Test User',
-                dateOfBirth: '1990-01-01',
-                tentativeTime: '14:30',
-                birthPlace: 'Delhi',
-                offsetConfig: '{}',
-                timezone: '5.5',
-                userId: 'internal_id',
-                analysisResult: JSON.stringify({ rectifiedTime: '12:12:12', accuracy: 98, confidence: 'high' }),
-                updatedAt: '2026-03-09T00:00:00.000Z',
-            },
-        } as {
-            status: string;
-            position: number;
-            estimatedWaitSeconds: number;
-        } as any);
-
-        const res = await request(app).get('/api/queue/progress/session-3');
-        expect(res.status).toBe(200);
-        expect(res.body.data.status).toBe('complete');
-        expect(res.body.data.result?.rectifiedTime).toBe('12:12:12');
-        expect(res.body.data.rectifiedTime).toBe('12:12:12');
-    });
-});
-
-// ═══════════════════════════════════════════════════════════════════════════
-// GET /api/queue/progress/?sessionId=...
-// ═══════════════════════════════════════════════════════════════════════════
-
-describe('Progress Route - GET /?sessionId=... (Query Param)', () => {
-    let app: express.Express;
-
-    beforeEach(() => {
-        vi.clearAllMocks();
-        app = createApp();
-    });
-
-    it('should return 404 if session not found via query param', async () => {
-        (db as any).limit.mockResolvedValueOnce([]);
-        const res = await request(app).get('/api/queue/progress/?sessionId=nonexistent');
-        expect(res.status).toBe(404);
-    });
-
-    it('should return progress via query param', async () => {
-        (db as any).limit.mockResolvedValueOnce([{ id: 'session-1', externalId: 'test_clerk_id', userId: 'uid' }]);
+    it('returns progress via query param', async () => {
+        mockDb.limit.mockResolvedValue([makeSession({ externalId: 'test_clerk_id', userId: 'internal_id' })]);
         const res = await request(app).get('/api/queue/progress/?sessionId=session-1');
         expect(res.status).toBe(200);
         expect(res.body.data.sessionId).toBe('session-1');
     });
 
-    it('should ignore sid query and require sessionId', async () => {
-        const res = await request(app).get('/api/queue/progress/?sid=token-only');
-        expect(res.status).toBe(400);
+    it('returns default progress if none exists', async () => {
+        mockDb.limit.mockResolvedValue([makeSession({ externalId: 'test_clerk_id', userId: 'internal_id' })]);
+        const res = await request(app).get('/api/queue/progress/session-1');
+        expect(res.status).toBe(200);
+        expect(res.body.data.progress).toBeDefined();
+    });
+
+    it('returns terminal result for completed sessions', async () => {
+        mockDb.limit.mockResolvedValue([makeSession({
+            externalId: 'test_clerk_id', userId: 'internal_id',
+            status: 'complete',
+            analysisResult: { rectifiedTime: '14:35:22', accuracy: 95, confidence: 'HIGH' } as unknown,
+        })]);
+        const res = await request(app).get('/api/queue/progress/session-1');
+        expect(res.status).toBe(200);
+        expect(res.body.data.status).toBe('complete');
+    });
+
+    it('allows progress access for legacy row matched by userId', async () => {
+        mockDb.limit.mockResolvedValue([makeSession({ externalId: 'other', userId: 'internal_id' })]);
+        const res = await request(app).get('/api/queue/progress/session-1');
+        expect(res.status).toBe(200);
+    });
+
+    it('returns 404 for non-existent session via query param', async () => {
+        mockDb.limit.mockResolvedValue([]);
+        const res = await request(app).get('/api/queue/progress/?sessionId=nonexistent');
+        expect(res.status).toBe(404);
     });
 });

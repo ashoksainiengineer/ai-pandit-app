@@ -240,7 +240,6 @@ function checkMemoryComponent(): ComponentStatus {
   };
 }
 
-import { getActiveSseCount } from './stream.js';
 import { getActiveProcessingCount } from '../lib/queue-manager.js';
 
 async function collectMetrics(): Promise<Record<string, unknown>> {
@@ -315,7 +314,7 @@ async function collectMetrics(): Promise<Record<string, unknown>> {
       system: cpuUsage.system,
     },
     realtime: {
-      activeSseConnections: getActiveSseCount(),
+      activeProcessingSlots: getActiveProcessingCount(),
       activeQueueProcessing: getActiveProcessingCount(),
           circuitBreakers: getCircuitSnapshots(),
       recovery: recoveryTelemetry,

@@ -65,7 +65,8 @@ export interface CandidateScore {
     batch?: number;
     offsetMinutes?: number;
     minifiedEph?: { sun: string; moon: string; ascendant: string };
-    fullEph?: Record<string, string>; // High-precision technical coordinates
+    fullEph?: Record<string, string>;
+    reason?: string; // AI's one-line astrological verdict per batch
 }
 
 export interface StageStat {

@@ -537,11 +537,7 @@ export async function flushSessionTrash(sessionId: string): Promise<void> {
 }
 
 export async function heartbeat(sessionId: string): Promise<void> {
-  const redisStore = getRedisEventStore();
-  await redisStore.storeContext(sessionId, {
-    heartbeatAt: Date.now(),
-  });
-  await syncJobHeartbeat(sessionId, activeAttemptIds);
+    await syncJobHeartbeat(sessionId, activeAttemptIds);
 }
 
 async function markSessionQueuedForRetry(sessionId: string): Promise<void> {

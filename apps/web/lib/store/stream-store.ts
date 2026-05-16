@@ -657,7 +657,11 @@ return updates;
                     progress: state.progress,
                     activeAIStage: state.activeAIStage,
                     result: state.result,
-                    startedAt: state.startedAt
+                    startedAt: state.startedAt,
+                    decisions: state.decisions,
+                    metadata: state.metadata,
+                    error: state.error,
+                    allSteps: state.allSteps,
                 }),
             }
         ),

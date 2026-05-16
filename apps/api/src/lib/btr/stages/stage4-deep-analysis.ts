@@ -239,7 +239,8 @@ export async function stage4DeepAnalysis(
                         stage: 4,
                         batch: i + 1,
                         minifiedEph: getMinifiedEphemerisInline(candidate),
-                        fullEph: getFullEphemerisPayload(candidate)
+                        fullEph: getFullEphemerisPayload(candidate),
+                        reason,
                     });
                     emitDecision(input.sessionId, {
                         stage: 4,
@@ -356,7 +357,8 @@ export async function stage4DeepAnalysis(
                 stage: 4,
                 batch: 0,
                 minifiedEph: getMinifiedEphemerisInline(candidate),
-                fullEph: getFullEphemerisPayload(candidate)
+                fullEph: getFullEphemerisPayload(candidate),
+                reason,
             });
             emitDecision(input.sessionId, {
                 stage: 4,

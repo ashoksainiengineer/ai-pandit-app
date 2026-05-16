@@ -1,19 +1,11 @@
 // API ROUTES INDEX
 
-// RATE LIMITING ARCHITECTURE:
-// 1. Global rate limiter in server.ts SKIPS /api/stream and /api/queue/progress
-// 2. This file applies route-specific rate limiters
-// 3. Progress and Stream routes have their own lenient limiters (no double-limiting)
-// 4. Other routes get the standard apiRateLimiter
-
 import { Router, Request, Response, NextFunction } from 'express';
 import healthRouter from './health.js';
 import calculateRouter from './calculate.js';
 import queueRouter from './queue.js';
 import jobsRouter from './jobs.js';
 import progressRouter from './progress.js';
-import streamRouter from './stream.js';
-// warmupRouter removed for security realignment
 import sessionsRouter from './sessions.js';
 import candidateDetailRouter from './candidate-detail.js';
 import { config } from '../config/index.js';
@@ -49,8 +41,7 @@ const selectiveApiRateLimiter = (req: Request, res: Response, next: NextFunction
   logger.debug(`[Router] Incoming path: ${path} (original: ${req.originalUrl})`);
 
   // Skip rate limiting for real-time endpoints (they have their own limiters below)
-  if (path.startsWith('/stream') ||
-    path.startsWith('/queue/progress') ||
+    if (path.startsWith('/queue/progress') ||
     path === '/queue/progress' ||
     path.startsWith('/calculate') ||
     path.startsWith('/jobs') ||
@@ -107,11 +98,7 @@ router.use('/sessions', authMiddleware, apiRateLimiter, sessionsRouter);
 // Consent management - record and check AI processing consent
 router.use('/consent', authMiddleware, apiRateLimiter, consentRouter);
 
-// NOTE: auth is enforced within streamRouter to avoid duplicate auth verification.
-router.use('/stream', progressRateLimiter, streamRouter);
-
 // Candidate Detail — Tiered Loading (on-demand ephemeris + reasoning)
-// NOTE: auth is enforced within candidateDetailRouter to avoid duplicate auth verification.
 router.use('/candidate', progressRateLimiter, candidateDetailRouter);
 
 // Admin dashboard — role-based access control via assertAdminAccess()

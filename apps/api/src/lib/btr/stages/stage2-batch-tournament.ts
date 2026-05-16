@@ -250,6 +250,7 @@ export async function stage2BatchTournament(
                         stage: 2,
                         batch: i + 1,
                         minifiedEph: getMinifiedEphemerisInline(candidate),
+                        reason,
                     });
                     emitDecision(input.sessionId, {
                         stage: 2,
@@ -516,6 +517,7 @@ export async function stage2BatchTournament(
                         stage: 2,
                         batch: i + 1,
                         minifiedEph: getMinifiedEphemerisInline(candidate),
+                        reason,
                     });
                     emitDecision(input.sessionId, {
                         stage: 2,

@@ -146,3 +146,5 @@ requeue_debug.txt
 diabrowser-*
 extract-diabrowser.js
 .vercel
+.env.vercel.check
+.env.vercel.prod.check

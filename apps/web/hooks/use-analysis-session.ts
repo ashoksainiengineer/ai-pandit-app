@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useStreamProgress } from '@/lib/use-stream-progress';
+import { useAnalysisPolling } from '@/lib/use-analysis-polling';
 import { useStreamStore } from '@/lib/store/stream-store';
 import { useShallow } from 'zustand/react/shallow';
 import { useTestMode } from '@/lib/test-mode-context';
@@ -14,10 +14,8 @@ export function useAnalysisSession(
 ) {
     const isTestMode = useTestMode();
 
-    const { connectionState } = useStreamProgress(
-        (isLoaded && isSignedIn) || isTestMode ? sessionId : null,
-        undefined,
-        getToken
+    useAnalysisPolling(
+        (isLoaded && isSignedIn) || isTestMode ? sessionId : null
     );
 
     const {
@@ -46,8 +44,6 @@ export function useAnalysisSession(
         stageHistory: state.stageHistory,
     })));
 
-    const isConnected = connectionState.status === 'streaming' || connectionState.status === 'polling';
-
     const [elapsedSeconds, setElapsedSeconds] = useState(0);
     useEffect(() => {
         if (!startedAt) { setElapsedSeconds(0); return; }
@@ -60,15 +56,14 @@ export function useAnalysisSession(
         return () => clearInterval(interval);
     }, [startedAt]);
 
-    const hasError = streamError || connectionState.status === 'error';
-    const errorMessage = streamError || connectionState.lastError || 'Unknown error';
-    const hasData = progress || candidateScores.length > 0 || Object.keys(candidatesByStage).length > 0;
+    const hasError = !!streamError;
+    const errorMessage = streamError || 'Unknown error';
+    const hasData = !!(progress || candidateScores.length > 0 || Object.keys(candidatesByStage).length > 0);
 
     return {
-        connectionState,
-        isConnected,
         isComplete,
-        streamError,
+        hasError,
+        errorMessage,
         progress,
         candidateScores,
         result,
@@ -79,8 +74,6 @@ export function useAnalysisSession(
         candidatesByStage,
         stageHistory,
         elapsedSeconds,
-        hasError,
-        errorMessage,
         hasData,
     };
 }

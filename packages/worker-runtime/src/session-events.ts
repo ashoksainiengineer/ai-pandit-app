@@ -163,23 +163,11 @@ class SessionEventManager {
             (event as SessionEvent & { seq?: number }).seq = seq;
             this.logEvent(sessionId, seq, event);
             void this.persistEvent(sessionId, seq, event);
-
-            if (this.useRedis && this.redisStore.isAvailable()) {
-                void this.redisStore.logEvent(sessionId, seq, event);
-            }
         }
 
         const emitter = this.emitters.get(sessionId);
         if (emitter) {
             emitter.emit('event', event);
-        }
-
-        const skipBridgeTypes = ['ping', 'connected', 'ai_thinking_chunk'];
-        if (this.useRedis && this.redisStore.isAvailable() && !skipBridgeTypes.includes(eventType)) {
-            if (!(event as any)._fromBridge) {
-                void this.redisStore.publishEvent(sessionId, event);
-                this.redisPublishedCount++;
-            }
         }
 
         if (event.type === 'ai_context') {
@@ -514,18 +502,15 @@ export function emitCandidateScore(
     rank?: number,
     minifiedEph?: { sun: string; moon: string; ascendant: string },
     fullEph?: Record<string, string>,
-    batch?: number
+    batch?: number,
+    reason?: string // AI's one-line batch verdict, extracted from <FINAL_SCORES>
 ): void {
     console.info(`[SessionEventManager] Buffer Candidate Score: ${sessionId?.slice(0, 8)} | ${time} | ${score}`);
     const scoreEvent: CandidateScoreEvent = {
         type: 'candidate_score_v2',
-        time, score, stage, batch, rank, minifiedEph, fullEph,
+        time, score, stage, batch, rank, minifiedEph, fullEph, reason,
     };
     sessionEvents.bufferScore(sessionId, scoreEvent);
-    const redisStore = getRedisEventStore();
-    if (redisStore.isAvailable()) {
-        void redisStore.storeCandidateScore(sessionId, scoreEvent);
-    }
 }
 
 export function emitComplete(

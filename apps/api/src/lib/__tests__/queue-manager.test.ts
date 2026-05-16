@@ -390,17 +390,6 @@ describe('Queue Manager', () => {
         });
     });
 
-    describe('heartbeat', () => {
-        it('should store heartbeat in Redis', async () => {
-            const { getRedisEventStore } = await import('../../lib/redis-event-store.js');
-            await heartbeat('heart-sess');
-            const storeContext = vi.mocked(getRedisEventStore()).storeContext;
-            expect(storeContext).toHaveBeenCalledWith('heart-sess', expect.objectContaining({
-                heartbeatAt: expect.any(Number),
-            }));
-        });
-    });
-
     describe('worker recovery', () => {
         it('should recover running jobs after worker restart using checkpoint state', async () => {
             setMockResults([

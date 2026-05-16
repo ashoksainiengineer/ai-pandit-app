@@ -93,17 +93,6 @@ describe('BackendAuth Middleware', () => {
         expect(mockRes.status).toHaveBeenCalledWith(401);
     });
 
-    it('should send SSE-formatted auth error for /stream requests', async () => {
-        mockReq.originalUrl = '/api/stream/123';
-        mockReq.url = '/api/stream/123';
-
-        await authMiddleware(mockReq, mockRes, nextFunction);
-
-        expect(mockRes.setHeader).toHaveBeenCalledWith('Content-Type', 'text/event-stream');
-        expect(mockRes.write).toHaveBeenCalledWith(expect.stringContaining('Unauthorized'));
-        expect(mockRes.end).toHaveBeenCalled();
-    });
-
     it('should handle clock skew within 15 minutes', async () => {
         mockReq.headers.authorization = 'Bearer valid-token';
         (verifyToken as any).mockResolvedValue({

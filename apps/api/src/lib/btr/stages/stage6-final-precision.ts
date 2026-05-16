@@ -475,7 +475,8 @@ export async function stage6FinalPrecision(
                         stage: 6,
                         batch: i + 1,
                         minifiedEph: getMinifiedEphemerisInline(candidate),
-                        fullEph: getFullEphemerisPayload(candidate)
+                        fullEph: getFullEphemerisPayload(candidate),
+                        reason: isWinner ? 'Final precision stage winner' : 'Eliminated in final seconds-precision round',
                     });
                 }
 
@@ -687,7 +688,8 @@ Consensus Range: ${Math.min(...validEnhanced.map(c => c.precision?.consensus.ove
         batch: 0,
         rank: 1,
         minifiedEph: winnerPkg ? getMinifiedEphemerisInline(winnerPkg) : undefined,
-        fullEph: winnerPkg ? getFullEphemerisPayload(winnerPkg) : undefined
+        fullEph: winnerPkg ? getFullEphemerisPayload(winnerPkg) : undefined,
+        reason: `Final verdict: ${finalTime} | Confidence: ${confidence} | Accuracy: ${accuracy}% | Margin: ±${margin}s`,
     });
 
     await progress.completeStep('final', [`FINAL: ${finalTime} (${confidence})`]);

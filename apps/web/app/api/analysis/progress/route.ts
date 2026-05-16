@@ -15,10 +15,13 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ success: false, error: 'sessionId is required' }, { status: 400 });
     }
 
+    const since = req.nextUrl.searchParams.get('since') || '0';
+    const params = new URLSearchParams({ sessionId, since });
+
     return proxyBackendJson(req, {
       method: 'GET',
       path: '/api/queue/progress',
-      searchParams: new URLSearchParams({ sessionId }),
+      searchParams: params,
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
