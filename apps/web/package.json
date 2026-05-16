@@ -25,6 +25,7 @@
     "@clerk/clerk-react": "5.61.6",
     "@clerk/nextjs": "^6.0.0",
     "@google-cloud/storage": "5.20.4",
+    "@microsoft/fetch-event-source": "^2.0.1",
     "@tanstack/react-virtual": "^3.13.18",
     "date-fns": "^3.6.0",
     "framer-motion": "^11.0.0",

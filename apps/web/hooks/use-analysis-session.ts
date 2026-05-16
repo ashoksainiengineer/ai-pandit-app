@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useAnalysisPolling } from '@/lib/use-analysis-polling';
+import { useAnalysisSSE } from '@/lib/use-analysis-sse';
 import { useStreamStore } from '@/lib/store/stream-store';
 import { useShallow } from 'zustand/react/shallow';
 import { useTestMode } from '@/lib/test-mode-context';
@@ -14,7 +14,7 @@ export function useAnalysisSession(
 ) {
     const isTestMode = useTestMode();
 
-    useAnalysisPolling(
+    const { isConnected, isConnecting } = useAnalysisSSE(
         (isLoaded && isSignedIn) || isTestMode ? sessionId : null
     );
 
@@ -30,6 +30,8 @@ export function useAnalysisSession(
         activeAIStage,
         candidatesByStage,
         stageHistory,
+        batchConclusions,
+        stageConclusions,
     } = useStreamStore(useShallow(state => ({
         isComplete: state.isComplete,
         streamError: state.error,
@@ -42,6 +44,8 @@ export function useAnalysisSession(
         activeAIStage: state.activeAIStage,
         candidatesByStage: state.candidatesByStage,
         stageHistory: state.stageHistory,
+        batchConclusions: state.batchConclusions,
+        stageConclusions: state.stageConclusions,
     })));
 
     const [elapsedSeconds, setElapsedSeconds] = useState(0);
@@ -73,7 +77,11 @@ export function useAnalysisSession(
         activeAIStage,
         candidatesByStage,
         stageHistory,
+        batchConclusions,
+        stageConclusions,
         elapsedSeconds,
         hasData,
+        isConnected,
+        isConnecting,
     };
 }

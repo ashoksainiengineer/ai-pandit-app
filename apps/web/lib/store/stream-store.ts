@@ -16,6 +16,8 @@ import {
     StageStat,
     StreamResult,
     StreamMetadata,
+    BatchConclusion,
+    StageConclusion,
 } from './stream-types';
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -108,6 +110,8 @@ export const createInitialState = (): StreamState => ({
     decisions: [],
     lastEventId: 0,
     expandedCandidate: null,
+    batchConclusions: [],
+    stageConclusions: [],
 });
 
 interface StreamStore extends StreamState {
@@ -639,6 +643,28 @@ return updates;
                                 return { metadata: { ...(prev.metadata || {}), ...m } };
                             }
 
+                            case 'batch_conclusion': {
+                                const bc = payload as BatchConclusion;
+                                if (!bc || !bc.conclusion) return {};
+                                const existing = prev.batchConclusions.findIndex(
+                                    b => b.stage === bc.stage && b.round === bc.round && b.batch === bc.batch
+                                );
+                                const newBatchConclusions = existing >= 0
+                                    ? prev.batchConclusions.map((b, i) => i === existing ? { ...bc, receivedAt: Date.now() } : b)
+                                    : [...prev.batchConclusions, { ...bc, receivedAt: Date.now() }].slice(-200);
+                                return { batchConclusions: newBatchConclusions };
+                            }
+
+                            case 'stage_conclusion': {
+                                const sc = payload as StageConclusion;
+                                if (!sc || !sc.conclusion) return {};
+                                const existing = prev.stageConclusions.findIndex(s => s.stage === sc.stage);
+                                const newStageConclusions = existing >= 0
+                                    ? prev.stageConclusions.map((s, i) => i === existing ? { ...sc, receivedAt: Date.now() } : s)
+                                    : [...prev.stageConclusions, { ...sc, receivedAt: Date.now() }];
+                                return { stageConclusions: newStageConclusions };
+                            }
+
                             default:
                                 return {};
                         }
@@ -662,6 +688,8 @@ return updates;
                     metadata: state.metadata,
                     error: state.error,
                     allSteps: state.allSteps,
+                    batchConclusions: state.batchConclusions,
+                    stageConclusions: state.stageConclusions,
                 }),
             }
         ),

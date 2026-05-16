@@ -123,6 +123,27 @@ export interface ExpandedCandidateData {
     error?: string;
 }
 
+export interface BatchConclusion {
+    stage: number;
+    round: number;
+    batch: number;
+    totalBatches: number;
+    conclusion: string;
+    candidatesInBatch: number;
+    survivorsCount: number;
+    receivedAt: number;
+}
+
+export interface StageConclusion {
+    stage: number;
+    stageName: string;
+    candidatesIn: number;
+    candidatesOut: number;
+    conclusion: string;
+    topCandidateTimes: string[];
+    receivedAt: number;
+}
+
 export interface StreamState {
     sessionId: string | null;
     isComplete: boolean;
@@ -148,4 +169,8 @@ export interface StreamState {
     lastEventId: number;
     /** 🔱 TIERED LOADING: Currently expanded candidate's heavy data */
     expandedCandidate: ExpandedCandidateData | null;
+    /** Persisted batch conclusions (one per batch in stages 2, 4, 6) */
+    batchConclusions: BatchConclusion[];
+    /** Persisted stage conclusions (one per AI stage 2, 4, 6) */
+    stageConclusions: StageConclusion[];
 }
