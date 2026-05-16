@@ -23,7 +23,7 @@ import {
   MapPin,
   Timer
 } from 'lucide-react';
-import { useStreamProgress } from '@/lib/use-stream-progress';
+import { useAnalysisPolling } from '@/lib/use-analysis-polling';
 import { useStreamStore } from '@/lib/store/stream-store';
 import { useShallow } from 'zustand/react/shallow';
 import type { CandidateScore } from '@/lib/store/stream-types';
@@ -166,7 +166,11 @@ export default function AnalysisPage() {
   const sessionId = params.id as string;
   const pageTitleId = useId();
 
-  const { connectionState } = useStreamProgress(sessionId, undefined, undefined);
+  useAnalysisPolling(sessionId);
+
+  // Polling is always active — no SSE connection state to track
+  const connectionState = { status: 'polling' as const, url: '', lastError: null };
+  const isConnected = true;
 
   // ═══════════════════════════════════════════════════════════════════════════
   // INDUSTRY PATTERN: Batched shallow selectors (Linear/Vercel/Figma pattern)
@@ -217,7 +221,7 @@ export default function AnalysisPage() {
     stageStats: state.stageStats,
   })));
 
-  const isConnected = connectionState.status === 'streaming' || connectionState.status === 'polling';
+  // isConnected declared above with the connectionState constant
 
   const [isCancelling, _setIsCancelling] = useState(false);
   const [cancelled, setCancelled] = useState(false);
@@ -244,7 +248,7 @@ export default function AnalysisPage() {
   useEffect(() => {
     if (isComplete) {
       // Guard: Don't process if store rehydrated stale isComplete from localStorage
-      if (connectionState.status === 'idle' || connectionState.status === 'connecting') return;
+      // Polling is always active; result is from store
 
       // Save result to localStorage if available (SSE provides it, polling may not)
       if (result) {
@@ -328,16 +332,15 @@ export default function AnalysisPage() {
     return Array.from(uniqueMap.values()).sort((a, b) => b.score - a.score);
   }, [candidateScores]);
 
-  const hasError = streamError || connectionState.status === 'error';
-  const errorMessage = streamError || connectionState.lastError || 'Unknown error';
-
-  // Guard: Show loading ONLY if we have NO data at all AND no active/recovering connection
+  const hasError = streamError;
+  const errorMessage = streamError || 'Unknown error';
+  // Polling is always active; only hasData indicates state
   const hasData = progress || candidateScores.length > 0 || Object.keys(candidatesByStage).length > 0;
-  if (!isConnected && !hasError && !result && !hasData && connectionState.status !== 'polling' && connectionState.status !== 'connecting') {
+  if (!hasError && !result && !hasData) {
     return <LoadingState />;
   }
 
-  if (hasError && !result && connectionState.status === 'error') {
+  if (hasError && !result) {
     return <ErrorDisplay error={errorMessage} onRetry={() => router.push(`/rectify/${sessionId}`)} />;
   }
 

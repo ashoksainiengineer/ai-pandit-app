@@ -889,10 +889,10 @@ export default function AnalysisPage() {
     router.push('/sign-in');
     return <LoadingState />;
   }
-  if (!actions.cancelled && !session.isConnected && !session.hasError && !session.result && !session.hasData && session.connectionState.status !== 'polling' && session.connectionState.status !== 'connecting') {
+  if (!actions.cancelled && !session.hasError && !session.result && !session.hasData) {
     return <LoadingState />;
   }
-  if (session.hasError && !session.result && session.connectionState.status === 'error') {
+  if (session.hasError && !session.result) {
     return <ErrorState error={session.errorMessage} onRetry={() => router.refresh()} />;
   }
 
@@ -927,7 +927,7 @@ export default function AnalysisPage() {
           {/* Status Banner */}
           <StatusBanner
             currentStage={currentStageIndex}
-            isConnected={session.isConnected}
+            isConnected={true}
             isComplete={session.isComplete}
             elapsedSeconds={session.elapsedSeconds}
           />
@@ -937,7 +937,7 @@ export default function AnalysisPage() {
             <Pipeline
               currentStage={currentStageIndex}
               isComplete={session.isComplete}
-              isConnected={session.isConnected}
+              isConnected={true}
               percentage={session.progress?.percentage}
             />
           )}
