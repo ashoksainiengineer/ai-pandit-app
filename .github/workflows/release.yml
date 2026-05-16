@@ -77,7 +77,6 @@ jobs:
       CLOUD_RUN_REGION: ${{ vars.CLOUD_RUN_REGION || 'asia-southeast1' }}
       ARTIFACT_REGISTRY_REPO: ${{ vars.ARTIFACT_REGISTRY_REPO || 'ai-pandit' }}
       API_SERVICE_NAME: api-service
-      WORKER_SERVICE_NAME: worker-service
       EPHEMERIS_SERVICE_NAME: ephemeris-service
     steps:
       - uses: actions/checkout@v4
@@ -96,7 +95,6 @@ jobs:
           npm --workspace @ai-pandit/db run build
           npm --workspace @ai-pandit/worker-runtime run build
           npm --workspace @ai-pandit/api run build
-          npm --workspace @ai-pandit/worker run build
 
       - name: Authenticate to Google Cloud (OIDC)
         uses: google-github-actions/auth@v2
@@ -111,11 +109,10 @@ jobs:
         run: |
           npm run deploy:cloudrun:ephemeris
           npm run deploy:cloudrun:api
-          npm run deploy:cloudrun:worker
 
       - name: Verify all services health
         run: |
-          for service in "$API_SERVICE_NAME" "$WORKER_SERVICE_NAME" "$EPHEMERIS_SERVICE_NAME"; do
+          for service in "$API_SERVICE_NAME" "$EPHEMERIS_SERVICE_NAME"; do
             URL=$(gcloud run services describe "$service" --project "$GCP_PROJECT_ID" --region "$CLOUD_RUN_REGION" --format='value(status.url)')
             for i in $(seq 1 30); do
               if curl -fsS "$URL/health" >/dev/null || curl -fsS "$URL/live" >/dev/null; then
@@ -126,8 +123,5 @@ jobs:
             done
           done
 
-      - name: Apply production worker mode
-        run: |
-          # For production releases, optionally enable always-on worker
-          # Uncomment if needed: sh ./scripts/enable-production-worker-mode.sh
-          echo "Production deployment complete"
+      - name: Post-deploy notification
+        run: echo "Production deployment complete. Inline mode active — no separate worker needed."
