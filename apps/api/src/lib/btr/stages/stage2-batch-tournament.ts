@@ -12,7 +12,7 @@ import { CandidateTime, getCandidateIdentity, getDynamicBatchSize, getDynamicSur
 import { ProgressTracker } from '../../progress-tracker.js';
 import { _callAIWithStream } from '../../ai-client.js';
 import { executeAIWithBackpressure } from '../../ai-helpers.js';
-import { emitAIContext, emitDecision } from '../../session-events.js';
+import { emitAIContext, emitDecision, emitBatchConclusion, emitStageConclusion } from '../../session-events.js';
 import { throwIfCancelled } from '../../cancellation-manager.js';
 import { cleanup } from '../../ephemeris.js';
 import { buildCandidateDataPackage } from '../data-package-builder.js';
@@ -261,6 +261,16 @@ export async function stage2BatchTournament(
                         batch: i + 1
                     });
                 }
+
+                emitBatchConclusion(input.sessionId, {
+                    stage: 2,
+                    round: roundNumber,
+                    batch: i + 1,
+                    totalBatches: batches.length,
+                    conclusion: mergedContent,
+                    candidatesInBatch: batchEnriched.length,
+                    survivorsCount: batchSurvivors.length,
+                });
 
                 batchSurvivorResults.set(i, batchSurvivors);
                 return batchSurvivors;
@@ -529,6 +539,16 @@ export async function stage2BatchTournament(
                     });
                 }
 
+                emitBatchConclusion(input.sessionId, {
+                    stage: 2,
+                    round: roundNumber,
+                    batch: i + 1,
+                    totalBatches: batches.length,
+                    conclusion: mergedContent,
+                    candidatesInBatch: batchEnriched.length,
+                    survivorsCount: batchSurvivors.length,
+                });
+
                 batchSurvivorResults.set(i, batchSurvivors);
                 return batchSurvivors;
             },
@@ -615,6 +635,15 @@ export async function stage2BatchTournament(
         `Tournament complete: ${currentCandidates.length} survivors verified.`,
         `(Includes tentative + safety net protection)`,
     ]);
+
+    emitStageConclusion(input.sessionId, {
+        stage: 2,
+        stageName: 'Batch Tournament',
+        candidatesIn: candidates.length,
+        candidatesOut: currentCandidates.length,
+        conclusion: currentCandidates.map(c => c.time).join('\n'),
+        topCandidateTimes: sortCandidatesByMerit(currentCandidates).slice(0, 5).map(c => c.time),
+    });
 
     return {
         survivors: currentCandidates,

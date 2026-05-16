@@ -12,7 +12,7 @@ import { CandidateTime, getCandidateIdentity, getDynamicBatchSize, getDynamicSur
 import { ProgressTracker } from '../../progress-tracker.js';
 import { _callAIWithStream } from '../../ai-client.js';
 import { executeAIWithBackpressure } from '../../ai-helpers.js';
-import { emitAIContext, emitDecision } from '../../session-events.js';
+import { emitAIContext, emitDecision, emitBatchConclusion, emitStageConclusion } from '../../session-events.js';
 import { throwIfCancelled } from '../../cancellation-manager.js';
 import { buildCandidateDataPackage } from '../data-package-builder.js';
 import { getDeepAnalysisPrompt } from '../prompts/index.js';
@@ -252,6 +252,16 @@ export async function stage4DeepAnalysis(
                     });
                 }
 
+                emitBatchConclusion(input.sessionId, {
+                    stage: 4,
+                    round: roundNumber,
+                    batch: i + 1,
+                    totalBatches: batches.length,
+                    conclusion: mergedContent,
+                    candidatesInBatch: batchEnriched.length,
+                    survivorsCount: batchSurvivors.length,
+                });
+
                 return { batchSurvivors, aiContent: mergedContent };
             },
             config.ai.parallelConcurrency,
@@ -379,6 +389,15 @@ export async function stage4DeepAnalysis(
 
     await sleep(2000);
     await progress.completeStep('deep', [`Deep analysis: ${currentCandidates.length} survivors`]);
+
+    emitStageConclusion(input.sessionId, {
+        stage: 4,
+        stageName: 'Deep Multi-Dasha Analysis',
+        candidatesIn: candidates.length,
+        candidatesOut: Math.min(currentCandidates.length, 7),
+        conclusion: allReasoning,
+        topCandidateTimes: sortCandidatesByMerit(currentCandidates).slice(0, 5).map(c => c.time),
+    });
 
     return {
         survivors: sortCandidatesByMerit(currentCandidates).slice(0, 7),

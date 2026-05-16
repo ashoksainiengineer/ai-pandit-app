@@ -12,7 +12,7 @@ import { CandidateTime, getCandidateIdentity, getDynamicBatchSize, getDynamicSur
 import { ProgressTracker } from '../../progress-tracker.js';
 import { _callAIWithStream } from '../../ai-client.js';
 import { executeAIWithBackpressure } from '../../ai-helpers.js';
-import { emitAIContext } from '../../session-events.js';
+import { emitAIContext, emitBatchConclusion, emitStageConclusion } from '../../session-events.js';
 import { throwIfCancelled } from '../../cancellation-manager.js';
 import { calculateEphemeris } from '../../ephemeris.js';
 import { getDashaForDate } from '../../vedic-astrology-engine.js';
@@ -640,6 +640,16 @@ Consensus Range: ${Math.min(...validEnhanced.map(c => c.precision?.consensus.ove
       : '';
     const verdict = extractFinalVerdict(mergedContent);
 
+    emitBatchConclusion(input.sessionId, {
+        stage: 6,
+        round: 1,
+        batch: 1,
+        totalBatches: 1,
+        conclusion: mergedContent,
+        candidatesInBatch: finalBatch.length,
+        survivorsCount: 1,
+    });
+
     const resolvedFinalWinner = resolveCandidateByVerdictTime(
         verdict?.time,
         finalists,
@@ -693,6 +703,15 @@ Consensus Range: ${Math.min(...validEnhanced.map(c => c.precision?.consensus.ove
     });
 
     await progress.completeStep('final', [`FINAL: ${finalTime} (${confidence})`]);
+
+    emitStageConclusion(input.sessionId, {
+        stage: 6,
+        stageName: usedFallbackWinner ? 'Final Precision (Fallback)' : 'Final Precision',
+        candidatesIn: candidates.length,
+        candidatesOut: 1,
+        conclusion: mergedContent,
+        topCandidateTimes: [finalTime],
+    });
 
     return {
         finalCandidate,
