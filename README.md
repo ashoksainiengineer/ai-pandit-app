@@ -1,9 +1,12 @@
 # AI-Pandit: Autonomous BTR Engine
 
 [![License: Proprietary](https://img.shields.io/badge/License-Proprietary-red.svg)](LICENSE)
+[![Status](https://img.shields.io/badge/Status-Under%20Development-yellow.svg)]()
 [![Build Status](https://img.shields.io/badge/Build-Passing-brightgreen.svg)](https://github.com/ashoksainiengineer/ai-pandit-app/actions)
 [![Security: AES-256-GCM](https://img.shields.io/badge/Security-AES--256--GCM-blue.svg)](.github/SECURITY.md)
 [![Architecture: Redis Event Bridge](https://img.shields.io/badge/Architecture-Redis%20Event%20Bridge-orange.svg)](docs/architecture.md)
+
+> **⚠️ UNDER DEVELOPMENT — APIs, architecture, and behavior may change without notice.**
 
 > **⚠️ PROPRIETARY SOFTWARE — ALL RIGHTS RESERVED**
 > This repository is publicly visible for transparency and portfolio purposes only.
