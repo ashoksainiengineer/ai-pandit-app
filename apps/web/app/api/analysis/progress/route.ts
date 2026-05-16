@@ -6,17 +6,25 @@ export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 export async function GET(req: NextRequest) {
-  const buildPhaseResponse = getBuildPhaseRouteResponse();
-  if (buildPhaseResponse) return buildPhaseResponse;
+  try {
+    const buildPhaseResponse = getBuildPhaseRouteResponse();
+    if (buildPhaseResponse) return buildPhaseResponse;
 
-  const sessionId = req.nextUrl.searchParams.get('sessionId');
-  if (!sessionId) {
-    return NextResponse.json({ success: false, error: 'sessionId is required' }, { status: 400 });
+    const sessionId = req.nextUrl.searchParams.get('sessionId');
+    if (!sessionId) {
+      return NextResponse.json({ success: false, error: 'sessionId is required' }, { status: 400 });
+    }
+
+    return proxyBackendJson(req, {
+      method: 'GET',
+      path: '/api/queue/progress',
+      searchParams: new URLSearchParams({ sessionId }),
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    return NextResponse.json(
+      { success: false, error: `Progress proxy error: ${message}` },
+      { status: 500 }
+    );
   }
-
-  return proxyBackendJson(req, {
-    method: 'GET',
-    path: '/api/queue/progress',
-    searchParams: new URLSearchParams({ sessionId }),
-  });
 }
